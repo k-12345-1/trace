@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		BB00000000000000000190 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BB000000000000000000A0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB00000000000000000060;
+			remoteInfo = "Climbing App";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		BB00000000000000000050 /* Climbing App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Climbing App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB00000000000000000110 /* Climbing AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Climbing AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,24 +116,6 @@
 		};
 /* End PBXNativeTarget section */
 
-/* Begin PBXContainerItemProxy section */
-		BB00000000000000000190 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BB000000000000000000A0 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = BB00000000000000000060;
-			remoteInfo = "Climbing App";
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXTargetDependency section */
-		BB000000000000000001A0 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = BB00000000000000000060 /* Climbing App */;
-			targetProxy = BB00000000000000000190 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin PBXProject section */
 		BB000000000000000000A0 /* Project object */ = {
 			isa = PBXProject;
@@ -195,6 +187,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		BB000000000000000001A0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BB00000000000000000060 /* Climbing App */;
+			targetProxy = BB00000000000000000190 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		BB000000000000000000C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -202,23 +202,23 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -230,16 +230,16 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				MTL_ENABLE_DEBUG_INFO = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -346,20 +346,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BB000000000000000000B0 /* Build configuration list for PBXProject "Climbing App" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				BB000000000000000000C0 /* Debug */,
-				BB000000000000000000D0 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		BB00000000000000000070 /* Build configuration list for PBXNativeTarget "Climbing App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BB000000000000000000E0 /* Debug */,
 				BB000000000000000000F0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB000000000000000000B0 /* Build configuration list for PBXProject "Climbing App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB000000000000000000C0 /* Debug */,
+				BB000000000000000000D0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

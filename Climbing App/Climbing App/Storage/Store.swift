@@ -9,6 +9,9 @@ final class Store: ObservableObject {
     /// The one thing you are working on. Persists across sessions until it improves.
     @Published private(set) var focus: Focus?
     @Published private(set) var gyms: [Gym] = []
+    /// Who is signed in. Identity only: nothing about this moves climbs off the phone.
+    @Published private(set) var account: Account?
+    @Published private(set) var session: Session?
     @Published private(set) var routes: [Route] = []
 
     static let shared = Store()
@@ -25,6 +28,7 @@ final class Store: ObservableObject {
     nonisolated private static var focusURL: URL { documents.appendingPathComponent("focus.json") }
     nonisolated private static var gymsURL: URL { documents.appendingPathComponent("gyms.json") }
     nonisolated private static var routesURL: URL { documents.appendingPathComponent("routes.json") }
+    nonisolated private static var accountURL: URL { documents.appendingPathComponent("account.json") }
 
     nonisolated static var routePhotosDirectory: URL {
         let url = documents.appendingPathComponent("Routes", isDirectory: true)
@@ -51,6 +55,11 @@ final class Store: ObservableObject {
         if let data = try? Data(contentsOf: Self.routesURL) {
             routes = (try? decoder.decode([Route].self, from: data)) ?? []
         }
+        if let data = try? Data(contentsOf: Self.accountURL) {
+            account = try? decoder.decode(Account.self, from: data)
+        }
+        // The tokens live in the keychain, never beside the climbs.
+        session = Keychain.load()
 
         // Re-judge the focus at launch. Without this a focus that was already met
         // keeps showing as open until the next climb happens to be saved.
@@ -106,6 +115,54 @@ final class Store: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(climbs) else { return }
         try? data.write(to: Self.indexURL, options: .atomic)
+    }
+
+    // MARK: Account
+
+    func signedIn(session: Session, name: String = "") {
+        self.session = session
+        Keychain.save(session)
+        var acc = Account.signedIn(session: session, name: name)
+        // Keep a name already typed on this phone rather than losing it on sign-in.
+        if acc.name.isEmpty, let existing = account, !existing.name.isEmpty {
+            acc.name = existing.name
+        }
+        account = acc
+        persistAccount()
+    }
+
+    func continueLocally(name: String) {
+        session = nil
+        Keychain.clear()
+        account = .local(name: name)
+        persistAccount()
+    }
+
+    /// Clears the identity and the tokens. Climbs are not touched: they belong to
+    /// the phone, and signing out of an identity should never delete a person's
+    /// training history.
+    func signOut() {
+        if let session { Task { await AuthClient.signOut(session: session) } }
+        session = nil
+        account = nil
+        Keychain.clear()
+        try? FileManager.default.removeItem(at: Self.accountURL)
+    }
+
+    /// Refreshes an expired token in the background. A failure is not fatal:
+    /// everything the app does works offline anyway.
+    func refreshSessionIfNeeded() async {
+        guard let current = session, current.isExpired, AuthClient.isConfigured else { return }
+        if let renewed = try? await AuthClient.refresh(session: current) {
+            session = renewed
+            Keychain.save(renewed)
+        }
+    }
+
+    private func persistAccount() {
+        let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601
+        guard let account, let data = try? e.encode(account) else { return }
+        try? data.write(to: Self.accountURL, options: .atomic)
     }
 
     // MARK: Gyms and routes

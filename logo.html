@@ -1,0 +1,288 @@
+<title>Trace Marks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#140A0C; --surface:#1F0E12; --surface-2:#2D141A;
+  --line:#3A181E; --line-strong:#56242C; --wine:#5C1A23;
+  --ink:#F2EDE8; --ink-2:#B3A49F; --ink-3:#7C6B67;
+  --accent:#E8452A; --accent-text:#FF6A4D;
+  --bone:#F7F2ED;
+  --f-ui:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ground:#F7F2ED; --surface:#FFFDFA; --surface-2:#EDE4DC;
+    --line:#DDD0C8; --line-strong:#B9A79E;
+    --ink:#220F12; --ink-2:#5E4A46; --ink-3:#8D7A75;
+    --accent-text:#B83318;
+  }
+}
+:root[data-theme="light"]{
+  --ground:#F7F2ED; --surface:#FFFDFA; --surface-2:#EDE4DC;
+  --line:#DDD0C8; --line-strong:#B9A79E;
+  --ink:#220F12; --ink-2:#5E4A46; --ink-3:#8D7A75;
+  --accent-text:#B83318;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-ui);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.03;letter-spacing:-.025em;font-weight:700}
+h2{font-size:22px;line-height:1.2;letter-spacing:-.015em;font-weight:600}
+h3{font-size:16px;font-weight:600;letter-spacing:-.005em}
+p{margin:0}
+.micro{font-family:var(--f-mono);font-size:10px;font-weight:500;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-3);margin:0}
+.lede{font-size:16.5px;line-height:1.55;color:var(--ink-2);max-width:66ch}
+.note{font-size:13px;line-height:1.55;color:var(--ink-2)}
+
+header{padding:36px 0 0}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding-bottom:22px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px}
+.brand b{font-weight:700;letter-spacing:-.02em;font-size:15px}
+.toggle{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;
+  background:transparent;color:var(--ink-2);border:1px solid var(--line-strong);border-radius:4px;
+  padding:7px 12px;cursor:pointer}
+.toggle:hover{color:var(--ink);border-color:var(--ink-3)}
+.toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.intro{padding:38px 0 26px;display:flex;flex-direction:column;gap:16px}
+
+/* Reference row */
+.refs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-bottom:8px}
+.ref{background:var(--surface);padding:15px;display:flex;flex-direction:column;gap:9px}
+.ref p{font-size:12px;line-height:1.45;color:var(--ink-2)}
+
+/* Candidates */
+.cands{display:flex;flex-direction:column;gap:1px;background:var(--line);
+  border:1px solid var(--line)}
+.cand{background:var(--surface);padding:22px;display:grid;
+  grid-template-columns:150px minmax(0,1fr) 210px;gap:26px;align-items:start}
+@media (max-width:860px){.cand{grid-template-columns:1fr;gap:18px}}
+.tile{width:150px;height:150px;border-radius:26px;display:grid;place-items:center;flex:none}
+.tile.dark{background:#E8452A}
+.tile.dark-2{background:#140A0C}
+.copy{display:flex;flex-direction:column;gap:9px;min-width:0}
+.copy .why{font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.copy .risk{font-size:12.5px;line-height:1.5;color:var(--ink-3)}
+.sizes{display:flex;flex-direction:column;gap:10px}
+.sizerow{display:flex;align-items:flex-end;gap:12px}
+.sz{border-radius:22%;display:grid;place-items:center;background:#E8452A;flex:none}
+.mono-test{display:flex;gap:10px;align-items:center}
+.mono-test .sz{background:#140A0C}
+.mono-test .sz.bone{background:var(--bone)}
+
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line)}
+.rule{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:7px}
+.rule p{font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+section{border-top:1px solid var(--line);padding:34px 0}
+.sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+footer{border-top:1px solid var(--line);padding:26px 0 56px}
+</style>
+
+<header class="wrap">
+  <div class="bar">
+    <div class="brand"><b>TRACE</b><p class="micro">Logo candidates</p></div>
+    <button class="toggle" id="tg" type="button">Invert</button>
+  </div>
+  <div class="intro">
+    <p class="micro">The brief</p>
+    <h1>The wireframe,<br>reduced to a mark.</h1>
+    <p class="lede">Two new candidates take the wireframe graphic as their basis, and they are the first here built from curves. That is a deliberate reversal of the straight-lines-only note: the reference form is a swept volume, and it cannot be made from mitred segments without becoming something else. The rest of the set stays angular so both directions can be judged side by side. White on vermilion throughout, and every mark is shown at 28 pixels, because that is where marks die.</p>
+  </div>
+
+  <div class="refs">
+    <div class="ref">
+      <h3>Kaya</h3>
+      <p>Monoline, held inside a square frame. The frame does the containing so the line inside can be loose.</p>
+    </div>
+    <div class="ref">
+      <h3>Strava</h3>
+      <p>One form repeated at two weights. The tint is what creates depth, not a gradient.</p>
+    </div>
+    <div class="ref">
+      <h3>Black Diamond</h3>
+      <p>Solid silhouette, and the notch of negative space is the whole idea. Survives at any size.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="sec-head">
+      <p class="micro">Candidates</p>
+      <h2>Each one means something specific</h2>
+      <p class="note">Not decoration. Every mark below draws something the app actually measures.</p>
+    </div>
+    <div class="cands" id="cands"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="micro">The rules they are built to</p>
+      <h2>What makes a mark survive</h2>
+    </div>
+    <div class="rules">
+      <div class="rule">
+        <p class="micro" style="color:var(--accent-text)">Two weights, one colour</p>
+        <p>Where a mark has a secondary element it is the same white at reduced opacity, the way Strava tints its lower chevron. Never a second hue.</p>
+      </div>
+      <div class="rule">
+        <p class="micro" style="color:var(--accent-text)">No hairlines</p>
+        <p>Nothing thinner than 6 percent of the tile. A 2px stroke looks elegant at 1024 and disappears at 28.</p>
+      </div>
+      <div class="rule">
+        <p class="micro" style="color:var(--accent-text)">Inside the safe area</p>
+        <p>The mark sits within the middle 76 percent. iOS rounds the corners and the eye crops further.</p>
+      </div>
+      <div class="rule">
+        <p class="micro" style="color:var(--accent-text)">Constructed, not drawn</p>
+        <p>Dome and Boulder are curved, but every curve is symmetric and generated rather than sketched. That is the difference between the reference graphic and the squiggle the app currently ships.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p class="note"><strong>Frame has been dropped</strong> to make room, since it was the most derivative of the set. <strong>Apex went earlier:</strong> A peak with a dot sits in the most crowded corner of outdoor branding, beside Strava and every trail logo there is, and it was the least constructed of the five. Step replaces it. The mark currently shipping in the app is still none of these: an organic curved line on a dark ground, illustrative rather than built.</p>
+</footer>
+
+<script>
+(function () {
+  // Every mark is authored in a 100 x 100 box with a 12 unit margin, so they can
+  // be rendered at any size from the same path data.
+  // Authored in a 100 x 100 box. Straight segments only: every vertex sits on the
+  // grid and diagonals are 45 degrees wherever the geometry allows.
+  var MARKS = {
+    boulder: {
+      name: "Boulder",
+      idea: "The reference graphic as a mark. A rounded form described only by its contours, the way a surveyed rock is drawn. It is the one candidate that says climbing before it says measurement.",
+      risk: "The densest of the set. Seven lines is a lot to ask of 28 pixels, and it is the only mark here built from curves.",
+      draw: function (c, o) {
+        return '<path d="M14 86 C14 42 30 12 50 12 C70 12 86 42 86 86 Z" stroke="' + c + '" stroke-width="5" fill="none"/>' +
+               '<path d="M21 46 C35 40 65 40 79 46" stroke="' + c + '" stroke-width="4" fill="none" opacity="' + o + '"/>' +
+               '<path d="M16 66 C33 59 67 59 84 66" stroke="' + c + '" stroke-width="4" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 12 C33 30 29 58 31 86" stroke="' + c + '" stroke-width="4" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 12 C67 30 71 58 69 86" stroke="' + c + '" stroke-width="4" fill="none" opacity="' + o + '"/>';
+      }
+    },
+    dome: {
+      name: "Dome",
+      idea: "The move the reference actually makes: meridians swept between two poles so a volume appears out of nothing but lines. Five strokes, perfectly symmetric, and it holds its shape all the way down.",
+      risk: "Reads as a form rather than as climbing. It needs the wordmark to say what it is.",
+      draw: function (c, o) {
+        return '<path d="M50 90 C16 70 16 30 50 10" stroke="' + c + '" stroke-width="6" fill="none"/>' +
+               '<path d="M50 90 C31 72 31 28 50 10" stroke="' + c + '" stroke-width="6" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 90 V10" stroke="' + c + '" stroke-width="6" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 90 C69 72 69 28 50 10" stroke="' + c + '" stroke-width="6" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 90 C84 70 84 30 50 10" stroke="' + c + '" stroke-width="6" fill="none"/>';
+      }
+    },
+    chord: {
+      name: "Chord",
+      idea: "A straight datum with the trace cutting away from it and back. The filled wedge is the difference between the line you could have climbed and the line you did, which is what geometric entropy measures.",
+      risk: "A symmetric triangle beside a line reads as a media transport button. Kept deliberately off-centre to break that.",
+      draw: function (c, o) {
+        return '<path d="M50 6 V94" stroke="' + c + '" stroke-width="8" fill="none"/>' +
+               '<path d="M50 20 L18 54 L50 76 Z" fill="' + c + '" opacity="' + o + '"/>';
+      }
+    },
+    hull: {
+      name: "Hull",
+      idea: "The entropy formula drawn literally. The heavy line is the centre-of-mass path, the light polygon is its convex hull, and the score is the ratio between the two.",
+      risk: "Two shapes competing for the same space. The most exact and the least immediate.",
+      draw: function (c, o) {
+        return '<path d="M50 92 L28 70 L30 36 L50 8 L66 28 L68 66 Z" stroke="' + c + '" stroke-width="5" stroke-linejoin="miter" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 92 L32 70 L62 54 L36 38 L58 22 L50 8" stroke="' + c + '" stroke-width="9" stroke-linejoin="miter" fill="none"/>';
+      }
+    },
+    frame: {
+      name: "Frame",
+      idea: "The Kaya move. A square holds the composition so the trace inside can wander without falling apart, and the trace breaks the frame top and bottom to say the climb runs past what you filmed.",
+      risk: "Closest to the reference. It will be read as a relative of Kaya.",
+      draw: function (c, o) {
+        return '<rect x="16" y="16" width="68" height="68" stroke="' + c + '" stroke-width="8" fill="none" opacity="' + o + '"/>' +
+               '<path d="M50 98 L30 76 L64 58 L36 40 L58 22 L50 2" stroke="' + c + '" stroke-width="10" stroke-linejoin="miter" fill="none"/>';
+      }
+    },
+    step: {
+      name: "Step",
+      idea: "Right angles only. A trace is also the word for a conductor on a circuit board and for a line on an instrument readout, so an orthogonal path says measurement before it says climbing. The most constructed of the five.",
+      risk: "Reads as technical rather than physical. Further from a body on a wall than the others.",
+      draw: function (c, o) {
+        return '<path d="M26 94 V72 H54 V52 H30 V32 H74 V6" stroke="' + c + '" stroke-width="10" stroke-linejoin="miter" fill="none"/>';
+      }
+    },
+    pair: {
+      name: "Pair",
+      idea: "Two goes at the same boulder side by side, one wandering and one clean. The whole product in two strokes: never a score against other people, always a comparison against your own last attempt.",
+      risk: "Reads as an abstract glyph rather than an object. Needs the wordmark beside it for a while.",
+      draw: function (c, o) {
+        return '<path d="M30 8 L14 32 L40 48 L18 68 L32 84 L30 92" stroke="' + c + '" stroke-width="9" stroke-linejoin="miter" fill="none" opacity="' + o + '"/>' +
+               '<path d="M72 8 V92" stroke="' + c + '" stroke-width="9" fill="none"/>';
+      }
+    }
+  };
+
+  function svg(key, size, colour, opacity) {
+    var m = MARKS[key];
+    return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" role="img" ' +
+           'aria-label="' + m.name + ' mark">' + m.draw(colour, opacity == null ? 0.45 : opacity) + '</svg>';
+  }
+
+  // White on vermilion. Pure white rather than the interface bone, because a
+  // mark on a saturated field wants maximum contrast, the way Strava does it.
+  var MARK = '#FFFFFF', INK = '#140A0C', BONE = '#F7F2ED';
+  var order = ['dome', 'boulder', 'chord', 'hull', 'step', 'pair'];
+  var html = order.map(function (key) {
+    var m = MARKS[key];
+    return '' +
+      '<div class="cand">' +
+        '<div class="tile dark">' + svg(key, 104, MARK) + '</div>' +
+        '<div class="copy">' +
+          '<h3>' + m.name + '</h3>' +
+          '<p class="why">' + m.idea + '</p>' +
+          '<p class="risk"><strong>Risk.</strong> ' + m.risk + '</p>' +
+        '</div>' +
+        '<div class="sizes">' +
+          '<p class="micro">At size</p>' +
+          '<div class="sizerow">' +
+            '<span class="sz" style="width:64px;height:64px">' + svg(key, 46, MARK) + '</span>' +
+            '<span class="sz" style="width:40px;height:40px">' + svg(key, 29, MARK) + '</span>' +
+            '<span class="sz" style="width:28px;height:28px">' + svg(key, 20, MARK) + '</span>' +
+          '</div>' +
+          '<p class="micro">Inverted</p>' +
+          '<div class="mono-test">' +
+            '<span class="sz" style="width:40px;height:40px">' + svg(key, 29, BONE, 0.5) + '</span>' +
+            '<span class="sz bone" style="width:40px;height:40px">' + svg(key, 29, INK, 0.45) + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('cands').innerHTML = html;
+
+  var root = document.documentElement, tg = document.getElementById('tg');
+  function current() {
+    var s = root.getAttribute('data-theme');
+    if (s) return s;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  try { var saved = localStorage.getItem('trace-logo-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  function sync() { tg.textContent = current() === 'dark' ? 'Light' : 'Dark'; }
+  tg.addEventListener('click', function () {
+    var next = current() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('trace-logo-theme', next); } catch (e) {}
+    sync();
+  });
+  sync();
+})();
+</script>

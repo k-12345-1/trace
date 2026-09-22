@@ -8,6 +8,7 @@ struct RootView: View {
     @State private var pendingURL: URL?
     @State private var showAnalyzer = false
     @State private var showScan = false
+    @State private var showAccount = false
 
     var body: some View {
         NavigationStack {
@@ -36,6 +37,7 @@ struct RootView: View {
                 }
             }
             .fullScreenCover(isPresented: $showScan) { ScanScreen() }
+            .sheet(isPresented: $showAccount) { AccountSheet() }
             .fullScreenCover(isPresented: $showAnalyzer) {
                 if let url = pendingURL {
                     AnalyzingScreen(sourceURL: url) { showAnalyzer = false; pendingURL = nil }
@@ -60,6 +62,16 @@ struct RootView: View {
                     .foregroundStyle(Theme.ink)
                 Spacer()
                 MicroLabel(text: "\(store.climbs.count) climb\(store.climbs.count == 1 ? "" : "s")")
+                Button { showAccount = true } label: {
+                    Text(store.account?.initials ?? "C")
+                        .font(Theme.mono(10, weight: .medium))
+                        .foregroundStyle(Theme.ink2)
+                        .frame(width: 26, height: 26)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.rSmall)
+                            .stroke(Theme.lineStrong, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 4)
             }
             Text("The partner who watches you climb.")
                 .font(Theme.body(14))
