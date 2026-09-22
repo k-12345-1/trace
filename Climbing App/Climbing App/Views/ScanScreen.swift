@@ -4,7 +4,7 @@ import UIKit
 
 /// Scan a route off any wall in any gym.
 ///
-/// Photograph the wall, tap one hold of the route's colour, and Spotter picks out
+/// Photograph the wall, tap one hold of the route's colour, and Trace picks out
 /// everything else that colour. No route database, no hold model, no gym
 /// partnership: it works on the first photo you take anywhere.
 struct ScanScreen: View {
@@ -102,7 +102,7 @@ struct ScanScreen: View {
                         .stroke(Theme.lineStrong, lineWidth: 1))
             }
 
-            Text("Stand back far enough to get the whole route in one frame. Even light helps: Spotter separates holds by colour, so a photo half in shadow will split one colour into two.")
+            Text("Stand back far enough to get the whole route in one frame. Even light helps: Trace separates holds by colour, so a photo half in shadow will split one colour into two.")
                 .font(Theme.body(13))
                 .foregroundStyle(Theme.ink3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -121,7 +121,7 @@ struct ScanScreen: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
 
-                // Everything Spotter thinks is on the route.
+                // Everything Trace thinks is on the route.
                 ForEach(holds) { hold in
                     let dropped = self.dropped.contains(hold.id)
                     Rectangle()

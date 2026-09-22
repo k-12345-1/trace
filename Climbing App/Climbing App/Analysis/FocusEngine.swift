@@ -5,7 +5,7 @@ enum FocusEngine {
 
     /// How many recent climbs a focus is judged on. One clip is noise.
     static let window = 3
-    /// How many climbs before Spotter is willing to pick a focus at all.
+    /// How many climbs before Trace is willing to pick a focus at all.
     static let minimumClimbs = 2
 
     // MARK: The number behind each leak
@@ -119,13 +119,13 @@ enum FocusEngine {
         return Focus(kind: kind, startedAt: Date(), baseline: value, latest: value)
     }
 
-    /// The line Spotter opens a session with.
+    /// The line Trace opens a session with.
     static func greeting(for focus: Focus?) -> String {
         guard let focus else {
-            return "Record a climb and Spotter will pick something for you to work on."
+            return "Record a climb and Trace will pick something for you to work on."
         }
         if focus.isResolved {
-            return "\(focus.kind.title) is sorted. Climb a few more and Spotter will pick the next thing."
+            return "\(focus.kind.title) is sorted. Climb a few more and Trace will pick the next thing."
         }
         return "Last time we were working on \(focus.kind.title.lowercased()). Let's see where it is today."
     }

@@ -1,16 +1,16 @@
-# Spotter
+# Trace
 
-Working plan, v0.3 (2026-09-22).
+Working plan, v0.5 (2026-09-22).
 
-The app is called **Spotter**. In bouldering your spotter is the person who watches you climb, which is exactly what this is.
+The app is called **Trace**. A trace is the line the centre of mass draws up a wall, which is the app's headline measurement, and it is also what an instrument's readout is called. The App Store listing will be **Trace Climbing**, because the bare name is taken there by unrelated apps; the home screen reads Trace.
 
-v0.2 cut route scanning, gym route databases, ticklists, route recommendations and the social feed. v0.3 recorded what was built. **v0.4 puts route scanning back**, at Katie's request, and the interface typeface is now Inter to match KAYA.
+v0.2 cut route scanning, gym route databases, ticklists, route recommendations and the social feed. v0.3 recorded what was built. **v0.4 put route scanning back**, at Katie's request, and moved the interface typeface to Inter to match KAYA. **v0.5 names the app Trace** and moves it into an Xcode project called Climbing App.
 
-Scanning is deliberately not what v0.1 imagined. There is no trained hold detector and no route database. You photograph a wall and tap one hold; Spotter segments every blob close to it in CIE Lab colour, reads the grade off the tag with Vision text recognition, and you drop anything it got wrong before saving. That needs no dataset and no gym partnership, so it works on the first photo in any gym. What it cannot do is tell a route apart from unrelated holds of the same colour, which is why the review step exists.
+Scanning is deliberately not what v0.1 imagined. There is no trained hold detector and no route database. You photograph a wall and tap one hold; Trace segments every blob close to it in CIE Lab colour, reads the grade off the tag with Vision text recognition, and you drop anything it got wrong before saving. That needs no dataset and no gym partnership, so it works on the first photo in any gym. What it cannot do is tell a route apart from unrelated holds of the same colour, which is why the review step exists.
 
 ## Build status
 
-Phases 1 through 4 are implemented and compiling. Source in `Spotter/`, native SwiftUI, iOS 17+, 16 files. All six planned leaks are now wired end to end.
+Phases 1 through 4 are implemented and compiling. Source in `Trace/`, native SwiftUI, iOS 17+, 16 files. All six planned leaks are now wired end to end.
 
 | Piece | State |
 |---|---|
@@ -201,7 +201,7 @@ drill_log     focus_kind, drill_id, session_date, completed
 
 ### Phase 0: Feasibility spike. Go / no-go. **Still the next step.**
 
-Spotter itself is now the harness: import 20 clips and read the tracking percentages.
+Trace itself is now the harness: import 20 clips and read the tracking percentages.
 
 1. Film 15 to 20 real boulders at your gym. Vary deliberately: slab, vertical, steep overhang, facing away, crowded background, mixed lighting.
 2. Run Vision and MediaPipe over all of it offline.

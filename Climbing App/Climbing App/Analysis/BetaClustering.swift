@@ -3,7 +3,7 @@ import CoreGraphics
 
 /// Groups attempts on the same climb by the *shape* of the centre-of-mass path.
 ///
-/// This is how Spotter respects the fact that everyone's beta is different. It never
+/// This is how Trace respects the fact that everyone's beta is different. It never
 /// reads the wall and never suggests a sequence. It notices when two attempts traced
 /// the same shape, and when they traced different ones, and then reports which of
 /// your own sequences cost the least.
@@ -14,7 +14,7 @@ import CoreGraphics
 enum BetaClustering {
 
     /// Distance below which two paths count as the same sequence, in units of path
-    /// radius. This is the one number in Spotter picked by judgement rather than
+    /// radius. This is the one number in Trace picked by judgement rather than
     /// derived, and it wants calibrating against real footage in Phase 0.
     static let sameSequenceThreshold = 0.35
 
@@ -147,7 +147,7 @@ enum BetaClustering {
         }
 
         if clusters.count > 1 {
-            return "You solved this \(clusters.count) different ways. The cheapest one is marked below. Spotter will not tell you which holds to use, because that is your call, but it will tell you which of your own sequences cost the least."
+            return "You solved this \(clusters.count) different ways. The cheapest one is marked below. Trace will not tell you which holds to use, because that is your call, but it will tell you which of your own sequences cost the least."
         }
         return nil
     }

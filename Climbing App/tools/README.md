@@ -15,8 +15,8 @@ could not see clearly.
 
 ```bash
 swiftc -O -o /tmp/seeddemo tools/SeedDemo.swift \
-  Spotter/Analysis/*.swift Spotter/Models/*.swift Spotter/Storage/Store.swift
-/tmp/seeddemo "$(xcrun simctl get_app_container booted co.spotter.app data)/Documents"
+  Trace/Analysis/*.swift Trace/Models/*.swift Trace/Storage/Store.swift
+/tmp/seeddemo "$(xcrun simctl get_app_container booted co.trace.app data)/Documents"
 ```
 
 Delete `Documents/climbs.json`, `Documents/focus.json` and `Documents/Clips` to

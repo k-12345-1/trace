@@ -254,8 +254,9 @@
 				DEVELOPMENT_TEAM = 22J7VMGD6V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Spotter uses the camera to record your climb and to photograph walls you are scanning. Everything stays on this phone.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Spotter reads climbing clips and wall photos you already took. Nothing is uploaded or changed in your library.";
+				INFOPLIST_KEY_CFBundleDisplayName = Trace;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Trace uses the camera to record your climb and to photograph walls you are scanning. Everything stays on this phone.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Trace reads climbing clips and wall photos you already took. Nothing is uploaded or changed in your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -265,7 +266,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = co.spotter.climbingapp;
+				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app;
 				PRODUCT_MODULE_NAME = ClimbingApp;
 				PRODUCT_NAME = "Climbing App";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -283,8 +284,9 @@
 				DEVELOPMENT_TEAM = 22J7VMGD6V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Spotter uses the camera to record your climb and to photograph walls you are scanning. Everything stays on this phone.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Spotter reads climbing clips and wall photos you already took. Nothing is uploaded or changed in your library.";
+				INFOPLIST_KEY_CFBundleDisplayName = Trace;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Trace uses the camera to record your climb and to photograph walls you are scanning. Everything stays on this phone.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Trace reads climbing clips and wall photos you already took. Nothing is uploaded or changed in your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -294,7 +296,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = co.spotter.climbingapp;
+				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app;
 				PRODUCT_MODULE_NAME = ClimbingApp;
 				PRODUCT_NAME = "Climbing App";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -313,7 +315,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = co.spotter.climbingapp.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app.tests;
 				PRODUCT_MODULE_NAME = ClimbingAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -332,7 +334,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = co.spotter.climbingapp.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app.tests;
 				PRODUCT_MODULE_NAME = ClimbingAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

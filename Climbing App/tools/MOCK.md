@@ -1,6 +1,6 @@
 # Browser mock
 
-A reproduction of Spotter's three screens in HTML (`mock/index.html`), so the app
+A reproduction of Trace's three screens in HTML (`mock/index.html`), so the app
 can be shown without Xcode or a device. **It is not the app**: nothing there
 records, tracks a pose, or analyses anything.
 

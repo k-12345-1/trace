@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The memory that makes Spotter a partner rather than a calculator.
+/// The memory that makes Trace a partner rather than a calculator.
 struct ProgressScreen: View {
     @ObservedObject private var store = Store.shared
 
@@ -51,7 +51,7 @@ struct ProgressScreen: View {
             Text("Not enough tracked climbing yet.")
                 .font(Theme.heading(17))
                 .foregroundStyle(Theme.ink)
-            Text("Spotter needs at least two clips it could see clearly before it will claim anything about a trend. One climb is noise.")
+            Text("Trace needs at least two clips it could see clearly before it will claim anything about a trend. One climb is noise.")
                 .font(Theme.body(14))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -156,7 +156,7 @@ struct ProgressScreen: View {
 
     private func trendSentence(_ values: [Double]) -> String {
         guard values.count >= 4 else {
-            return "A few more climbs and Spotter will call the direction of this."
+            return "A few more climbs and Trace will call the direction of this."
         }
         let half = values.count / 2
         let early = values.prefix(half).reduce(0, +) / Double(half)

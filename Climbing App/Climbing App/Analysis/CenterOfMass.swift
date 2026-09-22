@@ -3,7 +3,7 @@ import CoreGraphics
 
 /// Centre of mass from a 2D skeleton, using standard segment mass fractions
 /// (Dempster). Accurate enough to compare one attempt against another, which is
-/// all Spotter ever does. It is never presented as an absolute figure.
+/// all Trace ever does. It is never presented as an absolute figure.
 enum CenterOfMass {
 
     /// Segment mass fractions, summing to 1.0.

@@ -1,9 +1,12 @@
-# Spotter
+# Trace
+
+*Listed on the App Store as Trace Climbing, because the bare name is taken there
+by unrelated apps. The home screen reads Trace.*
 
 An iOS training partner for bouldering. Point your phone at yourself, climb, and it
 tells you one thing you could do better, with the moment highlighted on your own video.
 
-Spotter never tells you which holds to use. Everyone's beta is different, so it
+Trace never tells you which holds to use. Everyone's beta is different, so it
 measures how well you executed the sequence you chose, not which sequence you chose.
 That constraint is why it needs no route database, no hold detection and no gym
 partnership: it works anywhere, from the first climb.
@@ -50,7 +53,7 @@ database, so it works on the first photo in any gym. It cannot tell a route apar
 from unrelated holds of the same colour, which is why you drop the wrong ones
 before saving.
 
-Below 55 percent tracking confidence Spotter draws nothing and says nothing.
+Below 55 percent tracking confidence Trace draws nothing and says nothing.
 Confidently wrong coaching is the failure mode that kills this product.
 
 ## Layout
@@ -73,7 +76,8 @@ identity.html    the published visual identity
 ```
 
 The Xcode target is called **Climbing App** and the product module is
-`ClimbingApp`. The product itself is still branded Spotter in the interface.
+`ClimbingApp`. The product is branded **Trace**, which is what the bundle
+display name and the interface both say.
 
 ## Status
 

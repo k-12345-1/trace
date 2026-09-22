@@ -11,7 +11,7 @@ struct Joint: Codable, Hashable {
     var isUsable: Bool { confidence >= 0.25 }
 }
 
-/// The joints Spotter cares about. Vision reports more, but faces and fingertips
+/// The joints Trace cares about. Vision reports more, but faces and fingertips
 /// tell us nothing about movement economy.
 enum JointID: String, Codable, CaseIterable {
     case nose, neck

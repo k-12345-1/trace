@@ -54,7 +54,7 @@ struct RootView: View {
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text("SPOTTER")
+                Text("TRACE")
                     .font(Theme.ui(16, .bold))
                     .tracking(1.5)
                     .foregroundStyle(Theme.ink)
@@ -139,7 +139,7 @@ struct RootView: View {
 
             FlatButton(title: "Scan a route") { showScan = true }
 
-            Text("Photograph a wall and tap one hold. Spotter picks out the rest of the route by colour and saves it to your gym.")
+            Text("Photograph a wall and tap one hold. Trace picks out the rest of the route by colour and saves it to your gym.")
                 .font(Theme.body(12.5))
                 .foregroundStyle(Theme.ink3)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -178,7 +178,7 @@ struct RootView: View {
             .padding(.top, 20)
 
             if store.climbs.isEmpty {
-                Text("Nothing yet. Record a boulder or import a clip you already have, and Spotter will tell you where the energy went.")
+                Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will tell you where the energy went.")
                     .font(Theme.body(14))
                     .foregroundStyle(Theme.ink2)
                     .padding(.horizontal, 20)

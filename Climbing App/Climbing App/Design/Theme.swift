@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Spotter identity, ported to SwiftUI.
+/// The Trace identity, ported to SwiftUI.
 /// Dark-first: the hero surface is always footage of a climber in a dim gym.
 enum Theme {
 

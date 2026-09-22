@@ -323,7 +323,7 @@ struct ResultsScreen: View {
 
     // MARK: Your own betas, compared against each other
     //
-    // Spotter never suggests a sequence. It tells you which of yours cost the least.
+    // Trace never suggests a sequence. It tells you which of yours cost the least.
 
     @ViewBuilder
     private var comparison: some View {
@@ -387,7 +387,7 @@ struct ResultsScreen: View {
                     }
                 }
 
-                Text("Grouped by the shape of your centre-of-mass path, not by the holds. Spotter never sees the wall.")
+                Text("Grouped by the shape of your centre-of-mass path, not by the holds. Trace never sees the wall.")
                     .font(Theme.body(12.5))
                     .foregroundStyle(Theme.ink3)
                     .fixedSize(horizontal: false, vertical: true)

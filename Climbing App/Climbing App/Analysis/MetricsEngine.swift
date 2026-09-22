@@ -55,7 +55,7 @@ enum MetricsEngine {
     // independent of how far away the phone was.
     //
     // Note this is a projection, so it means different things at different camera
-    // angles. Filmed side on, which is what Spotter asks for, it reads as hips
+    // angles. Filmed side on, which is what Trace asks for, it reads as hips
     // hanging away from the wall. Filmed front on it reads as a barn door.
 
     static func comOffsetFromFeet(frames: [PoseFrame], times: [Double]) -> Double {

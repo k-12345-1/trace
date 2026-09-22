@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SpotterApp: App {
+struct TraceApp: App {
     init() { Fonts.register() }
 
     var body: some Scene {

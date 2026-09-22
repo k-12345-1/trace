@@ -45,7 +45,7 @@ struct AnalyzingScreen: View {
             VStack(alignment: .leading, spacing: 18) {
                 SectionHeader(micro: "Before we look", title: "What were you on?")
 
-                Text("Anything you will recognise next time. Spotter never checks this against a route list, it only uses it to group your attempts.")
+                Text("Anything you will recognise next time. Trace never checks this against a route list, it only uses it to group your attempts.")
                     .font(Theme.body(14))
                     .foregroundStyle(Theme.ink2)
 

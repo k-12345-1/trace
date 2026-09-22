@@ -84,7 +84,7 @@ struct CaptureScreen: View {
     private var controls: some View {
         VStack(spacing: 16) {
             if !camera.isRecording {
-                Text("Side on if you can. Spotter measures how far your hips sit from your feet, and that only works when it can see your profile.")
+                Text("Side on if you can. Trace measures how far your hips sit from your feet, and that only works when it can see your profile.")
                     .font(Theme.body(12.5))
                     .foregroundStyle(Theme.ink2)
                     .multilineTextAlignment(.center)
@@ -118,8 +118,8 @@ struct CaptureScreen: View {
         VStack(spacing: 14) {
             MicroLabel(text: "No camera")
             Text(camera.isAuthorised
-                 ? "This device has no camera Spotter can use. Import a clip from your library instead."
-                 : "Spotter needs the camera to watch you climb. You can still import a clip you already filmed.")
+                 ? "This device has no camera Trace can use. Import a clip from your library instead."
+                 : "Trace needs the camera to watch you climb. You can still import a clip you already filmed.")
                 .font(Theme.body(15))
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)

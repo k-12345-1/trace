@@ -19,7 +19,7 @@ struct GymsScreen: View {
                     Hairline()
 
                     if store.gyms.isEmpty {
-                        Text("Scan a route and Spotter will make the gym for you. There is no directory to join and nobody to ask.")
+                        Text("Scan a route and Trace will make the gym for you. There is no directory to join and nobody to ask.")
                             .font(Theme.body(14))
                             .foregroundStyle(Theme.ink2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -189,7 +189,7 @@ struct RouteDetailScreen: View {
                         }
                         .buttonStyle(.plain)
 
-                        Text("Spotter found these holds by colour, not by reading the setter's intent. Anything it got wrong was dropped when you saved it.")
+                        Text("Trace found these holds by colour, not by reading the setter's intent. Anything it got wrong was dropped when you saved it.")
                             .font(Theme.body(12.5))
                             .foregroundStyle(Theme.ink3)
                             .fixedSize(horizontal: false, vertical: true)
