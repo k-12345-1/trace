@@ -37,21 +37,6 @@ struct PoseFrame: Codable {
     }
 }
 
-// CGPoint needs Codable conformance for persistence.
-extension CGPoint: @retroactive Codable {
-    public init(from decoder: Decoder) throws {
-        var c = try decoder.unkeyedContainer()
-        let x = try c.decode(Double.self)
-        let y = try c.decode(Double.self)
-        self.init(x: x, y: y)
-    }
-    public func encode(to encoder: Encoder) throws {
-        var c = encoder.unkeyedContainer()
-        try c.encode(Double(x))
-        try c.encode(Double(y))
-    }
-}
-
 /// The skeleton segments we draw. Kept here so the overlay and the analysis agree.
 enum Skeleton {
     static let bones: [(JointID, JointID)] = [

@@ -4,7 +4,9 @@ Working plan, v0.3 (2026-09-22).
 
 The app is called **Spotter**. In bouldering your spotter is the person who watches you climb, which is exactly what this is.
 
-v0.2 cut route scanning, gym route databases, ticklists, route recommendations and the social feed. v0.3 records what has actually been built.
+v0.2 cut route scanning, gym route databases, ticklists, route recommendations and the social feed. v0.3 recorded what was built. **v0.4 puts route scanning back**, at Katie's request, and the interface typeface is now Inter to match KAYA.
+
+Scanning is deliberately not what v0.1 imagined. There is no trained hold detector and no route database. You photograph a wall and tap one hold; Spotter segments every blob close to it in CIE Lab colour, reads the grade off the tag with Vision text recognition, and you drop anything it got wrong before saving. That needs no dataset and no gym partnership, so it works on the first photo in any gym. What it cannot do is tell a route apart from unrelated holds of the same colour, which is why the review step exists.
 
 ## Build status
 
@@ -25,6 +27,9 @@ Phases 1 through 4 are implemented and compiling. Source in `Spotter/`, native S
 | Playback with skeleton and COM overlay | Built |
 | Local-only storage, no accounts, no network | Built |
 | Attempt-over-attempt comparison by typed label | Built |
+| Route scanning by hold colour, any gym (was Phase 3, cut in v0.2) | Built, unit-checked |
+| Gyms and saved routes, sent ticking | Built |
+| Route tag OCR for grades | Built, unit-checked |
 | Focus that persists across sessions (Phase 2) | Built, unit-checked |
 | Entropy trend and movement signature (Phase 2) | Built |
 | Beta clustering by COM path shape (Phase 3) | Built, unit-checked |

@@ -7,6 +7,7 @@ struct RootView: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var pendingURL: URL?
     @State private var showAnalyzer = false
+    @State private var showScan = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,7 @@ struct RootView: View {
                     }
                 }
             }
+            .fullScreenCover(isPresented: $showScan) { ScanScreen() }
             .fullScreenCover(isPresented: $showAnalyzer) {
                 if let url = pendingURL {
                     AnalyzingScreen(sourceURL: url) { showAnalyzer = false; pendingURL = nil }
@@ -53,7 +55,7 @@ struct RootView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text("SPOTTER")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(Theme.ui(16, .bold))
                     .tracking(1.5)
                     .foregroundStyle(Theme.ink)
                 Spacer()
@@ -132,6 +134,15 @@ struct RootView: View {
                 .font(Theme.body(12.5))
                 .foregroundStyle(Theme.ink3)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            Hairline().padding(.vertical, 6)
+
+            FlatButton(title: "Scan a route") { showScan = true }
+
+            Text("Photograph a wall and tap one hold. Spotter picks out the rest of the route by colour and saves it to your gym.")
+                .font(Theme.body(12.5))
+                .foregroundStyle(Theme.ink3)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 22)
@@ -143,7 +154,14 @@ struct RootView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 MicroLabel(text: "Your climbs")
-                Spacer()
+                Spacer(minLength: 12)
+                NavigationLink { GymsScreen() } label: {
+                    Text("GYMS →")
+                        .font(Theme.mono(10, weight: .medium))
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.ink3)
+                }
+                .buttonStyle(.plain)
                 if store.climbs.contains(where: { $0.metrics.isTrustworthy }) {
                     NavigationLink {
                         ProgressScreen()

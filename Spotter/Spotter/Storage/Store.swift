@@ -8,6 +8,8 @@ final class Store: ObservableObject {
     @Published private(set) var climbs: [Climb] = []
     /// The one thing you are working on. Persists across sessions until it improves.
     @Published private(set) var focus: Focus?
+    @Published private(set) var gyms: [Gym] = []
+    @Published private(set) var routes: [Route] = []
 
     static let shared = Store()
 
@@ -21,6 +23,14 @@ final class Store: ObservableObject {
     }
     nonisolated private static var indexURL: URL { documents.appendingPathComponent("climbs.json") }
     nonisolated private static var focusURL: URL { documents.appendingPathComponent("focus.json") }
+    nonisolated private static var gymsURL: URL { documents.appendingPathComponent("gyms.json") }
+    nonisolated private static var routesURL: URL { documents.appendingPathComponent("routes.json") }
+
+    nonisolated static var routePhotosDirectory: URL {
+        let url = documents.appendingPathComponent("Routes", isDirectory: true)
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
 
     private init() { load() }
 
@@ -34,6 +44,12 @@ final class Store: ObservableObject {
         }
         if let data = try? Data(contentsOf: Self.focusURL) {
             focus = try? decoder.decode(Focus.self, from: data)
+        }
+        if let data = try? Data(contentsOf: Self.gymsURL) {
+            gyms = (try? decoder.decode([Gym].self, from: data)) ?? []
+        }
+        if let data = try? Data(contentsOf: Self.routesURL) {
+            routes = (try? decoder.decode([Route].self, from: data)) ?? []
         }
 
         // Re-judge the focus at launch. Without this a focus that was already met
@@ -90,6 +106,72 @@ final class Store: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(climbs) else { return }
         try? data.write(to: Self.indexURL, options: .atomic)
+    }
+
+    // MARK: Gyms and routes
+
+    @discardableResult
+    func addGym(named name: String) -> Gym {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        if let existing = gyms.first(where: {
+            $0.name.caseInsensitiveCompare(trimmed) == .orderedSame
+        }) { return existing }
+        let gym = Gym(name: trimmed)
+        gyms.append(gym)
+        persistGyms()
+        return gym
+    }
+
+    func deleteGym(_ gym: Gym) {
+        routes.filter { $0.gymID == gym.id }.forEach { deleteRoute($0) }
+        gyms.removeAll { $0.id == gym.id }
+        persistGyms()
+    }
+
+    func save(_ route: Route) {
+        if let i = routes.firstIndex(where: { $0.id == route.id }) {
+            routes[i] = route
+        } else {
+            routes.insert(route, at: 0)
+        }
+        persistRoutes()
+    }
+
+    func deleteRoute(_ route: Route) {
+        try? FileManager.default.removeItem(at: route.photoURL)
+        routes.removeAll { $0.id == route.id }
+        persistRoutes()
+    }
+
+    func toggleSent(_ route: Route) {
+        guard let i = routes.firstIndex(where: { $0.id == route.id }) else { return }
+        routes[i].sent.toggle()
+        persistRoutes()
+    }
+
+    func routes(in gym: Gym) -> [Route] {
+        routes.filter { $0.gymID == gym.id }.sorted { $0.scannedAt > $1.scannedAt }
+    }
+
+    func routeCount(in gym: Gym) -> (total: Int, sent: Int) {
+        let r = routes(in: gym)
+        return (r.count, r.filter(\.sent).count)
+    }
+
+    /// Writes a scanned wall photo into the container and returns its filename.
+    func saveRoutePhoto(_ data: Data) throws -> String {
+        let name = "\(UUID().uuidString).jpg"
+        try data.write(to: Self.routePhotosDirectory.appendingPathComponent(name), options: .atomic)
+        return name
+    }
+
+    private func persistGyms() {
+        let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601
+        try? e.encode(gyms).write(to: Self.gymsURL, options: .atomic)
+    }
+    private func persistRoutes() {
+        let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601
+        try? e.encode(routes).write(to: Self.routesURL, options: .atomic)
     }
 
     /// Copies a clip into the app container and keeps the returned filename.

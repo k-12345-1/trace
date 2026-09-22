@@ -46,16 +46,21 @@ enum Theme {
     static let rSmall: CGFloat = 2
     static let r: CGFloat = 4
 
-    // MARK: Type. SF Pro for UI, SF Mono for every number.
-    static func display(_ size: CGFloat = 32) -> Font {
-        .system(size: size, weight: .bold, design: .default)
+    // MARK: Type.
+    //
+    // Inter for the interface, matching KAYA. Numbers stay monospaced: Inter has
+    // no mono cut, and every readout in this app depends on tabular digits lining
+    // up, so SF Mono keeps that job.
+    static func ui(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        if let name = Fonts.name(for: weight) {
+            return .custom(name, size: size)
+        }
+        return .system(size: size, weight: weight, design: .default)
     }
-    static func heading(_ size: CGFloat = 19) -> Font {
-        .system(size: size, weight: .semibold, design: .default)
-    }
-    static func body(_ size: CGFloat = 15) -> Font {
-        .system(size: size, weight: .regular, design: .default)
-    }
+
+    static func display(_ size: CGFloat = 32) -> Font { ui(size, .bold) }
+    static func heading(_ size: CGFloat = 19) -> Font { ui(size, .semibold) }
+    static func body(_ size: CGFloat = 15) -> Font { ui(size, .regular) }
     /// Readouts. A metric should look like an instrument, not like body copy.
     static func readout(_ size: CGFloat = 27) -> Font {
         .system(size: size, weight: .medium, design: .monospaced)
