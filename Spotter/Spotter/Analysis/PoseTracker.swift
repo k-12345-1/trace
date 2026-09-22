@@ -120,7 +120,7 @@ enum PoseTracker {
 
     /// A light 5-tap moving average on the COM. Vision jitters a few pixels frame to
     /// frame, and jerk is a third derivative, so raw noise would swamp the signal.
-    private static func smooth(_ frames: [PoseFrame]) -> [PoseFrame] {
+    static func smooth(_ frames: [PoseFrame]) -> [PoseFrame] {
         guard frames.count > 5 else { return frames }
         var out = frames
         let window = 2

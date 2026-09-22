@@ -61,7 +61,10 @@ struct OverlayView: View {
         // The whole path sits faint so you can see the shape of the climb at once.
         var full = Path()
         full.addLines(comPath.map { map($0, rect) })
-        ctx.stroke(full, with: .color(Theme.accent.opacity(0.28)),
+        // Bright enough to still read as the accent colour on a dark wall. Much
+        // fainter and it turns muddy brown, which is the first thing you see when
+        // a climb is opened and paused at the start.
+        ctx.stroke(full, with: .color(Theme.accent.opacity(0.5)),
                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
         // What has already happened is bright.
