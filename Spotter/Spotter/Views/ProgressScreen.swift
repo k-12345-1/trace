@@ -101,7 +101,7 @@ struct ProgressScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(16)
-                .background(Theme.accentWash)
+                .background(Theme.wine.opacity(0.45))
                 .overlay(Rectangle().stroke(Theme.lineStrong, lineWidth: 1))
 
                 VStack(alignment: .leading, spacing: 6) {

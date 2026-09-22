@@ -5,32 +5,42 @@ import SwiftUI
 enum Theme {
 
     // MARK: Ground and surfaces
-    static let ground   = Color(hex: 0x0E1110)   // near-black with a green cast
-    static let surface  = Color(hex: 0x171B19)
-    static let surface2 = Color(hex: 0x212724)
-    static let line     = Color(hex: 0x2C3330)
-    static let lineStrong = Color(hex: 0x454E4A)
+    //
+    // Oxblood and vermilion, taken from the Arc'teryx knitwear palette. The ground
+    // is the beanie colour taken almost to black, because the hero surface is always
+    // video of a climber: a fully saturated wine ground would cast the footage and
+    // fight it. The wine itself is kept for raised surfaces, where it can be seen.
+    static let ground   = Color(hex: 0x140A0C)   // near-black, wine cast
+    static let surface  = Color(hex: 0x1F0E12)
+    static let surface2 = Color(hex: 0x2D141A)
+    static let line     = Color(hex: 0x3A181E)
+    static let lineStrong = Color(hex: 0x56242C)
+
+    /// The beanie itself. Banners, washes, the app icon ground.
+    static let wine = Color(hex: 0x5C1A23)
 
     // MARK: Ink
-    static let ink   = Color(hex: 0xEDEBE4)      // warm off-white, never pure white
-    static let ink2  = Color(hex: 0xA3A79F)
-    static let ink3  = Color(hex: 0x6E736C)
+    static let ink   = Color(hex: 0xF2EDE8)      // warm bone, never pure white
+    static let ink2  = Color(hex: 0xB3A49F)
+    static let ink3  = Color(hex: 0x7C6B67)
 
-    // MARK: Accent. Spent on the centre-of-mass trace and almost nowhere else.
-    static let accent     = Color(hex: 0xFF6B2C)
-    static let accentText = Color(hex: 0xFF8347)
-    static let accentWash = Color(hex: 0xFF6B2C).opacity(0.13)
+    // MARK: Accent. The Archaeopteryx vermilion. Spent on the centre-of-mass
+    // trace and almost nowhere else.
+    static let accent     = Color(hex: 0xE8452A)
+    static let accentText = Color(hex: 0xFF6A4D)  // lifted for legibility on the dark ground
+    static let accentWash = Color(hex: 0xE8452A).opacity(0.16)
 
-    static let ok = Color(hex: 0x7CC98A)
+    static let ok = Color(hex: 0x74B183)
 
-    /// Ember ramp. Leak severity is magnitude, so it gets a ramp and not a traffic light.
+    /// Ember ramp. Leak severity is magnitude, so it gets a ramp and not a traffic
+    /// light. It runs from a pale wash down into the oxblood.
     static let ember: [Color] = [
-        Color(hex: 0xFFD9C2), Color(hex: 0xFFB183), Color(hex: 0xFF8A4C),
-        Color(hex: 0xFF6B2C), Color(hex: 0xC64414)
+        Color(hex: 0xF7C9B4), Color(hex: 0xF09B78), Color(hex: 0xEA6F45),
+        Color(hex: 0xE8452A), Color(hex: 0x9E2417)
     ]
 
     /// Skeleton overlay colour. Chalk, so it never competes with the accent.
-    static let chalk = Color(hex: 0xF4F3EE)
+    static let chalk = Color(hex: 0xF5F0EA)
 
     // MARK: Radius. Low radius reads as instrument.
     static let rSmall: CGFloat = 2

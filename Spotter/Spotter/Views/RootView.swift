@@ -101,7 +101,7 @@ struct RootView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
-                .background(focus.isResolved ? Theme.surface : Theme.accentWash)
+                .background(focus.isResolved ? Theme.surface : Theme.wine.opacity(0.45))
                 .overlay(Rectangle().stroke(
                     focus.isResolved ? Theme.line : Theme.lineStrong, lineWidth: 1))
                 .padding(.horizontal, 20)

@@ -6,13 +6,13 @@
 <style>
 /* ============ TOKENS. Dark-first: the app's primary surface is video. ============ */
 :root{
-  --ground:#0E1110; --surface:#171B19; --surface-2:#212724;
-  --line:#2C3330; --line-strong:#454E4A;
-  --ink:#EDEBE4; --ink-2:#A3A79F; --ink-3:#6E736C;
-  --accent:#FF6B2C; --accent-text:#FF8347; --accent-wash:rgba(255,107,44,.13);
-  --ok:#7CC98A; --on-accent:#0E1110;
-  --e1:#FFD9C2; --e2:#FFB183; --e3:#FF8A4C; --e4:#FF6B2C; --e5:#C64414;
-  --chalk:#F4F3EE;
+  --ground:#140A0C; --surface:#1F0E12; --surface-2:#2D141A;
+  --line:#3A181E; --line-strong:#56242C; --wine:#5C1A23;
+  --ink:#F2EDE8; --ink-2:#B3A49F; --ink-3:#7C6B67;
+  --accent:#E8452A; --accent-text:#FF6A4D; --accent-wash:rgba(232,69,42,.16);
+  --ok:#74B183; --on-accent:#140A0C;
+  --e1:#F7C9B4; --e2:#F09B78; --e3:#EA6F45; --e4:#E8452A; --e5:#9E2417;
+  --chalk:#F5F0EA;
   --shadow:0 1px 0 rgba(255,255,255,.04);
   --r-sm:2px; --r:4px; --r-pill:999px;
   --f-ui:'Archivo','Helvetica Neue',Arial,sans-serif;
@@ -21,24 +21,24 @@
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
-    --ground:#F7F6F1; --surface:#FDFCF9; --surface-2:#EFEDE6;
-    --line:#DCD9CF; --line-strong:#B4B0A4;
-    --ink:#171A18; --ink-2:#5A605B; --ink-3:#8C918A;
-    --accent:#FF6B2C; --accent-text:#C9430F; --accent-wash:rgba(255,107,44,.11);
+    --ground:#F7F2ED; --surface:#FFFDFA; --surface-2:#EDE4DC;
+    --line:#DDD0C8; --line-strong:#B9A79E; --wine:#5C1A23;
+    --ink:#220F12; --ink-2:#5E4A46; --ink-3:#8D7A75;
+    --accent:#E8452A; --accent-text:#B83318; --accent-wash:rgba(232,69,42,.12);
     --ok:#3F7D4C; --on-accent:#FFFFFF;
-    --e1:#FFE4D2; --e2:#FFBD95; --e3:#FF8A4C; --e4:#E85518; --e5:#9E340C;
-    --chalk:#2A2E2B;
+    --e1:#FBDBCB; --e2:#F2AE8E; --e3:#EA6F45; --e4:#D03A1E; --e5:#7E1C11;
+    --chalk:#2A1418;
     --shadow:0 1px 2px rgba(23,26,24,.06);
   }
 }
 :root[data-theme="light"]{
-  --ground:#F7F6F1; --surface:#FDFCF9; --surface-2:#EFEDE6;
-  --line:#DCD9CF; --line-strong:#B4B0A4;
-  --ink:#171A18; --ink-2:#5A605B; --ink-3:#8C918A;
-  --accent:#FF6B2C; --accent-text:#C9430F; --accent-wash:rgba(255,107,44,.11);
+  --ground:#F7F2ED; --surface:#FFFDFA; --surface-2:#EDE4DC;
+  --line:#DDD0C8; --line-strong:#B9A79E; --wine:#5C1A23;
+  --ink:#220F12; --ink-2:#5E4A46; --ink-3:#8D7A75;
+  --accent:#E8452A; --accent-text:#B83318; --accent-wash:rgba(232,69,42,.12);
   --ok:#3F7D4C; --on-accent:#FFFFFF;
-  --e1:#FFE4D2; --e2:#FFBD95; --e3:#FF8A4C; --e4:#E85518; --e5:#9E340C;
-  --chalk:#2A2E2B;
+  --e1:#FBDBCB; --e2:#F2AE8E; --e3:#EA6F45; --e4:#D03A1E; --e5:#7E1C11;
+  --chalk:#2A1418;
   --shadow:0 1px 2px rgba(23,26,24,.06);
 }
 
@@ -233,10 +233,10 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px}
 
       <rect x="2" y="2" width="292" height="584" rx="30" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1"/>
       <g clip-path="url(#scr)">
-        <rect x="10" y="10" width="276" height="568" fill="#14100E"/>
+        <rect x="10" y="10" width="276" height="568" fill="#150B0D"/>
         <!-- wall panels -->
-        <path d="M104 10V578M196 10V578" stroke="#241D18" stroke-width="1"/>
-        <path d="M10 214H286M10 418H286" stroke="#241D18" stroke-width="1"/>
+        <path d="M104 10V578M196 10V578" stroke="#2A1418" stroke-width="1"/>
+        <path d="M10 214H286M10 418H286" stroke="#2A1418" stroke-width="1"/>
         <!-- holds -->
         <g opacity="0.62">
           <ellipse cx="58"  cy="96"  rx="13" ry="8"  fill="#B4483C" transform="rotate(-18 58 96)"/>
@@ -256,16 +256,16 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px}
           <ellipse cx="118" cy="300" rx="8"  ry="6"  fill="#7A4FA3" transform="rotate(-6 118 300)"/>
         </g>
         <!-- scrim so overlay reads over any hold colour -->
-        <rect x="10" y="10" width="276" height="568" fill="#0B0908" opacity="0.42"/>
+        <rect x="10" y="10" width="276" height="568" fill="#0D0507" opacity="0.42"/>
 
         <!-- COM path: wandering trace, the headline metric made visible -->
         <path d="M152 470 L146 452 L158 436 L150 420 L140 404 L152 392 L162 374 L148 358 L142 340 L154 326 L152 319"
               fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" opacity="0.92" filter="url(#glow)"/>
-        <circle cx="152" cy="319" r="4.5" fill="var(--accent)" stroke="#0B0908" stroke-width="2"/>
+        <circle cx="152" cy="319" r="4.5" fill="var(--accent)" stroke="#0D0507" stroke-width="2"/>
 
         <!-- skeleton: chalk-white with a dark outer stroke so it survives any ground -->
-        <g fill="none" stroke="#0B0908" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.75">
+        <g fill="none" stroke="#0D0507" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.75">
           <path d="M136 264 L164 262 M136 264 L120 282 L112 258 M164 262 L178 244 L190 220
                    M136 264 L142 320 M164 262 L162 318 M142 320 L162 318
                    M142 320 L126 352 L118 384 M162 318 L176 348 L188 368"/>
@@ -275,9 +275,9 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px}
                    M136 264 L142 320 M164 262 L162 318 M142 320 L162 318
                    M142 320 L126 352 L118 384 M162 318 L176 348 L188 368"/>
         </g>
-        <circle cx="150" cy="249" r="10" fill="none" stroke="#0B0908" stroke-width="5"/>
+        <circle cx="150" cy="249" r="10" fill="none" stroke="#0D0507" stroke-width="5"/>
         <circle cx="150" cy="249" r="10" fill="none" stroke="var(--chalk)" stroke-width="2"/>
-        <g fill="var(--chalk)" stroke="#0B0908" stroke-width="1.2">
+        <g fill="var(--chalk)" stroke="#0D0507" stroke-width="1.2">
           <circle cx="136" cy="264" r="2.8"/><circle cx="164" cy="262" r="2.8"/>
           <circle cx="120" cy="282" r="2.8"/><circle cx="178" cy="244" r="2.8"/>
           <circle cx="142" cy="320" r="2.8"/><circle cx="162" cy="318" r="2.8"/>
@@ -288,20 +288,20 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px}
 
         <!-- tracking chip -->
         <g>
-          <rect x="24" y="26" width="128" height="24" rx="2" fill="#0B0908" opacity="0.82" stroke="#3A332E"/>
-          <circle cx="37" cy="38" r="3" fill="#7CC98A"/>
+          <rect x="24" y="26" width="128" height="24" rx="2" fill="#0D0507" opacity="0.82" stroke="#4A2026"/>
+          <circle cx="37" cy="38" r="3" fill="#74B183"/>
           <text x="46" y="42" font-family="IBM Plex Mono, monospace" font-size="9.5"
-                letter-spacing="1.3" fill="#C8C3BA">TRACKING 94%</text>
+                letter-spacing="1.3" fill="#C3B4B0">TRACKING 94%</text>
         </g>
 
         <!-- one finding, one sentence -->
         <g>
-          <rect x="24" y="498" width="248" height="62" rx="2" fill="#0B0908" opacity="0.9" stroke="#3A332E"/>
+          <rect x="24" y="498" width="248" height="62" rx="2" fill="#0D0507" opacity="0.9" stroke="#4A2026"/>
           <rect x="24" y="498" width="2.5" height="62" fill="var(--accent)"/>
           <text x="38" y="519" font-family="IBM Plex Mono, monospace" font-size="9.5"
-                letter-spacing="1.3" fill="#FF8347">0:12 &#183; 4.2 S</text>
-          <text x="38" y="537" font-family="Archivo, sans-serif" font-size="12.5" fill="#EDEBE4">Elbows bent while you read</text>
-          <text x="38" y="552" font-family="Archivo, sans-serif" font-size="12.5" fill="#EDEBE4">the next move.</text>
+                letter-spacing="1.3" fill="#FF6A4D">0:12 &#183; 4.2 S</text>
+          <text x="38" y="537" font-family="Archivo, sans-serif" font-size="12.5" fill="#F2EDE8">Elbows bent while you read</text>
+          <text x="38" y="552" font-family="Archivo, sans-serif" font-size="12.5" fill="#F2EDE8">the next move.</text>
         </g>
       </g>
     </svg>
@@ -387,18 +387,18 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px}
   <div class="sec">
     <div class="sec-head">
       <p class="micro">Colour</p>
-      <h2>Two grounds, one accent</h2>
+      <h2>Oxblood and vermilion</h2>
     </div>
     <div class="body">
       <p class="lede">Dark is not a preference, it is the product. The hero surface is always footage of you climbing in a dim gym, so the interface has to disappear behind it. Light exists for the other half of the app: session reports and trends, which are documents and want paper.</p>
 
       <div class="swatches">
-        <div class="sw"><div class="band" style="background:var(--ground)"></div><div class="meta"><p class="name">--ground</p><p class="hex" id="h-ground">#0E1110</p><p class="role">Near-black with a green cast. A material, not a void.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--ground)"></div><div class="meta"><p class="name">--ground</p><p class="hex" id="h-ground">#0E1110</p><p class="role">The beanie colour taken almost to black. A material, not a void.</p></div></div>
         <div class="sw"><div class="band" style="background:var(--surface)"></div><div class="meta"><p class="name">--surface</p><p class="hex" id="h-surface">#171B19</p><p class="role">Cards, sheets, readout tiles.</p></div></div>
         <div class="sw"><div class="band" style="background:var(--line)"></div><div class="meta"><p class="name">--line</p><p class="hex" id="h-line">#2C3330</p><p class="role">Hairlines. The primary way things are separated.</p></div></div>
-        <div class="sw"><div class="band" style="background:var(--ink)"></div><div class="meta"><p class="name">--ink</p><p class="hex" id="h-ink">#EDEBE4</p><p class="role">Warm off-white, borrowed from Kawa. Never #FFF.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--ink)"></div><div class="meta"><p class="name">--ink</p><p class="hex" id="h-ink">#F2EDE8</p><p class="role">Warm bone. Never #FFF, and warmer still against oxblood.</p></div></div>
         <div class="sw"><div class="band" style="background:var(--ink-2)"></div><div class="meta"><p class="name">--ink-2</p><p class="hex" id="h-ink2">#A3A79F</p><p class="role">Secondary copy, axis labels.</p></div></div>
-        <div class="sw"><div class="band" style="background:var(--accent)"></div><div class="meta"><p class="name">--accent</p><p class="hex">#FF6B2C</p><p class="role">Route tape, rope flake, bivy orange. Earned, not decorative.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--accent)"></div><div class="meta"><p class="name">--accent</p><p class="hex">#E8452A</p><p class="role">The Archaeopteryx vermilion, straight off the knitwear.</p></div></div>
       </div>
 
       <div class="stack">
@@ -412,7 +412,9 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px}
         </div>
       </div>
 
-      <p class="note"><strong>Why orange and not the obvious lime.</strong> AllTrails already owns near-black-green plus lime, and green is the single worst overlay hue in a bouldering gym: it collides with green holds and green tape. Orange is the colour outdoor gear already uses when something must be findable, and it sits analogous to the warm paper ground instead of fighting it.</p>
+      <p class="note"><strong>Where this comes from.</strong> Read off an Arc'teryx knit beanie: the body around #5C1A23, the Archaeopteryx around #E8452A. It solves the overlay problem the way the previous palette did, because vermilion is high in luminance and uncommon on plastic holds, and it avoids green altogether, which is the worst possible overlay hue in a gym full of green holds and green tape.</p>
+      <p class="note"><strong>Why the ground is not the beanie.</strong> A fully saturated wine ground would cast every frame of climbing footage and fight it, and the hero surface here is always video. So the ground is that wine taken almost to black, and the wine itself is kept for raised surfaces where it can actually be seen: the focus banner, the washes, the app icon.</p>
+      <p class="note"><strong>One thing to weigh.</strong> This pairing is strongly associated with Arc'teryx, who sell climbing gear. Colour is not protectable, but a climbing app in their palette can read as borrowing an identity rather than having one.</p>
     </div>
   </div>
 </section>
