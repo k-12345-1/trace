@@ -29,9 +29,11 @@ Phases 1 through 4 are implemented and compiling. Source in `Spotter/`, native S
 | Entropy trend and movement signature (Phase 2) | Built |
 | Beta clustering by COM path shape (Phase 3) | Built, unit-checked |
 | Drill library and assignment (Phase 4) | Built |
-| Delete a climb | Built |
+| Delete a climb, rename a climb | Built |
+| Test target, 36 tests, runs with cmd-U | Built |
+| App icon, signing team, git repo, README | Built |
 
-Fifty-four known-answer checks pass against the shipping maths: entropy is 0.0000 for a straight path and 0.685 for a circle (theory says ln 2 = 0.693), a right angle measures 90.000 degrees, the convex hull of a noisy square returns exactly 4 vertices, and a sparse skeleton correctly returns no centre of mass rather than a bad guess. On the clustering: an identical path that has been moved and rescaled scores 0.0000, the same path with tracking noise 0.0072, and a genuinely different sequence 0.4473, against a 0.35 threshold. On the focus: it refuses to pick one from a single climb, retires itself when the target is met, and stays open on small gains. On the two newest metrics: a climber stacked over their feet measures 0.00 torso lengths of offset and one hanging out measures exactly 0.50; a single upward throw yields exactly one apex and one hand contact, timed to within 0.02s of each other; and a purely static climb reports no dynamic moves at all rather than claiming perfect timing.
+Thirty-six tests pass in the project's own test target (`xcodebuild test`, or cmd-U). They cover: entropy is 0.0000 for a straight path and 0.685 for a circle (theory says ln 2 = 0.693), a right angle measures 90.000 degrees, the convex hull of a noisy square returns exactly 4 vertices, and a sparse skeleton correctly returns no centre of mass rather than a bad guess. On the clustering: an identical path that has been moved and rescaled scores 0.0000, the same path with tracking noise 0.0072, and a genuinely different sequence 0.4473, against a 0.35 threshold. On the focus: it refuses to pick one from a single climb, retires itself when the target is met, and stays open on small gains. On the two newest metrics: a climber stacked over their feet measures 0.00 torso lengths of offset and one hanging out measures exactly 0.50; a single upward throw yields exactly one apex and one hand contact, timed to within 0.02s of each other; and a purely static climb reports no dynamic moves at all rather than claiming perfect timing.
 
 Metrics now decode leniently, so adding a measurement in future will not throw away a climber's stored history.
 
