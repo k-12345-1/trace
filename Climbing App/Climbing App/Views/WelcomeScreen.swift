@@ -45,6 +45,9 @@ struct WelcomeScreen: View {
 
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 14) {
+            DomeMark(color: Theme.accent, innerOpacity: 0.45)
+                .frame(width: 56, height: 56)
+                .padding(.bottom, 4)
             Text("TRACE")
                 .font(Theme.ui(17, .bold))
                 .tracking(1.6)
