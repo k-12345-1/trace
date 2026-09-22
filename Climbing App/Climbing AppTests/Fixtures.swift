@@ -1,6 +1,6 @@
 import Foundation
 import CoreGraphics
-@testable import Spotter
+@testable import ClimbingApp
 
 /// Synthetic climbers, built so every expected value is known from the geometry
 /// rather than from a previous run of the code.

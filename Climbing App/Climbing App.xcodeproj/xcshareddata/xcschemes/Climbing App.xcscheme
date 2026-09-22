@@ -5,19 +5,19 @@
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA0000000000000000000060"
-               BuildableName = "Spotter.app"
-               BlueprintName = "Spotter"
-               ReferencedContainer = "container:Spotter.xcodeproj">
+               BlueprintIdentifier = "BB00000000000000000060"
+               BuildableName = "Climbing App.app"
+               BlueprintName = "Climbing App"
+               ReferencedContainer = "container:Climbing App.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "NO" buildForProfiling = "NO" buildForArchiving = "NO" buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA0000000000000000000120"
-               BuildableName = "SpotterTests.xctest"
-               BlueprintName = "SpotterTests"
-               ReferencedContainer = "container:Spotter.xcodeproj">
+               BlueprintIdentifier = "BB00000000000000000120"
+               BuildableName = "Climbing AppTests.xctest"
+               BlueprintName = "Climbing AppTests"
+               ReferencedContainer = "container:Climbing App.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -27,10 +27,10 @@
          <TestableReference skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA0000000000000000000120"
-               BuildableName = "SpotterTests.xctest"
-               BlueprintName = "SpotterTests"
-               ReferencedContainer = "container:Spotter.xcodeproj">
+               BlueprintIdentifier = "BB00000000000000000120"
+               BuildableName = "Climbing AppTests.xctest"
+               BlueprintName = "Climbing AppTests"
+               ReferencedContainer = "container:Climbing App.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -39,10 +39,10 @@
       <BuildableProductRunnable runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AA0000000000000000000060"
-            BuildableName = "Spotter.app"
-            BlueprintName = "Spotter"
-            ReferencedContainer = "container:Spotter.xcodeproj">
+            BlueprintIdentifier = "BB00000000000000000060"
+            BuildableName = "Climbing App.app"
+            BlueprintName = "Climbing App"
+            ReferencedContainer = "container:Climbing App.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -50,10 +50,10 @@
       <BuildableProductRunnable runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AA0000000000000000000060"
-            BuildableName = "Spotter.app"
-            BlueprintName = "Spotter"
-            ReferencedContainer = "container:Spotter.xcodeproj">
+            BlueprintIdentifier = "BB00000000000000000060"
+            BuildableName = "Climbing App.app"
+            BlueprintName = "Climbing App"
+            ReferencedContainer = "container:Climbing App.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

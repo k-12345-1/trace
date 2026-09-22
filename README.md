@@ -11,16 +11,22 @@ partnership: it works anywhere, from the first climb.
 ## Running it
 
 ```bash
-open Spotter/Spotter.xcodeproj
+open "Climbing App/Climbing App.xcodeproj"
 ```
 
-Build and run on a device. The simulator has no camera, so use **Import a clip**
-there. Tests run with `cmd-U`, or:
+Pick the **Climbing App** scheme, then cmd-R to run or cmd-U to test. Run on a
+device for the camera: the simulator has no real one, so use **Import a clip**
+and **Choose from library** there.
+
+From the command line:
 
 ```bash
-xcodebuild test -project Spotter/Spotter.xcodeproj -scheme Spotter \
+xcodebuild test -project "Climbing App/Climbing App.xcodeproj" -scheme "Climbing App" \
   -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
+
+48 tests in 11 suites, all known-answer: every expected value comes from the
+geometry or the colour maths rather than from a previous run.
 
 ## What it measures
 
@@ -37,25 +43,41 @@ model. No machine learning beyond the pose model itself, and nothing leaves the 
 | Deadpoint timing | Gap between a hand arriving on a new hold and the apex of the COM arc. |
 | Pauses and foot resets | Hesitation, and placements that had to be corrected. |
 
+Route scanning is separate from all of that. Photograph a wall, tap one hold, and
+every blob within a CIE Lab colour distance of it is picked out; the grade is read
+off the route tag with Vision text recognition. No trained model and no route
+database, so it works on the first photo in any gym. It cannot tell a route apart
+from unrelated holds of the same colour, which is why you drop the wrong ones
+before saving.
+
 Below 55 percent tracking confidence Spotter draws nothing and says nothing.
 Confidently wrong coaching is the failure mode that kills this product.
 
 ## Layout
 
 ```
-Spotter/Spotter/
-  Analysis/    pose tracking, metrics, findings, focus, beta clustering
-  Models/      climb, pose, focus
-  Capture/     AVFoundation capture and guided framing
-  Views/       SwiftUI screens and the video overlay
-  Storage/     local JSON persistence
-  Design/      the Spotter visual identity as tokens
-SpotterTests/  36 known-answer tests
+Climbing App/
+  Climbing App.xcodeproj
+  Climbing App/
+    Analysis/    pose tracking, metrics, findings, focus, clustering, route scanner
+    Models/      climb, pose, focus, gym, route
+    Capture/     AVFoundation capture and guided framing
+    Views/       SwiftUI screens, the video overlay, scanning and gyms
+    Storage/     local JSON persistence
+    Design/      the visual identity as tokens, plus bundled Inter
+    Fonts/       Inter Regular, Medium, SemiBold, Bold (SIL OFL)
+  Climbing AppTests/   48 known-answer tests
+  tools/               demo seeder and mock exporter
+mock/            the browser mock of the three screens
+identity.html    the published visual identity
 ```
+
+The Xcode target is called **Climbing App** and the product module is
+`ClimbingApp`. The product itself is still branded Spotter in the interface.
 
 ## Status
 
-Phases 1 to 4 of `../PLAN.md` are built. **Phase 0 has not been run.** Whether Vision
+Phases 1 to 4 of `PLAN.md` are built, plus route scanning. **Phase 0 has not been run.** Whether Vision
 can hold a skeleton on a body pressed against a wall, facing away, with a heel hooked
 overhead is still unverified, and it is the question the project lives or dies on.
 

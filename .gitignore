@@ -1,9 +1,9 @@
 # Build output
-Spotter/build/
+build/
 DerivedData/
-*.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/
+*.xcworkspace/xcuserdata/
 
 # macOS
 .DS_Store

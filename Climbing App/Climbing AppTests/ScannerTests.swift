@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import CoreGraphics
-@testable import Spotter
+@testable import ClimbingApp
 
 /// Builds a synthetic wall: a dark background with holds of known colour and
 /// known position, so what the scanner should find is known in advance.

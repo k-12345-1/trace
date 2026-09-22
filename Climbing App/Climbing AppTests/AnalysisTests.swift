@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import CoreGraphics
-@testable import Spotter
+@testable import ClimbingApp
 
 // MARK: - Geometry and smoothness
 
