@@ -1,0 +1,155 @@
+import Foundation
+import CoreGraphics
+
+/// How much a leak is costing. Magnitude, not state, so it maps onto the ember ramp.
+enum Severity: Int, Codable, Comparable {
+    case negligible = 0, minor, moderate, costly, dominant
+    static func < (l: Severity, r: Severity) -> Bool { l.rawValue < r.rawValue }
+
+    var label: String {
+        switch self {
+        case .negligible: return "Negligible"
+        case .minor:      return "Minor"
+        case .moderate:   return "Moderate"
+        case .costly:     return "Costly"
+        case .dominant:   return "Dominant"
+        }
+    }
+}
+
+enum LeakKind: String, Codable {
+    case bentArms, weightOnArms, lurchy, impreciseFeet, hesitation, wandering
+    case mistimedDynamics
+
+    var title: String {
+        switch self {
+        case .bentArms:         return "Bent arms while static"
+        case .weightOnArms:     return "Weight hanging off your arms"
+        case .lurchy:           return "Start-stop movement"
+        case .impreciseFeet:    return "Imprecise feet"
+        case .hesitation:       return "Reading the route while hanging on it"
+        case .wandering:        return "Wandering line"
+        case .mistimedDynamics: return "Catching outside the deadpoint"
+        }
+    }
+
+    /// A diagnosis with no prescription is a complaint.
+    var drill: String {
+        switch self {
+        case .bentArms:
+            return "Straight-arm traverse. Climb an easy traverse with your elbows never bending past 150 degrees."
+        case .weightOnArms:
+            return "Hip-turn drill. Turn a hip into the wall before every reach, on terrain two grades below your limit."
+        case .lurchy:
+            return "Downclimb everything you climb. It forces control and doubles your volume."
+        case .impreciseFeet:
+            return "Silent feet. Place each foot once, with no noise and no adjusting."
+        case .hesitation:
+            return "Read the whole sequence from the ground, then climb it without stopping."
+        case .wandering:
+            return "Climb it again and try to keep your hips travelling in one line."
+        case .mistimedDynamics:
+            return "Deadpoint isolation. Pick one dynamic move and repeat it, catching the hold at the exact top of the arc rather than on the way up or the way down."
+        }
+    }
+}
+
+struct Finding: Codable, Identifiable {
+    var id = UUID()
+    var kind: LeakKind
+    var severity: Severity
+    var start: Double
+    var end: Double
+    var message: String
+
+    var timecode: String {
+        let m = Int(start) / 60, s = Int(start) % 60
+        return String(format: "%d:%02d", m, s)
+    }
+    var duration: Double { max(0, end - start) }
+}
+
+/// Everything the analysis produced for one climb.
+struct Metrics: Codable {
+    var entropy: Double            // geometric index of entropy, ln(2L/C). Lower is smoother.
+    var logJerk: Double            // log dimensionless jerk. Lower is smoother.
+    var pathRatio: Double          // COM path length over straight-line distance
+    var staticElbowAngle: Double   // mean elbow angle in degrees while the COM is near-still
+    var pauseCount: Int
+    var pauseTotal: Double
+    var footAdjustments: Int
+    var comOffsetFromFeet: Double  // torso lengths the COM sits sideways of the feet
+    var deadpointOffsets: [Double] // seconds, signed. Negative early, positive late.
+    var comPath: [CGPoint]
+    var duration: Double
+    var trackingConfidence: Double // 0 to 1, fraction of frames with a usable skeleton
+
+    /// Below this we do not draw and we do not coach. Confidently wrong feedback
+    /// is the failure mode that kills the product.
+    var isTrustworthy: Bool { trackingConfidence >= 0.55 }
+
+    /// Mean timing error on dynamic moves, in milliseconds. Zero when the climb
+    /// had no dynamic moves to judge, which is not the same as perfect timing.
+    var meanDeadpointError: Double {
+        guard !deadpointOffsets.isEmpty else { return 0 }
+        let total = deadpointOffsets.reduce(0.0) { $0 + abs($1) }
+        return total / Double(deadpointOffsets.count) * 1000
+    }
+
+    /// Positive means catching late, on the way back down.
+    var deadpointBias: Double {
+        guard !deadpointOffsets.isEmpty else { return 0 }
+        return deadpointOffsets.reduce(0, +) / Double(deadpointOffsets.count) * 1000
+    }
+
+    var hasDynamicMoves: Bool { !deadpointOffsets.isEmpty }
+
+    // Decoded leniently so that adding a metric does not throw away a climber's
+    // stored history. Anything missing from an older file falls back to a neutral
+    // value rather than failing the whole decode.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        entropy            = try c.decode(Double.self, forKey: .entropy)
+        logJerk            = try c.decode(Double.self, forKey: .logJerk)
+        pathRatio          = try c.decode(Double.self, forKey: .pathRatio)
+        staticElbowAngle   = try c.decode(Double.self, forKey: .staticElbowAngle)
+        pauseCount         = try c.decode(Int.self, forKey: .pauseCount)
+        pauseTotal         = try c.decode(Double.self, forKey: .pauseTotal)
+        footAdjustments    = try c.decode(Int.self, forKey: .footAdjustments)
+        comPath            = try c.decode([CGPoint].self, forKey: .comPath)
+        duration           = try c.decode(Double.self, forKey: .duration)
+        trackingConfidence = try c.decode(Double.self, forKey: .trackingConfidence)
+        comOffsetFromFeet  = try c.decodeIfPresent(Double.self, forKey: .comOffsetFromFeet) ?? 0
+        deadpointOffsets   = try c.decodeIfPresent([Double].self, forKey: .deadpointOffsets) ?? []
+    }
+
+    init(entropy: Double, logJerk: Double, pathRatio: Double, staticElbowAngle: Double,
+         pauseCount: Int, pauseTotal: Double, footAdjustments: Int,
+         comOffsetFromFeet: Double = 0, deadpointOffsets: [Double] = [],
+         comPath: [CGPoint], duration: Double, trackingConfidence: Double) {
+        self.entropy = entropy
+        self.logJerk = logJerk
+        self.pathRatio = pathRatio
+        self.staticElbowAngle = staticElbowAngle
+        self.pauseCount = pauseCount
+        self.pauseTotal = pauseTotal
+        self.footAdjustments = footAdjustments
+        self.comOffsetFromFeet = comOffsetFromFeet
+        self.deadpointOffsets = deadpointOffsets
+        self.comPath = comPath
+        self.duration = duration
+        self.trackingConfidence = trackingConfidence
+    }
+}
+
+struct Climb: Codable, Identifiable {
+    var id = UUID()
+    var recordedAt: Date
+    var videoFilename: String
+    var label: String              // free text, user typed, never validated against anything
+    var metrics: Metrics
+    var findings: [Finding]
+    var frames: [PoseFrame]
+
+    var videoURL: URL { Store.videosDirectory.appendingPathComponent(videoFilename) }
+}

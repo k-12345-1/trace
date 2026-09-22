@@ -1,0 +1,618 @@
+<title>Spotter Identity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ============ TOKENS. Dark-first: the app's primary surface is video. ============ */
+:root{
+  --ground:#0E1110; --surface:#171B19; --surface-2:#212724;
+  --line:#2C3330; --line-strong:#454E4A;
+  --ink:#EDEBE4; --ink-2:#A3A79F; --ink-3:#6E736C;
+  --accent:#FF6B2C; --accent-text:#FF8347; --accent-wash:rgba(255,107,44,.13);
+  --ok:#7CC98A; --on-accent:#0E1110;
+  --e1:#FFD9C2; --e2:#FFB183; --e3:#FF8A4C; --e4:#FF6B2C; --e5:#C64414;
+  --chalk:#F4F3EE;
+  --shadow:0 1px 0 rgba(255,255,255,.04);
+  --r-sm:2px; --r:4px; --r-pill:999px;
+  --f-ui:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --measure:1120px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ground:#F7F6F1; --surface:#FDFCF9; --surface-2:#EFEDE6;
+    --line:#DCD9CF; --line-strong:#B4B0A4;
+    --ink:#171A18; --ink-2:#5A605B; --ink-3:#8C918A;
+    --accent:#FF6B2C; --accent-text:#C9430F; --accent-wash:rgba(255,107,44,.11);
+    --ok:#3F7D4C; --on-accent:#FFFFFF;
+    --e1:#FFE4D2; --e2:#FFBD95; --e3:#FF8A4C; --e4:#E85518; --e5:#9E340C;
+    --chalk:#2A2E2B;
+    --shadow:0 1px 2px rgba(23,26,24,.06);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#F7F6F1; --surface:#FDFCF9; --surface-2:#EFEDE6;
+  --line:#DCD9CF; --line-strong:#B4B0A4;
+  --ink:#171A18; --ink-2:#5A605B; --ink-3:#8C918A;
+  --accent:#FF6B2C; --accent-text:#C9430F; --accent-wash:rgba(255,107,44,.11);
+  --ok:#3F7D4C; --on-accent:#FFFFFF;
+  --e1:#FFE4D2; --e2:#FFBD95; --e3:#FF8A4C; --e4:#E85518; --e5:#9E340C;
+  --chalk:#2A2E2B;
+  --shadow:0 1px 2px rgba(23,26,24,.06);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-ui);
+  font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--measure);margin:0 auto;padding:0 28px}
+
+/* ============ TYPE ROLES ============ */
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(34px,5.2vw,52px);line-height:1.02;letter-spacing:-.025em;font-weight:700}
+h2{font-size:clamp(22px,2.6vw,27px);line-height:1.16;letter-spacing:-.015em;font-weight:600}
+h3{font-size:17px;line-height:1.3;letter-spacing:-.005em;font-weight:600}
+p{margin:0}
+.micro{font-family:var(--f-mono);font-size:10.5px;font-weight:500;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-3);margin:0}
+.lede{font-size:17.5px;line-height:1.55;color:var(--ink-2);max-width:62ch}
+.note{font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+strong{font-weight:600;color:var(--ink)}
+
+/* ============ SECTION FRAME: spec-sheet, hairline-ruled ============ */
+section{border-top:1px solid var(--line);padding:56px 0 64px}
+.sec{display:grid;grid-template-columns:168px minmax(0,1fr);gap:40px;align-items:start}
+.sec > .body{display:flex;flex-direction:column;gap:28px;min-width:0}
+.sec-head{display:flex;flex-direction:column;gap:8px;position:sticky;top:24px}
+@media (max-width:820px){
+  .sec{grid-template-columns:1fr;gap:22px}
+  .sec-head{position:static}
+}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+/* ============ MASTHEAD ============ */
+header{padding:40px 0 8px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding-bottom:26px;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:baseline;gap:11px}
+.logo b{font-weight:700;letter-spacing:-.02em;font-size:16px}
+.toggle{font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;
+  background:transparent;color:var(--ink-2);border:1px solid var(--line-strong);
+  border-radius:var(--r);padding:7px 13px;cursor:pointer}
+.toggle:hover{color:var(--ink);border-color:var(--ink-3)}
+.toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:56px;
+  align-items:center;padding:60px 0 66px}
+@media (max-width:900px){.hero{grid-template-columns:1fr;gap:40px}}
+.hero-copy{display:flex;flex-direction:column;gap:22px}
+.thesis{font-size:17.5px;line-height:1.55;color:var(--ink-2);max-width:54ch}
+.kicker{color:var(--accent-text)}
+
+/* ============ SWATCHES ============ */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line)}
+.sw{background:var(--surface);padding:0;display:flex;flex-direction:column}
+.sw .band{height:62px;border-bottom:1px solid var(--line)}
+.sw .meta{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px}
+.sw .name{font-family:var(--f-mono);font-size:11px;letter-spacing:.02em;color:var(--ink)}
+.sw .hex{font-family:var(--f-mono);font-size:10.5px;color:var(--ink-3);text-transform:uppercase}
+.sw .role{font-size:11.5px;color:var(--ink-2);line-height:1.4}
+
+/* ============ REFERENCE AUDIT TABLE ============ */
+.audit{width:100%;border-collapse:collapse;font-size:13.5px}
+.audit th{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--ink-3);font-weight:500;text-align:left;padding:0 14px 9px 0;
+  border-bottom:1px solid var(--line-strong);white-space:nowrap}
+.audit td{padding:13px 14px 13px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.audit td:first-child{color:var(--ink);font-weight:600;white-space:nowrap}
+.dots{display:flex;gap:4px;padding-top:3px}
+.dot{width:15px;height:15px;border-radius:var(--r-sm);border:1px solid rgba(128,128,128,.32)}
+.scroller{overflow-x:auto}
+
+/* ============ POSITION AXIS ============ */
+.axis{border:1px solid var(--line);background:var(--surface);padding:30px 26px 22px}
+.axis-track{position:relative;height:60px;margin-top:6px}
+.axis-line{position:absolute;left:0;right:0;top:34px;height:1px;background:var(--line-strong)}
+.pin{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;
+  align-items:center;gap:7px;width:78px}
+.pin span{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--ink-2);text-align:center;line-height:1.3}
+.pin i{width:1px;height:14px;background:var(--line-strong);display:block}
+.pin.us span{color:var(--accent-text);font-weight:600}
+.pin.us i{background:var(--accent);width:2px;height:20px}
+.axis-ends{display:flex;justify-content:space-between;margin-top:2px}
+
+/* ============ TYPE SPECIMEN ============ */
+.spec{border:1px solid var(--line);background:var(--surface)}
+.spec-row{display:grid;grid-template-columns:134px minmax(0,1fr);gap:24px;padding:16px 20px;
+  border-bottom:1px solid var(--line);align-items:baseline}
+.spec-row:last-child{border-bottom:0}
+.spec-row > .micro{padding-top:5px}
+.sample-display{font-size:38px;line-height:1.04;letter-spacing:-.028em;font-weight:700}
+.sample-h{font-size:22px;line-height:1.2;letter-spacing:-.015em;font-weight:600}
+.sample-body{font-size:15.5px;line-height:1.62;color:var(--ink-2)}
+.sample-read{font-family:var(--f-mono);font-size:30px;font-weight:500;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.sample-read em{font-style:normal;font-size:13px;color:var(--ink-3);margin-left:7px;letter-spacing:.04em}
+.sample-micro{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-2)}
+
+/* ============ COMPONENTS ============ */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:18px}
+.card{border:1px solid var(--line);background:var(--surface);padding:18px 20px;
+  display:flex;flex-direction:column;gap:12px}
+
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(152px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line)}
+.readout{background:var(--surface);padding:15px 17px 17px;display:flex;flex-direction:column;gap:7px}
+.readout .v{font-family:var(--f-mono);font-size:27px;font-weight:500;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1}
+.readout .v em{font-style:normal;font-size:12px;color:var(--ink-3);margin-left:5px;letter-spacing:.03em}
+.delta{font-family:var(--f-mono);font-size:11px;letter-spacing:.03em;color:var(--ok)}
+.delta.up{color:var(--accent-text)}
+
+.finding{border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--surface);
+  padding:16px 18px;display:flex;flex-direction:column;gap:9px}
+.finding-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ts{font-family:var(--f-mono);font-size:11px;color:var(--accent-text);letter-spacing:.04em}
+.finding p{font-size:14.5px;line-height:1.5}
+.sev{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:9.5px;
+  text-transform:uppercase;letter-spacing:.12em;color:var(--ink-2);
+  border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:3px 7px}
+.sev i{width:7px;height:7px;border-radius:1px;display:block}
+
+.focus{border:1px solid var(--line-strong);background:var(--accent-wash);padding:17px 19px;
+  display:flex;flex-direction:column;gap:8px}
+
+.chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:10px;
+  text-transform:uppercase;letter-spacing:.12em;padding:5px 9px;border-radius:var(--r-sm);
+  border:1px solid var(--line-strong);color:var(--ink-2);background:var(--surface)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--ok);display:block}
+.chip.low i{background:var(--e2)}
+
+.rec{display:flex;align-items:center;gap:15px}
+.rec-btn{width:58px;height:58px;border-radius:var(--r-pill);border:2px solid var(--line-strong);
+  background:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
+.rec-btn i{width:40px;height:40px;border-radius:var(--r-pill);background:var(--accent);display:block;
+  transition:border-radius .18s ease,transform .18s ease}
+.rec-btn:hover i{transform:scale(.9)}
+.rec-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* ============ RULES ============ */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(246px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line)}
+.rule{background:var(--surface);padding:17px 19px;display:flex;flex-direction:column;gap:8px}
+.rule .micro{color:var(--accent-text)}
+.rule.no .micro{color:var(--ink-3)}
+.rule p{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+
+/* ============ CHART ============ */
+.chartbox{border:1px solid var(--line);background:var(--surface);padding:20px 22px 16px;
+  display:flex;flex-direction:column;gap:14px}
+.chartbox svg{display:block;width:100%;height:auto}
+.ct{font-family:var(--f-mono);font-size:9.5px;fill:var(--ink-3);letter-spacing:.09em;text-transform:uppercase}
+.cv{font-family:var(--f-mono);font-size:10.5px;fill:var(--ink-2)}
+.cvx{font-family:var(--f-mono);font-size:11px;fill:var(--accent-text);font-weight:600}
+
+footer{border-top:1px solid var(--line);padding:34px 0 60px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="wrap">
+  <div class="bar">
+    <div class="logo">
+      <b>SPOTTER</b>
+      <p class="micro">Visual identity &middot; v0.1</p>
+    </div>
+    <button class="toggle" id="tg" type="button">Invert</button>
+  </div>
+
+  <div class="hero">
+    <div class="hero-copy">
+      <p class="micro">The position</p>
+      <h1>An instrument,<br>not a feed.</h1>
+      <p class="thesis">Every climbing app on the shelf is built like social media: saturated blue, full pills, Inter, a scrolling wall of other people's sends. This one watches how you move and tells you one true thing. <span class="kicker">It should look like a measuring device made by an outdoor company</span>, which is exactly the space Arc'teryx and Kawa Club already occupy and no climbing app has taken.</p>
+      <div class="rec">
+        <button class="rec-btn" type="button" aria-label="Record a climb"><i></i></button>
+        <div class="stack" style="gap:4px">
+          <p class="micro">Record</p>
+          <p class="note">The only fully round thing in the app.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playback view: the most characteristic screen in the product -->
+    <svg viewBox="0 0 296 588" role="img" aria-label="Playback screen showing a climber skeleton and the center-of-mass path traced over a bouldering wall" style="width:100%;height:auto">
+      <defs>
+        <clipPath id="scr"><rect x="10" y="10" width="276" height="568" rx="22"/></clipPath>
+        <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <rect x="2" y="2" width="292" height="584" rx="30" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1"/>
+      <g clip-path="url(#scr)">
+        <rect x="10" y="10" width="276" height="568" fill="#14100E"/>
+        <!-- wall panels -->
+        <path d="M104 10V578M196 10V578" stroke="#241D18" stroke-width="1"/>
+        <path d="M10 214H286M10 418H286" stroke="#241D18" stroke-width="1"/>
+        <!-- holds -->
+        <g opacity="0.62">
+          <ellipse cx="58"  cy="96"  rx="13" ry="8"  fill="#B4483C" transform="rotate(-18 58 96)"/>
+          <ellipse cx="236" cy="128" rx="11" ry="7"  fill="#3C6BB4" transform="rotate(26 236 128)"/>
+          <ellipse cx="128" cy="72"  rx="9"  ry="12" fill="#C9A227" transform="rotate(8 128 72)"/>
+          <ellipse cx="196" cy="196" rx="14" ry="8"  fill="#7A4FA3" transform="rotate(-32 196 196)"/>
+          <ellipse cx="74"  cy="188" rx="10" ry="7"  fill="#4A8C5A" transform="rotate(14 74 188)"/>
+          <ellipse cx="248" cy="268" rx="12" ry="8"  fill="#C9A227" transform="rotate(-22 248 268)"/>
+          <ellipse cx="46"  cy="288" rx="9"  ry="11" fill="#3C6BB4" transform="rotate(30 46 288)"/>
+          <ellipse cx="214" cy="356" rx="13" ry="7"  fill="#B4483C" transform="rotate(18 214 356)"/>
+          <ellipse cx="62"  cy="382" rx="11" ry="8"  fill="#7A4FA3" transform="rotate(-12 62 382)"/>
+          <ellipse cx="242" cy="452" rx="10" ry="7"  fill="#4A8C5A" transform="rotate(22 242 452)"/>
+          <ellipse cx="52"  cy="474" rx="12" ry="8"  fill="#C9A227" transform="rotate(-28 52 474)"/>
+          <ellipse cx="204" cy="512" rx="11" ry="7"  fill="#3C6BB4" transform="rotate(10 204 512)"/>
+          <ellipse cx="96"  cy="540" rx="13" ry="8"  fill="#B4483C" transform="rotate(-16 96 540)"/>
+          <ellipse cx="168" cy="446" rx="9"  ry="6"  fill="#4A8C5A" transform="rotate(34 168 446)"/>
+          <ellipse cx="118" cy="300" rx="8"  ry="6"  fill="#7A4FA3" transform="rotate(-6 118 300)"/>
+        </g>
+        <!-- scrim so overlay reads over any hold colour -->
+        <rect x="10" y="10" width="276" height="568" fill="#0B0908" opacity="0.42"/>
+
+        <!-- COM path: wandering trace, the headline metric made visible -->
+        <path d="M152 470 L146 452 L158 436 L150 420 L140 404 L152 392 L162 374 L148 358 L142 340 L154 326 L152 319"
+              fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" opacity="0.92" filter="url(#glow)"/>
+        <circle cx="152" cy="319" r="4.5" fill="var(--accent)" stroke="#0B0908" stroke-width="2"/>
+
+        <!-- skeleton: chalk-white with a dark outer stroke so it survives any ground -->
+        <g fill="none" stroke="#0B0908" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.75">
+          <path d="M136 264 L164 262 M136 264 L120 282 L112 258 M164 262 L178 244 L190 220
+                   M136 264 L142 320 M164 262 L162 318 M142 320 L162 318
+                   M142 320 L126 352 L118 384 M162 318 L176 348 L188 368"/>
+        </g>
+        <g fill="none" stroke="var(--chalk)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M136 264 L164 262 M136 264 L120 282 L112 258 M164 262 L178 244 L190 220
+                   M136 264 L142 320 M164 262 L162 318 M142 320 L162 318
+                   M142 320 L126 352 L118 384 M162 318 L176 348 L188 368"/>
+        </g>
+        <circle cx="150" cy="249" r="10" fill="none" stroke="#0B0908" stroke-width="5"/>
+        <circle cx="150" cy="249" r="10" fill="none" stroke="var(--chalk)" stroke-width="2"/>
+        <g fill="var(--chalk)" stroke="#0B0908" stroke-width="1.2">
+          <circle cx="136" cy="264" r="2.8"/><circle cx="164" cy="262" r="2.8"/>
+          <circle cx="120" cy="282" r="2.8"/><circle cx="178" cy="244" r="2.8"/>
+          <circle cx="142" cy="320" r="2.8"/><circle cx="162" cy="318" r="2.8"/>
+          <circle cx="126" cy="352" r="2.8"/><circle cx="176" cy="348" r="2.8"/>
+        </g>
+        <!-- leak marker on the bent elbow -->
+        <circle cx="120" cy="282" r="13" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.85"/>
+
+        <!-- tracking chip -->
+        <g>
+          <rect x="24" y="26" width="128" height="24" rx="2" fill="#0B0908" opacity="0.82" stroke="#3A332E"/>
+          <circle cx="37" cy="38" r="3" fill="#7CC98A"/>
+          <text x="46" y="42" font-family="IBM Plex Mono, monospace" font-size="9.5"
+                letter-spacing="1.3" fill="#C8C3BA">TRACKING 94%</text>
+        </g>
+
+        <!-- one finding, one sentence -->
+        <g>
+          <rect x="24" y="498" width="248" height="62" rx="2" fill="#0B0908" opacity="0.9" stroke="#3A332E"/>
+          <rect x="24" y="498" width="2.5" height="62" fill="var(--accent)"/>
+          <text x="38" y="519" font-family="IBM Plex Mono, monospace" font-size="9.5"
+                letter-spacing="1.3" fill="#FF8347">0:12 &#183; 4.2 S</text>
+          <text x="38" y="537" font-family="Archivo, sans-serif" font-size="12.5" fill="#EDEBE4">Elbows bent while you read</text>
+          <text x="38" y="552" font-family="Archivo, sans-serif" font-size="12.5" fill="#EDEBE4">the next move.</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+</header>
+
+<main>
+<!-- ================= REFERENCE AUDIT ================= -->
+<section class="wrap">
+  <div class="sec">
+    <div class="sec-head">
+      <p class="micro">Audit</p>
+      <h2>What the five references actually do</h2>
+    </div>
+    <div class="body">
+      <p class="lede">Not from memory. These are the computed styles pulled off each live site, so the comparison is evidence rather than impression.</p>
+      <div class="scroller">
+        <table class="audit">
+          <thead><tr><th>Brand</th><th>Ground</th><th>Type</th><th>Radius</th><th>What it is doing</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Arc'teryx</td>
+              <td><div class="dots"><i class="dot" style="background:#FFFFFF"></i><i class="dot" style="background:#1A1A1A"></i></div></td>
+              <td class="mono" style="font-size:11.5px">Helvetica Now<br>uppercase +0.36px</td>
+              <td class="mono" style="font-size:11.5px">2&ndash;4px</td>
+              <td>Zero ornament. No accent colour anywhere on the homepage: all colour arrives in the product photography. The interface is a neutral instrument.</td>
+            </tr>
+            <tr>
+              <td>Kawa Club</td>
+              <td><div class="dots"><i class="dot" style="background:#F9F9F4"></i><i class="dot" style="background:#121212"></i><i class="dot" style="background:#FAF7AA"></i></div></td>
+              <td class="mono" style="font-size:11.5px">DM Sans</td>
+              <td class="mono" style="font-size:11.5px">8&ndash;40px</td>
+              <td>Warm paper, never pure white. Near-black at 75% opacity for body copy, which reads softer than grey. One pale butter accent.</td>
+            </tr>
+            <tr>
+              <td>AllTrails</td>
+              <td><div class="dots"><i class="dot" style="background:#FFFFFF"></i><i class="dot" style="background:#161F13"></i><i class="dot" style="background:#E6EAE6"></i><i class="dot" style="background:#94F477"></i></div></td>
+              <td class="mono" style="font-size:11.5px">Aeonik (custom)</td>
+              <td class="mono" style="font-size:11.5px">16 / 24 / pill</td>
+              <td>Green-shifted neutrals rather than grey, so the whole palette feels outdoors. One loud lime used sparingly against near-black green.</td>
+            </tr>
+            <tr>
+              <td>KAYA</td>
+              <td><div class="dots"><i class="dot" style="background:#000000"></i><i class="dot" style="background:#8F92A1"></i></div></td>
+              <td class="mono" style="font-size:11.5px">Inter</td>
+              <td class="mono" style="font-size:11.5px">18&ndash;20px</td>
+              <td>Pure black, because the product is video beta and black gets out of the way. Correct instinct, harsh execution: #000 reads as a void, not a material.</td>
+            </tr>
+            <tr>
+              <td>St&#333;kt</td>
+              <td><div class="dots"><i class="dot" style="background:#2C75EA"></i><i class="dot" style="background:#000000"></i><i class="dot" style="background:#F70E31"></i></div></td>
+              <td class="mono" style="font-size:11.5px">Inter</td>
+              <td class="mono" style="font-size:11.5px">300px (pills)</td>
+              <td>Electric blue, siren red, fully round everything. Reads young and social. This is the look we are deliberately not making.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="axis">
+        <p class="micro">Where the identity sits</p>
+        <div class="axis-track">
+          <div class="axis-line"></div>
+          <div class="pin" style="left:6%"><span>Arc'teryx</span><i></i></div>
+          <div class="pin us" style="left:24%"><span>Spotter</span><i></i></div>
+          <div class="pin" style="left:42%"><span>Kawa Club</span><i></i></div>
+          <div class="pin" style="left:60%"><span>AllTrails</span><i></i></div>
+          <div class="pin" style="left:76%"><span>KAYA</span><i></i></div>
+          <div class="pin" style="left:91%"><span>St&#333;kt</span><i></i></div>
+        </div>
+        <div class="axis-ends">
+          <p class="micro">Instrument</p>
+          <p class="micro">Feed</p>
+        </div>
+      </div>
+      <p class="note"><strong>The gap is real.</strong> Every climbing app clusters at the loud end. Every outdoor brand worth borrowing from sits at the quiet end. Nobody has brought technical-apparel restraint into a climbing app, and a training tool is exactly the product that earns it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PALETTE ================= -->
+<section class="wrap">
+  <div class="sec">
+    <div class="sec-head">
+      <p class="micro">Colour</p>
+      <h2>Two grounds, one accent</h2>
+    </div>
+    <div class="body">
+      <p class="lede">Dark is not a preference, it is the product. The hero surface is always footage of you climbing in a dim gym, so the interface has to disappear behind it. Light exists for the other half of the app: session reports and trends, which are documents and want paper.</p>
+
+      <div class="swatches">
+        <div class="sw"><div class="band" style="background:var(--ground)"></div><div class="meta"><p class="name">--ground</p><p class="hex" id="h-ground">#0E1110</p><p class="role">Near-black with a green cast. A material, not a void.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--surface)"></div><div class="meta"><p class="name">--surface</p><p class="hex" id="h-surface">#171B19</p><p class="role">Cards, sheets, readout tiles.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--line)"></div><div class="meta"><p class="name">--line</p><p class="hex" id="h-line">#2C3330</p><p class="role">Hairlines. The primary way things are separated.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--ink)"></div><div class="meta"><p class="name">--ink</p><p class="hex" id="h-ink">#EDEBE4</p><p class="role">Warm off-white, borrowed from Kawa. Never #FFF.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--ink-2)"></div><div class="meta"><p class="name">--ink-2</p><p class="hex" id="h-ink2">#A3A79F</p><p class="role">Secondary copy, axis labels.</p></div></div>
+        <div class="sw"><div class="band" style="background:var(--accent)"></div><div class="meta"><p class="name">--accent</p><p class="hex">#FF6B2C</p><p class="role">Route tape, rope flake, bivy orange. Earned, not decorative.</p></div></div>
+      </div>
+
+      <div class="stack">
+        <p class="micro">Ember ramp &middot; leak severity is magnitude, so it gets a ramp and not a traffic light</p>
+        <div class="swatches" style="grid-template-columns:repeat(5,1fr)">
+          <div class="sw"><div class="band" style="background:var(--e1);height:44px"></div><div class="meta"><p class="name">--e1</p><p class="role">Negligible</p></div></div>
+          <div class="sw"><div class="band" style="background:var(--e2);height:44px"></div><div class="meta"><p class="name">--e2</p><p class="role">Minor</p></div></div>
+          <div class="sw"><div class="band" style="background:var(--e3);height:44px"></div><div class="meta"><p class="name">--e3</p><p class="role">Moderate</p></div></div>
+          <div class="sw"><div class="band" style="background:var(--e4);height:44px"></div><div class="meta"><p class="name">--e4</p><p class="role">Costly</p></div></div>
+          <div class="sw"><div class="band" style="background:var(--e5);height:44px"></div><div class="meta"><p class="name">--e5</p><p class="role">Dominant</p></div></div>
+        </div>
+      </div>
+
+      <p class="note"><strong>Why orange and not the obvious lime.</strong> AllTrails already owns near-black-green plus lime, and green is the single worst overlay hue in a bouldering gym: it collides with green holds and green tape. Orange is the colour outdoor gear already uses when something must be findable, and it sits analogous to the warm paper ground instead of fighting it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OVERLAY ================= -->
+<section class="wrap">
+  <div class="sec">
+    <div class="sec-head">
+      <p class="micro">Overlay</p>
+      <h2>Drawing on top of a wall of every colour</h2>
+    </div>
+    <div class="body">
+      <p class="lede">This is the one design problem no other app in the category has to solve. Climbing holds come in every saturated hue there is, so an overlay cannot rely on hue to stand out. It has to rely on luminance and outline.</p>
+      <div class="grid2">
+        <div class="card">
+          <p class="micro">Skeleton</p>
+          <h3>Chalk, double-stroked</h3>
+          <p class="note">2px <span class="mono">--chalk</span> over a 5.5px near-black stroke at 75%. The dark halo is what makes it legible over a yellow hold and a black mat alike. It is never the accent colour: the skeleton is context, not a finding.</p>
+        </div>
+        <div class="card">
+          <p class="micro">Centre-of-mass path</p>
+          <h3>The only orange line</h3>
+          <p class="note">2px <span class="mono">--accent</span> with a soft glow, plus a 42% scrim over the footage underneath. The accent is spent here and almost nowhere else, because this trace is the product's headline measurement.</p>
+        </div>
+        <div class="card">
+          <p class="micro">Leak markers</p>
+          <h3>Rings, never fills</h3>
+          <p class="note">A 1.5px ring around the joint at fault, sized to the finding. A filled marker would hide the very thing it is pointing at.</p>
+        </div>
+        <div class="card">
+          <p class="micro">Confidence</p>
+          <h3>Say nothing when unsure</h3>
+          <p class="note">Below the tracking threshold the overlay does not draw and the app admits it could not see clearly. Confidently wrong coaching is the failure mode that kills the product.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TYPE ================= -->
+<section class="wrap">
+  <div class="sec">
+    <div class="sec-head">
+      <p class="micro">Type</p>
+      <h2>Archivo and IBM Plex Mono</h2>
+    </div>
+    <div class="body">
+      <p class="lede">Two families, three jobs. Archivo is a sturdy American grotesk that holds up in heavy weights and in tracked-out uppercase, which is the Arc'teryx move. Plex Mono does every number, because a metric should read like an instrument and not like body copy. In the iOS build these map to SF Pro and SF Mono.</p>
+      <div class="spec">
+        <div class="spec-row"><p class="micro">Display / 700</p><p class="sample-display">An instrument, not a feed</p></div>
+        <div class="spec-row"><p class="micro">Heading / 600</p><p class="sample-h">Your third lap was your cheapest</p></div>
+        <div class="spec-row"><p class="micro">Body / 400</p><p class="sample-body">You held a bent-arm position for 4.2 seconds before the move at 0:12. That is your forearms paying for a rest your skeleton could have taken.</p></div>
+        <div class="spec-row"><p class="micro">Readout / Mono 500</p><p class="sample-read">1.12 <em>NATS</em> &nbsp; 142&deg; <em>ELBOW</em></p></div>
+        <div class="spec-row"><p class="micro">Micro-label / Mono</p><p class="sample-micro">Geometric entropy &middot; Attempt 3 of 3 &middot; V4</p></div>
+      </div>
+      <p class="note"><strong>Radius is a tell.</strong> 4px on cards and controls, 2px on chips, and a full pill on exactly one element in the whole app: the record button. Low radius reads as instrument. Stōkt's 300px pills read as a toy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMPONENTS ================= -->
+<section class="wrap">
+  <div class="sec">
+    <div class="sec-head">
+      <p class="micro">Components</p>
+      <h2>The five things the app is made of</h2>
+    </div>
+    <div class="body">
+      <div class="stack">
+        <p class="micro">Readout tiles &middot; example data from a session</p>
+        <div class="readouts">
+          <div class="readout"><p class="micro">Entropy</p><p class="v">1.12<em>nats</em></p><p class="delta">&darr; 0.30 vs attempt 1</p></div>
+          <div class="readout"><p class="micro">Norm. jerk</p><p class="v">4.81</p><p class="delta">&darr; 1.24</p></div>
+          <div class="readout"><p class="micro">Path ratio</p><p class="v">1.31<em>&times;</em></p><p class="delta">&darr; 0.09</p></div>
+          <div class="readout"><p class="micro">Static elbow</p><p class="v">142<em>&deg;</em></p><p class="delta up">&uarr; 11&deg; to work on</p></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <p class="micro">Finding &middot; one sentence, one timestamp, tappable to the frame</p>
+        <div class="finding">
+          <div class="finding-top">
+            <p class="ts">0:12 &#183; 4.2 S</p>
+            <span class="sev"><i style="background:var(--e4)"></i>Costly</span>
+          </div>
+          <p>You held a bent-arm position for 4.2 seconds while reading the next move. Straight arms would have handed that load to your skeleton.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <p class="micro">Focus &middot; persists across sessions until it measurably improves</p>
+        <div class="focus">
+          <p class="micro" style="color:var(--accent-text)">Working on &middot; day 11</p>
+          <h3>Straight arms on steep terrain</h3>
+          <p class="note">Drill: straight-arm traverse, elbows never below 150&deg;. Mean static elbow angle is up 11&deg; since we started.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <p class="micro">Capture quality chips</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <span class="chip"><i></i>Tracking 94%</span>
+          <span class="chip low"><i></i>Partial occlusion</span>
+          <span class="chip"><i style="background:var(--ink-3)"></i>Phone too close</span>
+        </div>
+      </div>
+
+      <div class="chartbox">
+        <div class="stack" style="gap:3px">
+          <h3>Geometric entropy, last 8 sessions</h3>
+          <p class="micro">Lower is smoother &middot; example data</p>
+        </div>
+        <svg viewBox="0 0 520 168" role="img" aria-label="Line chart of geometric entropy falling from 1.42 to 1.12 over eight sessions">
+          <g stroke="var(--line)" stroke-width="1">
+            <path d="M44 117.3H496M44 92H496M44 66.7H496M44 41.3H496"/>
+          </g>
+          <g class="cv" text-anchor="end">
+            <text x="37" y="121">1.10</text><text x="37" y="95.5">1.20</text>
+            <text x="37" y="70">1.30</text><text x="37" y="44.8">1.40</text>
+          </g>
+          <path d="M44 36.3L109 46.4L173 38.8L238 66.7L302 76.8L367 69.2L431 94.5L496 112.3L496 130L44 130Z"
+                fill="var(--accent)" opacity="0.10"/>
+          <path d="M44 36.3L109 46.4L173 38.8L238 66.7L302 76.8L367 69.2L431 94.5L496 112.3"
+                fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <g fill="var(--accent)" opacity="0.5">
+            <circle cx="109" cy="46.4" r="2.5"/><circle cx="173" cy="38.8" r="2.5"/>
+            <circle cx="238" cy="66.7" r="2.5"/><circle cx="302" cy="76.8" r="2.5"/>
+            <circle cx="367" cy="69.2" r="2.5"/><circle cx="431" cy="94.5" r="2.5"/>
+          </g>
+          <circle cx="44" cy="36.3" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+          <circle cx="496" cy="112.3" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+          <text class="cvx" x="52" y="30">1.42</text>
+          <text class="cvx" x="489" y="106" text-anchor="end">1.12</text>
+          <path d="M44 130H496" stroke="var(--line-strong)" stroke-width="1"/>
+          <g class="ct" text-anchor="middle">
+            <text x="44" y="148">S1</text><text x="109" y="148">S2</text><text x="173" y="148">S3</text>
+            <text x="238" y="148">S4</text><text x="302" y="148">S5</text><text x="367" y="148">S6</text>
+            <text x="431" y="148">S7</text><text x="496" y="148">S8</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RULES ================= -->
+<section class="wrap">
+  <div class="sec">
+    <div class="sec-head">
+      <p class="micro">Rules</p>
+      <h2>What keeps it honest</h2>
+    </div>
+    <div class="body">
+      <div class="rules">
+        <div class="rule"><p class="micro">Always</p><h3>Hairlines before boxes</h3><p>Separate things with a 1px rule and space. Reach for a bordered card only when something genuinely lifts off the page.</p></div>
+        <div class="rule"><p class="micro">Always</p><h3>Numbers in mono</h3><p>Every metric, timestamp, angle and grade is tabular Plex Mono. It is what makes the app read as a measuring device.</p></div>
+        <div class="rule"><p class="micro">Always</p><h3>Units on readouts</h3><p>Nats, degrees, seconds, multiples. A bare number is a score; a number with a unit is a measurement.</p></div>
+        <div class="rule no"><p class="micro">Never</p><h3>More than one orange thing</h3><p>Per screen. If the COM path is on screen, nothing else is accent coloured.</p></div>
+        <div class="rule no"><p class="micro">Never</p><h3>Celebratory tone</h3><p>No confetti, no streaks, no "crushing it". A training partner is specific and brief, and the app is not a game.</p></div>
+        <div class="rule no"><p class="micro">Never</p><h3>Grade as the headline</h3><p>The app has opinions about movement, not difficulty. Grades are a small mono label, never the biggest thing on a screen.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <div class="sec">
+    <div class="sec-head"><p class="micro">Note</p></div>
+    <div class="body">
+      <p class="note"><strong>The app is called Spotter.</strong> In bouldering your spotter is the person who watches you climb, which is exactly what the product is, and it carries the training-partner framing better than a physics term would. The working build ships under this name.</p>
+      <p class="note">Reference tokens were read off arcteryx.com, kawa.club, alltrails.com, kayaclimb.com and getstokt.com on 22 September 2026. All figures shown in components are illustrative example data.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('tg');
+  function cur(){
+    var s=root.getAttribute('data-theme');
+    if(s) return s;
+    return window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+  }
+  try{ var saved=localStorage.getItem('pl-theme'); if(saved) root.setAttribute('data-theme',saved); }catch(e){}
+  function sync(){
+    var t=cur();
+    btn.textContent = t==='dark' ? 'Light' : 'Dark';
+    var cs=getComputedStyle(root), map={'h-ground':'--ground','h-surface':'--surface','h-line':'--line','h-ink':'--ink','h-ink2':'--ink-2'};
+    for(var id in map){
+      var el=document.getElementById(id);
+      if(el) el.textContent=cs.getPropertyValue(map[id]).trim();
+    }
+  }
+  btn.addEventListener('click',function(){
+    var next = cur()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme',next);
+    try{ localStorage.setItem('pl-theme',next); }catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
