@@ -164,7 +164,6 @@ struct ResultsScreen: View {
             PlayerLayerView(player: playback.player)
             OverlayView(
                 frames: climb.frames,
-                comPath: climb.metrics.isTrustworthy ? climb.metrics.comPath : [],
                 time: playback.time,
                 videoAspect: aspect
             )

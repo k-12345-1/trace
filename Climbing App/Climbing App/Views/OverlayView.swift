@@ -1,93 +1,86 @@
 import SwiftUI
 
-/// Draws the climber on top of their own footage.
+/// Draws the climber on top of their own footage, in the language of the
+/// reference clip: a teal skeleton with yellow joints, magenta trails behind
+/// every extremity, angle chips on leader lines, and a marked centre of mass
+/// sitting inside its balance envelope.
 ///
-/// The body is a wireframe rather than a stick figure: every limb is a tapered
-/// tube described by ribs and two edge lines, built from the same 2D joints as
-/// before. No body model and no depth, just the joints drawn as volumes instead
-/// of lines, which is what makes it read as a body rather than a diagram.
-///
-/// Alongside it runs a live readout naming what the climber is doing at this
-/// instant, in the manner of PlayVision's player labels.
+/// Nothing new is measured. Every number here already exists in MetricsEngine;
+/// this is the readout, not the analysis.
 struct OverlayView: View {
     let frames: [PoseFrame]
-    let comPath: [CGPoint]
     let time: Double
     /// width / height of the video as displayed.
     let videoAspect: Double
     var showReadout: Bool = true
 
-    /// Phases are derived once, not per frame of playback.
+    /// The overlay palette. Deliberately not Theme's: these colours have to sit
+    /// on top of a gym wall painted every hue at once, so they are chosen for
+    /// separation from holds rather than for brand agreement.
+    private enum Ink {
+        static let bone = Color(red: 0.09, green: 0.72, blue: 0.68)      // teal
+        static let joint = Color(red: 1.00, green: 0.77, blue: 0.00)     // yellow
+        static let trail = Color(red: 1.00, green: 0.24, blue: 0.59)     // magenta
+        static let chip = Color(red: 0.11, green: 0.11, blue: 0.12)
+        static let leader = Color.white.opacity(0.55)
+        static let envelope = Color.white.opacity(0.85)
+    }
+
+    /// How far back the extremity trails reach.
+    private static let trailSeconds = 1.5
+
     private var phases: [MovementPhase] { PhaseTimeline.build(frames: frames) }
 
     var body: some View {
         GeometryReader { geo in
             let rect = fittedRect(in: geo.size)
+            let frame = nearestFrame()
             let readout = showReadout
                 ? PhaseTimeline.readout(frames: frames, phases: phases, at: time) : nil
 
-            ZStack(alignment: .topLeading) {
+            ZStack(alignment: .bottomLeading) {
                 Canvas { ctx, _ in
-                    drawTrace(ctx: &ctx, rect: rect)
-                    if let frame = nearestFrame() {
-                        drawWireframe(ctx: &ctx, frame: frame, rect: rect)
-                    }
-                    if let box = readout?.box { drawBrackets(ctx: &ctx, box: box, rect: rect) }
+                    guard let frame else { return }
+                    let scale = bodyHeight(frame) * rect.height
+
+                    drawEnvelope(ctx: &ctx, frame: frame, rect: rect, scale: scale)
+                    drawTrails(ctx: &ctx, rect: rect)
+                    drawSkeleton(ctx: &ctx, frame: frame, rect: rect, scale: scale)
+                    drawAngles(ctx: &ctx, frame: frame, rect: rect, scale: scale)
+                    drawCOM(ctx: &ctx, frame: frame, rect: rect, scale: scale)
+                    drawInset(ctx: &ctx, frame: frame, in: rect)
                 }
                 .allowsHitTesting(false)
 
                 if let readout {
-                    panel(readout)
-                        .position(panelPosition(for: readout.box, in: rect, size: geo.size))
-                        .allowsHitTesting(false)
+                    phaseChip(readout)
+                        .padding(.leading, rect.minX + 12)
+                        .padding(.bottom, geo.size.height - rect.maxY + 12)
                 }
             }
         }
     }
 
-    // MARK: Live readout
+    // MARK: Phase chip
+    //
+    // The reference has no text panel, so this borrows the chip language of the
+    // angle labels and stays in one corner rather than chasing the climber.
 
-    private func panel(_ r: PhaseTimeline.Readout) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func phaseChip(_ r: PhaseTimeline.Readout) -> some View {
+        HStack(spacing: 9) {
             Text(r.phase.label.uppercased())
                 .font(Theme.mono(10, weight: .medium))
-                .tracking(1.3)
-                .foregroundStyle(r.phase.isNotable ? Theme.accentText : Theme.chalk)
-            HStack(spacing: 8) {
-                readoutValue(String(format: "%.1f", r.speed), "bl/s")
-                if let elbow = r.elbow {
-                    readoutValue("\(Int(elbow.rounded()))", "deg")
-                }
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(Color.black.opacity(0.72))
-        .overlay(Rectangle().stroke(Theme.chalk.opacity(0.28), lineWidth: 1))
-        .fixedSize()
-    }
-
-    private func readoutValue(_ value: String, _ unit: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(value)
-                .font(Theme.mono(11, weight: .medium))
+                .tracking(1.2)
+                .foregroundStyle(r.phase.isNotable ? Ink.joint : .white)
+            Text(String(format: "%.1f bl/s", r.speed))
+                .font(Theme.mono(10))
                 .monospacedDigit()
-                .foregroundStyle(Theme.chalk)
-            Text(unit)
-                .font(Theme.mono(8))
-                .foregroundStyle(Theme.chalk.opacity(0.55))
+                .foregroundStyle(.white.opacity(0.62))
         }
-    }
-
-    /// Sits beside the climber's box, and flips to the other side rather than
-    /// running off the frame.
-    private func panelPosition(for box: CGRect, in rect: CGRect, size: CGSize) -> CGPoint {
-        let boxRight = rect.minX + box.maxX * rect.width
-        let boxLeft = rect.minX + box.minX * rect.width
-        let y = rect.minY + box.minY * rect.height + 20
-        let wantsRight = boxRight + 96 < size.width
-        return CGPoint(x: wantsRight ? boxRight + 52 : max(58, boxLeft - 52),
-                       y: min(max(y, 26), size.height - 26))
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(Ink.chip.opacity(0.88), in: RoundedRectangle(cornerRadius: 5))
+        .allowsHitTesting(false)
     }
 
     // MARK: Geometry
@@ -114,146 +107,201 @@ struct OverlayView: View {
         return frames.min { abs($0.time - time) < abs($1.time - time) }
     }
 
-    // MARK: Centre-of-mass trace
+    /// Normalised body height, used as the scale for every drawn size so the
+    /// overlay keeps its proportions whether the climber fills the frame or not.
+    private func bodyHeight(_ frame: PoseFrame) -> Double {
+        Double(PhaseTimeline.boundingBox(frame)?.height ?? 0.5)
+    }
 
-    private func drawTrace(ctx: inout GraphicsContext, rect: CGRect) {
-        guard comPath.count > 1 else { return }
-        var full = Path()
-        full.addLines(comPath.map { map($0, rect) })
-        ctx.stroke(full, with: .color(Theme.accent.opacity(0.5)),
-                   style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+    // MARK: Balance envelope
 
-        let travelled = frames.filter { $0.com != nil && $0.time <= time }.compactMap { $0.com }
-        if travelled.count > 1 {
-            var path = Path()
-            path.addLines(travelled.map { map($0, rect) })
-            ctx.stroke(path, with: .color(Theme.accent),
-                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-            if let head = travelled.last {
-                let p = map(head, rect)
-                ctx.fill(Path(ellipseIn: CGRect(x: p.x - 5, y: p.y - 5, width: 10, height: 10)),
-                         with: .color(Theme.ground))
-                ctx.fill(Path(ellipseIn: CGRect(x: p.x - 3.5, y: p.y - 3.5, width: 7, height: 7)),
-                         with: .color(Theme.accent))
-            }
+    /// A circle on the centre of mass, the radius of the climber's own reach.
+    /// It is not a measurement, it is a frame of reference: when a hold sits
+    /// outside it, the move needs a shift before it needs more strength.
+    private func drawEnvelope(ctx: inout GraphicsContext, frame: PoseFrame,
+                              rect: CGRect, scale: Double) {
+        guard let com = frame.com else { return }
+        let c = map(com, rect)
+        let r = scale * 0.58
+        guard r > 8 else { return }
+        ctx.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
+                   with: .color(Ink.envelope),
+                   style: StrokeStyle(lineWidth: 1.6, lineCap: .butt, dash: [7, 7]))
+    }
+
+    // MARK: Trails
+
+    /// Where each hand, each foot and the centre of mass have just been. The
+    /// trail is what makes a jerky pull look jerky: a clean move leaves a clean
+    /// arc, a scrappy one leaves a scribble.
+    private func drawTrails(ctx: inout GraphicsContext, rect: CGRect) {
+        let window = frames.filter { $0.time <= time && $0.time >= time - Self.trailSeconds }
+        guard window.count > 1 else { return }
+
+        for joint in [JointID.leftWrist, .rightWrist, .leftAnkle, .rightAnkle] {
+            stroke(trail: window.map { $0.pt(joint) }, times: window.map { $0.time },
+                   ctx: &ctx, rect: rect, width: 2.2, peak: 0.95)
+        }
+        stroke(trail: window.map { $0.com }, times: window.map { $0.time },
+               ctx: &ctx, rect: rect, width: 1.6, peak: 0.45)
+    }
+
+    /// One trail, faded from nothing at its tail to full at the climber.
+    private func stroke(trail points: [CGPoint?], times: [Double], ctx: inout GraphicsContext,
+                        rect: CGRect, width: Double, peak: Double) {
+        guard points.count > 1 else { return }
+        let span = max(Self.trailSeconds, 0.001)
+        for i in 1..<points.count {
+            guard let a = points[i - 1], let b = points[i] else { continue }
+            let age = (time - times[i]) / span
+            let alpha = peak * max(0, 1 - age * age)
+            guard alpha > 0.03 else { continue }
+            var seg = Path()
+            seg.move(to: map(a, rect)); seg.addLine(to: map(b, rect))
+            ctx.stroke(seg, with: .color(Ink.trail.opacity(alpha)),
+                       style: StrokeStyle(lineWidth: width, lineCap: .round))
         }
     }
 
-    // MARK: Tracked subject
+    // MARK: Skeleton
 
-    private func drawBrackets(ctx: inout GraphicsContext, box: CGRect, rect: CGRect) {
-        let r = CGRect(x: rect.minX + box.minX * rect.width,
-                       y: rect.minY + box.minY * rect.height,
-                       width: box.width * rect.width,
-                       height: box.height * rect.height)
-        let arm = min(r.width, r.height) * 0.16
-        var path = Path()
-        for corner in [(r.minX, r.minY, 1.0, 1.0), (r.maxX, r.minY, -1.0, 1.0),
-                       (r.minX, r.maxY, 1.0, -1.0), (r.maxX, r.maxY, -1.0, -1.0)] {
-            let (x, y, dx, dy) = corner
-            path.move(to: CGPoint(x: x + arm * dx, y: y))
-            path.addLine(to: CGPoint(x: x, y: y))
-            path.addLine(to: CGPoint(x: x, y: y + arm * dy))
+    private func drawSkeleton(ctx: inout GraphicsContext, frame: PoseFrame,
+                              rect: CGRect, scale: Double) {
+        var bones = Path()
+        for (a, b) in Skeleton.bones {
+            guard let p1 = frame.pt(a), let p2 = frame.pt(b) else { continue }
+            bones.move(to: map(p1, rect)); bones.addLine(to: map(p2, rect))
         }
-        ctx.stroke(path, with: .color(Theme.chalk.opacity(0.55)), lineWidth: 1.5)
+        // A dark pass first: holds are every saturated hue, and teal on yellow
+        // disappears without something behind it.
+        ctx.stroke(bones, with: .color(.black.opacity(0.42)),
+                   style: StrokeStyle(lineWidth: 4.4, lineCap: .round, lineJoin: .round))
+        ctx.stroke(bones, with: .color(Ink.bone),
+                   style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
+
+        let r = max(2.4, scale * 0.016)
+        for id in Skeleton.dots {
+            guard let p = frame.pt(id) else { continue }
+            let c = map(p, rect)
+            ctx.fill(disc(at: c, r: r + 1.1), with: .color(.black.opacity(0.45)))
+            ctx.fill(disc(at: c, r: r), with: .color(Ink.joint))
+        }
     }
 
-    // MARK: The wireframe body
+    private func disc(at c: CGPoint, r: Double) -> Path {
+        Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+    }
 
-    /// Half-widths at each end of a limb, as a fraction of body height. A limb is
-    /// a tapered tube, so the numbers differ at the two ends.
-    private static let limbs: [(JointID, JointID, Double, Double)] = [
-        (.leftShoulder, .leftElbow, 0.034, 0.026),
-        (.leftElbow, .leftWrist, 0.026, 0.016),
-        (.rightShoulder, .rightElbow, 0.034, 0.026),
-        (.rightElbow, .rightWrist, 0.026, 0.016),
-        (.leftHip, .leftKnee, 0.044, 0.032),
-        (.leftKnee, .leftAnkle, 0.032, 0.019),
-        (.rightHip, .rightKnee, 0.044, 0.032),
-        (.rightKnee, .rightAnkle, 0.032, 0.019)
+    // MARK: Angle chips
+
+    /// The joints worth a number: vertex, and the two joints that define the angle.
+    private static let angled: [(JointID, JointID, JointID)] = [
+        (.leftElbow, .leftShoulder, .leftWrist),
+        (.rightElbow, .rightShoulder, .rightWrist),
+        (.leftShoulder, .leftElbow, .leftHip),
+        (.rightShoulder, .rightElbow, .rightHip),
+        (.leftHip, .leftShoulder, .leftKnee),
+        (.rightHip, .rightShoulder, .rightKnee),
+        (.leftKnee, .leftHip, .leftAnkle),
+        (.rightKnee, .rightHip, .rightAnkle)
     ]
 
-    private func drawWireframe(ctx: inout GraphicsContext, frame: PoseFrame, rect: CGRect) {
-        let scale = (PhaseTimeline.boundingBox(frame)?.height ?? 0.5) * rect.height
-        var mesh = Path()
+    private func drawAngles(ctx: inout GraphicsContext, frame: PoseFrame,
+                            rect: CGRect, scale: Double) {
+        let size = min(13, max(8.5, rect.width * 0.030))
+        let reach = max(42, scale * 0.30)
+        let centre = frame.com.map { map($0, rect) }
 
-        for (a, b, wa, wb) in Self.limbs {
-            guard let p1 = frame.pt(a), let p2 = frame.pt(b) else { continue }
-            addTube(&mesh, from: map(p1, rect), to: map(p2, rect),
-                    startWidth: wa * scale, endWidth: wb * scale)
-        }
-        if let ls = frame.pt(.leftShoulder), let rs = frame.pt(.rightShoulder),
-           let lh = frame.pt(.leftHip), let rh = frame.pt(.rightHip) {
-            addTorso(&mesh, ls: map(ls, rect), rs: map(rs, rect),
-                     lh: map(lh, rect), rh: map(rh, rect))
-        }
-        if let nose = frame.pt(.nose) {
-            addHead(&mesh, at: map(nose, rect), radius: scale * 0.062)
-        }
+        for (vertex, a, b) in Self.angled {
+            guard let v = frame.pt(vertex), let pa = frame.pt(a), let pb = frame.pt(b)
+            else { continue }
+            let joint = map(v, rect)
+            let degrees = Int(MetricsEngine.angle(at: v, from: pa, to: pb).rounded())
 
-        // Dark first, so the fine lines survive a yellow hold underneath.
-        ctx.stroke(mesh, with: .color(Color.black.opacity(0.62)), lineWidth: 2.6)
-        ctx.stroke(mesh, with: .color(Theme.chalk.opacity(0.92)), lineWidth: 1)
+            // Chips splay outward from the body, so they land on wall rather
+            // than on the climber and keep clear of one another.
+            let away = unit(from: centre ?? joint, to: joint, fallback: CGPoint(x: 0, y: -1))
+            let anchor = CGPoint(x: joint.x + away.x * reach, y: joint.y + away.y * reach)
+
+            var leader = Path()
+            leader.move(to: joint); leader.addLine(to: anchor)
+            ctx.stroke(leader, with: .color(Ink.leader), lineWidth: 1)
+
+            chip(&ctx, text: "\(degrees)", at: anchor, fontSize: size)
+        }
     }
 
-    /// A limb: ribs across it plus the two edges that join their ends.
-    private func addTube(_ path: inout Path, from a: CGPoint, to b: CGPoint,
-                         startWidth: Double, endWidth: Double) {
+    private func chip(_ ctx: inout GraphicsContext, text: String, at c: CGPoint, fontSize: Double) {
+        let resolved = ctx.resolve(
+            Text(text).font(Theme.mono(fontSize, weight: .medium)).foregroundStyle(Color.white))
+        let s = resolved.measure(in: CGSize(width: 200, height: 60))
+        let box = CGRect(x: c.x - s.width / 2 - 6, y: c.y - s.height / 2 - 3.5,
+                         width: s.width + 12, height: s.height + 7)
+        ctx.fill(Path(roundedRect: box, cornerRadius: 4), with: .color(Ink.chip.opacity(0.92)))
+        ctx.draw(resolved, at: c, anchor: .center)
+    }
+
+    private func unit(from a: CGPoint, to b: CGPoint, fallback: CGPoint) -> CGPoint {
         let dx = b.x - a.x, dy = b.y - a.y
-        let length = (dx * dx + dy * dy).squareRoot()
-        guard length > 1 else { return }
-        let ux = dx / length, uy = dy / length
-        let px = -uy, py = ux
-
-        let ribs = max(4, min(14, Int(length / 9)))
-        var left: [CGPoint] = [], right: [CGPoint] = []
-
-        for i in 0...ribs {
-            let t = Double(i) / Double(ribs)
-            let w = startWidth + (endWidth - startWidth) * t
-            let cx = a.x + dx * t, cy = a.y + dy * t
-            let l = CGPoint(x: cx + px * w, y: cy + py * w)
-            let r = CGPoint(x: cx - px * w, y: cy - py * w)
-            left.append(l); right.append(r)
-            path.move(to: l); path.addLine(to: r)
-        }
-        path.addLines(left)
-        path.addLines(right)
+        let len = (dx * dx + dy * dy).squareRoot()
+        guard len > 0.5 else { return fallback }
+        return CGPoint(x: dx / len, y: dy / len)
     }
 
-    /// The torso as a quad with a grid across it.
-    private func addTorso(_ path: inout Path, ls: CGPoint, rs: CGPoint,
-                          lh: CGPoint, rh: CGPoint) {
-        let rows = 7, cols = 4
-        for i in 0...rows {
-            let t = Double(i) / Double(rows)
-            let l = lerp(ls, lh, t), r = lerp(rs, rh, t)
-            path.move(to: l); path.addLine(to: r)
-        }
-        for j in 0...cols {
-            let t = Double(j) / Double(cols)
-            let top = lerp(ls, rs, t), bottom = lerp(lh, rh, t)
-            path.move(to: top); path.addLine(to: bottom)
-        }
+    // MARK: Centre of mass
+
+    private func drawCOM(ctx: inout GraphicsContext, frame: PoseFrame,
+                         rect: CGRect, scale: Double) {
+        guard let com = frame.com else { return }
+        let c = map(com, rect)
+        let r = max(7.0, scale * 0.032)
+
+        ctx.fill(disc(at: c, r: r + 2), with: .color(.white))
+        ctx.fill(disc(at: c, r: r), with: .color(Ink.trail))
+
+        var cross = Path()
+        let arm = r * 0.62
+        cross.move(to: CGPoint(x: c.x - arm, y: c.y)); cross.addLine(to: CGPoint(x: c.x + arm, y: c.y))
+        cross.move(to: CGPoint(x: c.x, y: c.y - arm)); cross.addLine(to: CGPoint(x: c.x, y: c.y + arm))
+        ctx.stroke(cross, with: .color(.white), style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+
+        let label = ctx.resolve(
+            Text("COM")
+                .font(Theme.mono(max(9, min(13, rect.width * 0.030)), weight: .bold))
+                .foregroundStyle(Ink.trail))
+        ctx.draw(label, at: CGPoint(x: c.x + r + 7, y: c.y), anchor: .leading)
     }
 
-    /// The head as a few latitudes and longitudes, the way the reference draws a
-    /// rounded form.
-    private func addHead(_ path: inout Path, at c: CGPoint, radius: Double) {
-        guard radius > 2 else { return }
-        path.addEllipse(in: CGRect(x: c.x - radius, y: c.y - radius,
-                                   width: radius * 2, height: radius * 2))
-        for k in [-0.55, 0.0, 0.55] {
-            let ry = radius * (1 - abs(k) * 0.82)
-            let cy = c.y + radius * k
-            path.addEllipse(in: CGRect(x: c.x - radius, y: cy - ry * 0.34,
-                                       width: radius * 2, height: ry * 0.68))
-        }
-        path.move(to: CGPoint(x: c.x, y: c.y - radius))
-        path.addLine(to: CGPoint(x: c.x, y: c.y + radius))
-    }
+    // MARK: Isolated pose inset
 
-    private func lerp(_ a: CGPoint, _ b: CGPoint, _ t: Double) -> CGPoint {
-        CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
+    /// The skeleton on its own, away from the wall. Holds are visual noise when
+    /// what you are looking at is the shape of the body.
+    private func drawInset(ctx: inout GraphicsContext, frame: PoseFrame, in rect: CGRect) {
+        let side = min(86, rect.width * 0.22)
+        guard side > 40, let box = PhaseTimeline.boundingBox(frame) else { return }
+        let panel = CGRect(x: rect.maxX - side - 10, y: rect.minY + rect.height * 0.38,
+                           width: side, height: side)
+        ctx.fill(Path(roundedRect: panel, cornerRadius: 9), with: .color(.black.opacity(0.46)))
+        ctx.stroke(Path(roundedRect: panel, cornerRadius: 9),
+                   with: .color(.white.opacity(0.14)), lineWidth: 1)
+
+        let pad = side * 0.14
+        let fit = min((side - pad * 2) / max(box.width, 0.01),
+                      (side - pad * 2) / max(box.height, 0.01))
+        let ox = panel.midX - (box.midX * fit)
+        let oy = panel.midY - (box.midY * fit)
+        func place(_ p: CGPoint) -> CGPoint { CGPoint(x: ox + p.x * fit, y: oy + p.y * fit) }
+
+        var bones = Path()
+        for (a, b) in Skeleton.bones {
+            guard let p1 = frame.pt(a), let p2 = frame.pt(b) else { continue }
+            bones.move(to: place(p1)); bones.addLine(to: place(p2))
+        }
+        ctx.stroke(bones, with: .color(Ink.bone),
+                   style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+        for id in Skeleton.dots {
+            guard let p = frame.pt(id) else { continue }
+            ctx.fill(disc(at: place(p), r: 1.5), with: .color(Ink.joint))
+        }
     }
 }
