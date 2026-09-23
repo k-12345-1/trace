@@ -14,6 +14,7 @@ struct HomeScreen: View {
                     masthead
                     Hairline()
                     focusBanner
+                    SuggestedRoutes()
                     gyms
                     Hairline()
                     library
