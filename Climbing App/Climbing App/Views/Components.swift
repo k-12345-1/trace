@@ -11,6 +11,9 @@ struct Readout: View {
     var unit: String? = nil
     var delta: String? = nil
     var deltaIsWork: Bool = false
+    /// A note on how to read the number. Not a judgement, so it never takes the
+    /// colour that a delta does.
+    var hint: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -30,6 +33,11 @@ struct Readout: View {
                 Text(delta)
                     .font(Theme.mono(10.5))
                     .foregroundStyle(deltaIsWork ? Theme.accentText : Theme.ok)
+            }
+            if let hint {
+                Text(hint)
+                    .font(Theme.mono(10))
+                    .foregroundStyle(Theme.ink3)
             }
         }
         // maxHeight so every tile in a row fills it. Without this a tile carrying a

@@ -194,7 +194,7 @@ struct HomeScreen: View {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10),
                                     GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     ForEach(entries) { entry in
-                        NavigationLink { ResultsScreen(climb: entry.latest) } label: {
+                        NavigationLink { ClimbCardScreen(entry: entry) } label: {
                             LibraryCard(entry: entry)
                         }
                         .buttonStyle(.plain)
@@ -249,6 +249,11 @@ struct LibraryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            ClimbThumbnail(climb: entry.latest)
+                .frame(height: 84)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 11)
+
             HStack(spacing: 6) {
                 if let top = entry.topFinding {
                     SeverityChip(severity: top.severity)
@@ -283,7 +288,7 @@ struct LibraryCard: View {
                 .foregroundStyle(Theme.ink3)
                 .padding(.top, 4)
         }
-        .frame(height: 140, alignment: .topLeading)
+        .frame(height: 232, alignment: .topLeading)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(13)
         .background(Theme.surface)

@@ -1,0 +1,86 @@
+import UIKit
+import AVFoundation
+
+/// A still from a climb, for the card to lead with.
+///
+/// Pulled at a third of the way in rather than at the start, because the first
+/// second of most clips is an empty wall and a climber walking up to it.
+/// Cached on disk: generating one costs a video decode, and the library shows
+/// several at once.
+enum Thumbnails {
+
+    nonisolated static var directory: URL {
+        let url = Store.documents.appendingPathComponent("Thumbs", isDirectory: true)
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    static func url(for climb: Climb) -> URL {
+        directory.appendingPathComponent("\(climb.id.uuidString).jpg")
+    }
+
+    /// The cached still, or nil if one has not been made yet.
+    static func cached(for climb: Climb) -> UIImage? {
+        UIImage(contentsOfFile: url(for: climb).path)
+    }
+
+    /// Makes the still if it is missing. Safe to call repeatedly.
+    static func generate(for climb: Climb, maxWidth: CGFloat = 900) async -> UIImage? {
+        if let existing = cached(for: climb) { return existing }
+
+        let source = climb.videoURL
+        guard FileManager.default.fileExists(atPath: source.path) else { return nil }
+
+        let asset = AVURLAsset(url: source)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: maxWidth, height: maxWidth)
+
+        let duration = (try? await asset.load(.duration).seconds) ?? 0
+        let at = CMTime(seconds: max(0, duration / 3), preferredTimescale: 600)
+
+        guard let cg = try? await generator.image(at: at).image else { return nil }
+        let image = UIImage(cgImage: cg)
+        if let data = image.jpegData(compressionQuality: 0.82) {
+            try? data.write(to: url(for: climb), options: .atomic)
+        }
+        return image
+    }
+
+    static func remove(for climb: Climb) {
+        try? FileManager.default.removeItem(at: url(for: climb))
+    }
+}
+
+// MARK: - View
+
+import SwiftUI
+
+/// The still, or a placeholder while it is being made, or a placeholder for
+/// good if the clip has gone.
+struct ClimbThumbnail: View {
+    let climb: Climb
+    @State private var image: UIImage?
+
+    var body: some View {
+        // The ground is a flexible Color, so it takes whatever size the caller
+        // proposes and the overlay is then clipped to that. Clipping a
+        // scaledToFill image directly would clip to the image's own huge natural
+        // size, which is no clipping at all, and it would spill over whatever
+        // sits below it.
+        Theme.surface2
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    MountainMark(color: Theme.ink3.opacity(0.4), inset: 0.3)
+                }
+            }
+            .clipped()
+            .task {
+                if image == nil { image = await Thumbnails.generate(for: climb) }
+            }
+    }
+}

@@ -80,6 +80,7 @@ final class Store: ObservableObject {
 
     func delete(_ climb: Climb) {
         try? FileManager.default.removeItem(at: climb.videoURL)
+        Thumbnails.remove(for: climb)
         climbs.removeAll { $0.id == climb.id }
         persist()
         refreshFocus()
@@ -114,6 +115,30 @@ final class Store: ObservableObject {
         guard let i = climbs.firstIndex(where: { $0.id == climb.id }) else { return }
         climbs[i].label = label
         persist()
+    }
+
+    /// Renames every attempt in a library entry at once.
+    ///
+    /// The entry only exists because its attempts share a label, so renaming one
+    /// of them would silently split the route in two.
+    func rename(_ entry: LibraryEntry, to label: String) {
+        let ids = Set(entry.attempts.map(\.id))
+        for i in climbs.indices where ids.contains(climbs[i].id) {
+            climbs[i].label = label
+        }
+        persist()
+    }
+
+    /// Deletes every attempt in a library entry.
+    func delete(_ entry: LibraryEntry) {
+        for climb in entry.attempts {
+            try? FileManager.default.removeItem(at: climb.videoURL)
+            Thumbnails.remove(for: climb)
+        }
+        let ids = Set(entry.attempts.map(\.id))
+        climbs.removeAll { ids.contains($0.id) }
+        persist()
+        refreshFocus()
     }
 
     private func persist() {
