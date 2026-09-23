@@ -1,0 +1,104 @@
+import SwiftUI
+
+/// Every route you have scanned, anywhere, in one list.
+///
+/// Explore is not a directory of the world's gyms. Trace has no such thing, and
+/// pretending otherwise would be a promise it cannot keep. It is your own wall
+/// collection, across every gym, filterable by what you have not sent yet.
+struct ExploreScreen: View {
+    @ObservedObject private var store = Store.shared
+    @State private var unsentOnly = false
+
+    private var routes: [Route] {
+        store.routes
+            .filter { !unsentOnly || !$0.sent }
+            .sorted { $0.scannedAt > $1.scannedAt }
+    }
+
+    var body: some View {
+        ZStack {
+            Theme.ground.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    header
+                    Hairline()
+
+                    if routes.isEmpty {
+                        Text(store.routes.isEmpty
+                             ? "Nothing scanned yet. Photograph a wall, tap one hold, and Trace picks out the rest of the route by colour."
+                             : "Everything you have scanned is sent. Nothing left on this list.")
+                            .font(Theme.body(14))
+                            .foregroundStyle(Theme.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(20)
+                    } else {
+                        LazyVStack(spacing: 1) {
+                            ForEach(routes) { route in
+                                NavigationLink { RouteDetailScreen(route: route) } label: { row(route) }
+                                    .buttonStyle(.plain)
+                            }
+                        }
+                        .background(Theme.line)
+                    }
+                }
+                .padding(.bottom, 96)
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .preferredColorScheme(.light)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                MicroLabel(text: "\(store.routes.count) scanned · \(store.gyms.count) gym\(store.gyms.count == 1 ? "" : "s")")
+                Text("Explore")
+                    .font(Theme.heading(22))
+                    .foregroundStyle(Theme.ink)
+            }
+            Toggle(isOn: $unsentOnly) {
+                Text("Only what I have not sent")
+                    .font(Theme.body(13.5))
+                    .foregroundStyle(Theme.ink2)
+            }
+            .tint(Theme.accent)
+        }
+        .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 18)
+    }
+
+    private func row(_ route: Route) -> some View {
+        HStack(spacing: 13) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color(hexString: route.colorHex))
+                .frame(width: 5, height: 40)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(route.displayName)
+                    .font(Theme.heading(15.5))
+                    .foregroundStyle(Theme.ink)
+                HStack(spacing: 9) {
+                    if !route.grade.isEmpty {
+                        Text(route.grade)
+                            .font(Theme.mono(10.5, weight: .medium))
+                            .foregroundStyle(Theme.blueLight)
+                    }
+                    Text(gymName(for: route))
+                        .font(Theme.mono(10.5))
+                        .foregroundStyle(Theme.ink3)
+                }
+            }
+            Spacer(minLength: 0)
+            if route.sent {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.accent)
+            }
+        }
+        .padding(.horizontal, 20).padding(.vertical, 14)
+        .background(Theme.ground)
+        .contentShape(Rectangle())
+    }
+
+    private func gymName(for route: Route) -> String {
+        store.gyms.first { $0.id == route.gymID }?.name ?? "Unknown gym"
+    }
+}

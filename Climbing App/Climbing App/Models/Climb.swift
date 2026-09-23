@@ -150,6 +150,12 @@ struct Climb: Codable, Identifiable {
     var metrics: Metrics
     var findings: [Finding]
     var frames: [PoseFrame]
+    /// Whether this attempt topped out. Optional rather than defaulted so that
+    /// climbs recorded before the field existed still decode: Swift's synthesized
+    /// decoder ignores a property's default and throws on a missing key.
+    var sent: Bool?
+
+    var isSent: Bool { sent == true }
 
     var videoURL: URL { Store.videosDirectory.appendingPathComponent(videoFilename) }
 }

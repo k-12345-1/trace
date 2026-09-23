@@ -245,6 +245,28 @@ final class Store: ObservableObject {
     // This is what makes attempt-over-attempt comparison possible without the app
     // ever knowing anything about the wall.
 
+    /// The library: one entry per route, every attempt on it gathered together.
+    /// Untitled climbs stay separate, because an empty label is not a route name
+    /// shared with anything else.
+    func library() -> [LibraryEntry] {
+        var grouped: [String: [Climb]] = [:]
+        var loose: [Climb] = []
+        for climb in climbs {
+            let key = climb.label.trimmingCharacters(in: .whitespaces).lowercased()
+            if key.isEmpty { loose.append(climb) } else { grouped[key, default: []].append(climb) }
+        }
+        var out = grouped.values.map { LibraryEntry(attempts: $0) }
+        out += loose.map { LibraryEntry(attempts: [$0]) }
+        return out.sorted { $0.lastClimbed > $1.lastClimbed }
+    }
+
+    /// Marks one attempt as topped out, or un-marks it.
+    func toggleSent(_ climb: Climb) {
+        guard let i = climbs.firstIndex(where: { $0.id == climb.id }) else { return }
+        climbs[i].sent = !(climbs[i].sent ?? false)
+        persist()
+    }
+
     func attempts(matching label: String) -> [Climb] {
         let key = label.trimmingCharacters(in: .whitespaces).lowercased()
         guard !key.isEmpty else { return [] }

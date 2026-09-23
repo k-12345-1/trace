@@ -20,7 +20,7 @@ struct AppEntry: View {
                 WelcomeScreen()
                     .transition(.opacity)
             } else {
-                RootView()
+                MainTabs()
                     .transition(.opacity)
             }
         }
