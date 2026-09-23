@@ -45,8 +45,12 @@ struct WelcomeScreen: View {
 
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 14) {
-            DomeMark(color: Theme.accent, innerOpacity: 0.45)
-                .frame(width: 56, height: 56)
+            // The icon itself, so the sign-in screen and the home screen icon
+            // are recognisably the same object.
+            MountainMark(color: .white, inset: 0.12)
+                .frame(width: 60, height: 60)
+                .background(Theme.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .padding(.bottom, 4)
             Text("TRACE")
                 .font(Theme.ui(17, .bold))
