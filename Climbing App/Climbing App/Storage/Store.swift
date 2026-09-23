@@ -13,6 +13,8 @@ final class Store: ObservableObject {
     @Published private(set) var account: Account?
     @Published private(set) var session: Session?
     @Published private(set) var routes: [Route] = []
+    /// Your height and reach. Optional: everything works without it, in body lengths.
+    @Published private(set) var body: BodyProfile = .empty
 
     static let shared = Store()
 
@@ -29,6 +31,7 @@ final class Store: ObservableObject {
     nonisolated private static var gymsURL: URL { documents.appendingPathComponent("gyms.json") }
     nonisolated private static var routesURL: URL { documents.appendingPathComponent("routes.json") }
     nonisolated private static var accountURL: URL { documents.appendingPathComponent("account.json") }
+    nonisolated private static var bodyURL: URL { documents.appendingPathComponent("body.json") }
 
     nonisolated static var routePhotosDirectory: URL {
         let url = documents.appendingPathComponent("Routes", isDirectory: true)
@@ -57,6 +60,9 @@ final class Store: ObservableObject {
         }
         if let data = try? Data(contentsOf: Self.accountURL) {
             account = try? decoder.decode(Account.self, from: data)
+        }
+        if let data = try? Data(contentsOf: Self.bodyURL) {
+            body = (try? decoder.decode(BodyProfile.self, from: data)) ?? .empty
         }
         // The tokens live in the keychain, never beside the climbs.
         session = Keychain.load()
@@ -237,6 +243,15 @@ final class Store: ObservableObject {
         let dest = Self.videosDirectory.appendingPathComponent(name)
         try FileManager.default.copyItem(at: source, to: dest)
         return name
+    }
+
+    // MARK: Body
+
+    func updateBody(_ profile: BodyProfile) {
+        body = profile
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try? encoder.encode(profile).write(to: Self.bodyURL, options: .atomic)
     }
 
     // MARK: Attempt grouping

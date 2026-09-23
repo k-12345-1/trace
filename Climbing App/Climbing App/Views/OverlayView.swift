@@ -13,6 +13,12 @@ struct OverlayView: View {
     /// width / height of the video as displayed.
     let videoAspect: Double
     var showReadout: Bool = true
+    /// Metres per normalised image unit, when the climber has given their height.
+    /// Without it every distance stays in body lengths, which is honest rather
+    /// than inconvenient: the phone genuinely does not know.
+    var metresPerUnit: Double? = nil
+    /// Half the climber's span, in normalised units, when they have given it.
+    var reachRadius: Double? = nil
 
     /// The overlay palette. Deliberately not Theme's: these colours have to sit
     /// on top of a gym wall painted every hue at once, so they are chosen for
@@ -72,7 +78,7 @@ struct OverlayView: View {
                 .font(Theme.mono(10, weight: .medium))
                 .tracking(1.2)
                 .foregroundStyle(r.phase.isNotable ? Ink.joint : .white)
-            Text(String(format: "%.1f bl/s", r.speed))
+            Text(speedText(r))
                 .font(Theme.mono(10))
                 .monospacedDigit()
                 .foregroundStyle(.white.opacity(0.62))
@@ -81,6 +87,13 @@ struct OverlayView: View {
         .padding(.vertical, 6)
         .background(Ink.chip.opacity(0.88), in: RoundedRectangle(cornerRadius: 5))
         .allowsHitTesting(false)
+    }
+
+    private func speedText(_ r: PhaseTimeline.Readout) -> String {
+        if let metres = BodyScale.metresPerSecond(r.speedRaw, metresPerUnit: metresPerUnit) {
+            return String(format: "%.1f m/s", metres)
+        }
+        return String(format: "%.1f bl/s", r.speed)
     }
 
     // MARK: Geometry
@@ -122,7 +135,7 @@ struct OverlayView: View {
                               rect: CGRect, scale: Double) {
         guard let com = frame.com else { return }
         let c = map(com, rect)
-        let r = scale * 0.58
+        let r = (reachRadius.map { $0 * rect.height }) ?? (scale * 0.58)
         guard r > 8 else { return }
         ctx.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
                    with: .color(Ink.envelope),

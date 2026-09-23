@@ -127,6 +127,9 @@ enum PhaseTimeline {
     struct Readout {
         var phase: MovementPhase
         var speed: Double          // body lengths per second
+        /// The same speed before any normalising, in image units per second.
+        /// This is what BodyScale needs to say it in metres.
+        var speedRaw: Double
         var elbow: Double?         // degrees, when both arms are visible
         var box: CGRect            // the tracked climber, normalised
     }
@@ -144,11 +147,12 @@ enum PhaseTimeline {
         // Body length as the scale reference, so the number means the same thing
         // whether the phone was two metres away or five.
         let body = max(box.height, 0.05)
-        var speed = 0.0
+        var raw = 0.0
         if index > 0, let a = frame.com, let b = frames[index - 1].com {
             let dt = max(frame.time - frames[index - 1].time, 0.0005)
-            speed = MetricsEngine.distance(a, b) / dt / body
+            raw = MetricsEngine.distance(a, b) / dt
         }
+        let speed = raw / body
 
         var elbow: Double?
         var angles: [Double] = []
@@ -160,7 +164,8 @@ enum PhaseTimeline {
         }
         if !angles.isEmpty { elbow = angles.reduce(0, +) / Double(angles.count) }
 
-        return Readout(phase: phases[index], speed: speed, elbow: elbow, box: box)
+        return Readout(phase: phases[index], speed: speed, speedRaw: raw,
+                       elbow: elbow, box: box)
     }
 
     /// The tracked subject, from the spread of their own joints.

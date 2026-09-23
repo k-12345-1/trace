@@ -165,7 +165,9 @@ struct ResultsScreen: View {
             OverlayView(
                 frames: climb.frames,
                 time: playback.time,
-                videoAspect: aspect
+                videoAspect: aspect,
+                metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames, body: store.body),
+                reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body)
             )
             VStack {
                 HStack {

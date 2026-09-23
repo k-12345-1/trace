@@ -75,7 +75,10 @@ struct ProfileScreen: View {
                 .padding(.horizontal, 20)
 
             VStack(spacing: 1) {
-                row("Personal info", detail: "Height and reach", ready: false)
+                NavigationLink { PersonalInfoScreen() } label: {
+                    row("Personal info", detail: bodyDetail, ready: true)
+                }
+                .buttonStyle(.plain)
                 row("Billing", detail: "Nothing to pay for yet", ready: false)
                 row("Privacy and AI", detail: "Everything stays on device", ready: false)
             }
@@ -105,6 +108,19 @@ struct ProfileScreen: View {
         }
         .padding(.horizontal, 20).padding(.vertical, 15)
         .background(Theme.ground)
+        .contentShape(Rectangle())
+    }
+
+    /// The row says what is set, so the screen behind it is not the only way to
+    /// find out whether Trace knows your height.
+    private var bodyDetail: String {
+        let b = store.body
+        switch (b.heightCM, b.spanCM) {
+        case (nil, nil):   return "Height and reach"
+        case (_, nil):     return "Height \(b.describe(b.heightCM)) · no reach"
+        case (nil, _):     return "Reach \(b.describe(b.spanCM)) · no height"
+        default:           return "\(b.describe(b.heightCM)) · \(b.describe(b.spanCM))"
+        }
     }
 
     // MARK: Where it lives
