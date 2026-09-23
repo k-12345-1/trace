@@ -43,7 +43,7 @@ struct GymsScreen: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private func row(_ gym: Gym) -> some View {
@@ -110,7 +110,7 @@ struct RoutesScreen: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private func row(_ route: Route) -> some View {
@@ -199,7 +199,7 @@ struct RouteDetailScreen: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     @ViewBuilder

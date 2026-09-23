@@ -61,7 +61,7 @@ struct AccountSheet: View {
             }
             .padding(22)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .presentationDetents([.medium])
         .alert("Sign out?", isPresented: $confirming) {
             Button("Sign out", role: .destructive) { store.signOut(); dismiss() }

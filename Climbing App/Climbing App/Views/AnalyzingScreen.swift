@@ -21,7 +21,7 @@ struct AnalyzingScreen: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     // MARK: Naming

@@ -48,7 +48,7 @@ struct RootView: View {
                 Task { await loadPicked(item) }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     // MARK: Masthead
@@ -98,12 +98,12 @@ struct RootView: View {
                             text: focus.isResolved
                                 ? "Cleared"
                                 : "Working on · day \(focus.daysActive)",
-                            color: focus.isResolved ? Theme.ok : Theme.accentText
+                            color: focus.isResolved ? Theme.ok : Theme.blueLight
                         )
                         Spacer()
                         Text(focus.readout)
                             .font(Theme.mono(12, weight: .medium)).monospacedDigit()
-                            .foregroundStyle(focus.isResolved ? Theme.ok : Theme.accentText)
+                            .foregroundStyle(focus.isResolved ? Theme.ok : Theme.blue)
                     }
                     Text(focus.kind.title)
                         .font(Theme.heading(17))
@@ -115,7 +115,7 @@ struct RootView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
-                .background(focus.isResolved ? Theme.surface : Theme.wine.opacity(0.45))
+                .background(focus.isResolved ? Theme.surface : Theme.blueWash)
                 .overlay(Rectangle().stroke(
                     focus.isResolved ? Theme.line : Theme.lineStrong, lineWidth: 1))
                 .padding(.horizontal, 20)

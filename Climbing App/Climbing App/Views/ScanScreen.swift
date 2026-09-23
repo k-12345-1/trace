@@ -50,7 +50,7 @@ struct ScanScreen: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task { await load(item) }

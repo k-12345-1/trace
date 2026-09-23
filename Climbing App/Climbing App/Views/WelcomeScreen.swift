@@ -38,7 +38,7 @@ struct WelcomeScreen: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     // MARK: Masthead
@@ -189,7 +189,7 @@ struct WelcomeScreen: View {
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.wine.opacity(0.45))
+        .background(Theme.blueWash)
         .overlay(Rectangle().stroke(Theme.lineStrong, lineWidth: 1))
     }
 

@@ -118,7 +118,7 @@ struct ResultsScreen: View {
         }
         .task { aspect = await VideoInfo.aspect(of: climb.videoURL) }
         .onDisappear { playback.player.pause() }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     // MARK: Header

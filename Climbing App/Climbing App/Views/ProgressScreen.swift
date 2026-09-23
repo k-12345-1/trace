@@ -30,7 +30,7 @@ struct ProgressScreen: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private var header: some View {
@@ -101,7 +101,7 @@ struct ProgressScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(16)
-                .background(Theme.wine.opacity(0.45))
+                .background(Theme.blueWash)
                 .overlay(Rectangle().stroke(Theme.lineStrong, lineWidth: 1))
 
                 VStack(alignment: .leading, spacing: 6) {

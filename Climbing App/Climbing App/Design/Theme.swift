@@ -6,37 +6,44 @@ enum Theme {
 
     // MARK: Ground and surfaces
     //
-    // Oxblood and vermilion, taken from the Arc'teryx knitwear palette. The ground
-    // is the beanie colour taken almost to black, because the hero surface is always
-    // video of a climber: a fully saturated wine ground would cast the footage and
-    // fight it. The wine itself is kept for raised surfaces, where it can be seen.
-    static let ground   = Color(hex: 0x140A0C)   // near-black, wine cast
-    static let surface  = Color(hex: 0x1F0E12)
-    static let surface2 = Color(hex: 0x2D141A)
-    static let line     = Color(hex: 0x3A181E)
-    static let lineStrong = Color(hex: 0x56242C)
+    // White and blue. The app chrome is paper: a light ground reads as a notebook
+    // you write your climbing into, and it keeps every surface out of the way of
+    // the one thing that is actually dark, which is footage of a gym.
+    static let ground   = Color(hex: 0xFFFFFF)
+    static let surface  = Color(hex: 0xF4F7FA)
+    static let surface2 = Color(hex: 0xE7EDF4)
+    static let line     = Color(hex: 0xE1E8F0)
+    static let lineStrong = Color(hex: 0xC3D0DE)
 
-    /// The beanie itself. Banners, washes, the app icon ground.
-    static let wine = Color(hex: 0x5C1A23)
+    /// The blue. Mastheads, banners, anything that needs to carry the identity
+    /// rather than ask for a tap.
+    static let blue      = Color(hex: 0x16395E)
+    static let blueLight = Color(hex: 0x2C6396)
+    static let blueWash  = Color(hex: 0x16395E).opacity(0.06)
+
+    /// Kept so older code that asked for the banner colour still compiles.
+    static let wine = blue
 
     // MARK: Ink
-    static let ink   = Color(hex: 0xF2EDE8)      // warm bone, never pure white
-    static let ink2  = Color(hex: 0xB3A49F)
-    static let ink3  = Color(hex: 0x7C6B67)
+    static let ink   = Color(hex: 0x101C26)      // near-black with a blue cast
+    static let ink2  = Color(hex: 0x4B5B68)
+    static let ink3  = Color(hex: 0x8799A6)
 
-    // MARK: Accent. The Archaeopteryx vermilion. Spent on the centre-of-mass
-    // trace and almost nowhere else.
-    static let accent     = Color(hex: 0xE8452A)
-    static let accentText = Color(hex: 0xFF6A4D)  // lifted for legibility on the dark ground
-    static let accentWash = Color(hex: 0xE8452A).opacity(0.16)
+    // MARK: Accent
+    //
+    // Green, and a deep one rather than a neon: it marks the thing to press and
+    // the tab you are on, and nothing else.
+    static let accent     = Color(hex: 0x17875A)
+    static let accentText = Color(hex: 0x116347)  // darkened for legibility on white
+    static let accentWash = Color(hex: 0x17875A).opacity(0.10)
 
-    static let ok = Color(hex: 0x74B183)
+    static let ok = Color(hex: 0x17875A)
 
-    /// Ember ramp. Leak severity is magnitude, so it gets a ramp and not a traffic
-    /// light. It runs from a pale wash down into the oxblood.
+    /// Severity ramp. A leak costs more or less, so it gets a ramp and not a
+    /// traffic light. Status colour, deliberately outside the brand pair.
     static let ember: [Color] = [
-        Color(hex: 0xF7C9B4), Color(hex: 0xF09B78), Color(hex: 0xEA6F45),
-        Color(hex: 0xE8452A), Color(hex: 0x9E2417)
+        Color(hex: 0xE8B44A), Color(hex: 0xE09338), Color(hex: 0xD4702B),
+        Color(hex: 0xC24D28), Color(hex: 0x9E2E1E)
     ]
 
     /// Skeleton overlay colour. Chalk, so it never competes with the accent.
