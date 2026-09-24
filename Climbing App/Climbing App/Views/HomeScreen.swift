@@ -15,6 +15,7 @@ struct HomeScreen: View {
                     focusBanner
                     SuggestedRoutes()
                     gyms
+                    library
                 }
                 // Clear of the tab bar.
                 .padding(.bottom, 120)
@@ -161,6 +162,49 @@ struct HomeScreen: View {
 
     // MARK: Your library
 
+    // MARK: Your library
+    //
+    // A preview rather than the whole thing. The library has its own screen, and
+    // Home is about what you are doing today.
+
+    private var library: some View {
+        let entries = store.library()
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                SectionTitle("Your library")
+                Spacer(minLength: 12)
+                if !entries.isEmpty {
+                    NavigationLink { LibraryScreen() } label: {
+                        Text("See all \(entries.count)")
+                            .font(Theme.ui(14, .semibold))
+                            .foregroundStyle(Theme.accentText)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Theme.gutter)
+
+            if entries.isEmpty {
+                Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will tell you where the energy went.")
+                    .font(Theme.ui(15))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Theme.gutter)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 13),
+                                    GridItem(.flexible(), spacing: 13)], spacing: 16) {
+                    ForEach(entries.prefix(4)) { entry in
+                        NavigationLink { ClimbCardScreen(entry: entry) } label: {
+                            LibraryCard(entry: entry)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, Theme.gutter)
+            }
+        }
+        .padding(.bottom, 8)
+    }
 }
 
 // MARK: - Section title

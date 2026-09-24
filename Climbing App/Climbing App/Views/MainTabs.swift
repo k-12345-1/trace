@@ -2,34 +2,33 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
-/// The shell: four places to be, and one button in the middle that adds things.
+/// The shell: two places to be, and one button in the middle that adds things.
 ///
-/// Built to the same pattern as the Lineage Health bar, because it is a pattern
-/// that already works on a phone: a full-width pill inset from both edges, five
-/// even columns, a solid dark ground with light icons, and an active tab marked
-/// by a short rule under it rather than by a filled shape.
+/// Built to the same pattern as the Lineage Health bar: a full-width pill inset
+/// from both edges, even columns, a solid dark ground with light icons, and an
+/// active tab marked by a short rule under it rather than by a filled shape.
+///
+/// Explore and the library are screens rather than tabs. They are reached from
+/// Home, which keeps the bar down to the two places you actually switch between
+/// and the one action you take from either of them.
 ///
 /// The middle button behaves like that app's three-dot control. It is not a
-/// modal: the panel rises over the page while the bar stays put, the dots turn
-/// into a cross, and pressing it again puts them back. Nothing is covered that
-/// you were looking at, and there is never a question about how to get out.
+/// modal: the panel rises over the page while the bar stays put, the plus turns
+/// into a cross, and pressing it again puts it back. Nothing is covered that you
+/// were looking at, and there is never a question about how to get out.
 struct MainTabs: View {
     enum Tab: String, CaseIterable {
-        case home, explore, library, profile
+        case home, profile
 
         var label: String {
             switch self {
             case .home:    return "Home"
-            case .explore: return "Explore"
-            case .library: return "Library"
             case .profile: return "You"
             }
         }
         var symbol: String {
             switch self {
             case .home:    return "house"
-            case .explore: return "map"
-            case .library: return "square.grid.2x2"
             case .profile: return "person"
             }
         }
@@ -50,8 +49,6 @@ struct MainTabs: View {
             Group {
                 switch tab {
                 case .home:    NavigationStack { HomeScreen() }
-                case .explore: NavigationStack { ExploreScreen() }
-                case .library: NavigationStack { LibraryScreen() }
                 case .profile: NavigationStack { ProfileScreen() }
                 }
             }
@@ -131,9 +128,7 @@ private struct TabBar: View {
 
             HStack(spacing: 0) {
                 item(.home)
-                item(.explore)
                 centre
-                item(.library)
                 item(.profile)
             }
             .padding(.horizontal, 6)
@@ -164,24 +159,21 @@ private struct TabBar: View {
         .accessibilityLabel(which.label)
     }
 
-    /// Three dots, which become a cross while the panel is up.
+    /// A plus, which becomes a cross while the panel is up.
+    ///
+    /// It looks like a plus and behaves like the Lineage Health three dot
+    /// control: it toggles rather than presenting, so the way out is the same
+    /// button you came in by.
     private var centre: some View {
         Button(action: onCentre) {
             ZStack {
                 Circle().fill(Theme.blueLight)
-                if entryOpen {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                } else {
-                    HStack(spacing: 4.5) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Circle().fill(.white).frame(width: 4.5, height: 4.5)
-                        }
-                    }
-                }
+                Image(systemName: "plus")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .rotationEffect(.degrees(entryOpen ? 45 : 0))
             }
-            .frame(width: target, height: target)
+            .frame(width: target + 4, height: target + 4)
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }

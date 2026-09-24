@@ -79,6 +79,10 @@ struct ClimbThumbnail: View {
                 }
             }
             .clipped()
+            // clipped() clips drawing but not hit testing, so without this the
+            // scaledToFill image keeps the touch area of its full natural size
+            // and steals taps from whatever sits next to the card.
+            .contentShape(Rectangle())
             .task {
                 if image == nil { image = await Thumbnails.generate(for: climb) }
             }
