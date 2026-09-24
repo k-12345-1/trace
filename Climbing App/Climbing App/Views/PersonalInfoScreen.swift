@@ -125,8 +125,8 @@ struct PersonalInfoScreen: View {
 
             if !valid {
                 Text(complaint)
-                    .font(Theme.body(12.5))
-                    .foregroundStyle(Theme.ember[3])
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -261,7 +261,7 @@ private struct CentimetresField: View {
     }
 
     private var border: Color {
-        if !valid { return Theme.ember[3] }
+        if !valid { return Theme.blue }
         return focus == field ? Theme.accent : .clear
     }
 }
@@ -318,7 +318,7 @@ private struct FeetInchesField: View {
     }
 
     private var border: Color {
-        if !valid { return Theme.ember[3] }
+        if !valid { return Theme.blue }
         return focus == field ? Theme.accent : .clear
     }
 }

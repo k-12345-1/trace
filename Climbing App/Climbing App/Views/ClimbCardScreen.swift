@@ -290,7 +290,8 @@ struct ClimbCardScreen: View {
             Button(role: .destructive) { confirmingDelete = true } label: {
                 Text("Delete this route")
                     .font(Theme.ui(15, .semibold))
-                    .foregroundStyle(Theme.ember[4])
+                    .foregroundStyle(Theme.ink2)
+                    .underline()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
             }

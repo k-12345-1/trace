@@ -26,10 +26,13 @@ struct MainTabs: View {
             case .profile: return "You"
             }
         }
-        var symbol: String {
+        /// Drawn rather than taken from the system set, so the two icons match
+        /// the reference exactly at the same stroke weight.
+        @ViewBuilder
+        func icon(size: CGFloat, color: Color) -> some View {
             switch self {
-            case .home:    return "house"
-            case .profile: return "person"
+            case .home:    StrokeIcon(shape: Ic.Home(), size: size, color: color)
+            case .profile: StrokeIcon(shape: Ic.User(), size: size, color: color)
             }
         }
     }
@@ -141,9 +144,7 @@ private struct TabBar: View {
         let active = tab == which && !entryOpen
         return Button { tab = which } label: {
             ZStack(alignment: .bottom) {
-                Image(systemName: active ? "\(which.symbol).fill" : which.symbol)
-                    .font(.system(size: 21, weight: .regular))
-                    .foregroundStyle(active ? Theme.blueLight : .white.opacity(0.82))
+                which.icon(size: 23, color: active ? Theme.blueLight : .white.opacity(0.82))
                 // A short rule, not a pill. It marks the tab without turning
                 // the bar into a row of coloured blocks.
                 Capsule()

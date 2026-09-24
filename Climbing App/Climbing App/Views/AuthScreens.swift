@@ -1,0 +1,478 @@
+import SwiftUI
+
+/// Signing in and signing up, built on the Lineage Health pattern.
+///
+/// Two screens rather than one with a toggle. Sign in leads, sign up is one tap
+/// away, and both are laid out identically: the mark starts centred at full
+/// size, lifts to a fixed spot near the top after a beat, and the form fades in
+/// underneath it. Because both screens settle the mark in the same place, moving
+/// between them does not move the logo, which is the whole point of doing it
+/// this way rather than pushing a different screen.
+
+// MARK: - Shared shell
+
+/// The splash geometry. Everything on either screen sits in this frame.
+private struct AuthShell<Content: View>: View {
+    @Binding var revealed: Bool
+    @ViewBuilder var content: Content
+
+    /// Where the mark settles, and where the form column starts.
+    static var markTop: CGFloat { 84 }
+    static var formTop: CGFloat { 288 }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                Theme.ground.ignoresSafeArea()
+
+                LogoLockup()
+                    .scaleEffect(revealed ? 0.86 : 1, anchor: .top)
+                    .position(x: geo.size.width / 2,
+                              y: revealed ? Self.markTop + 58 : geo.size.height / 2)
+                    .allowsHitTesting(false)
+
+                ScrollView {
+                    content
+                        .frame(width: min(320, geo.size.width - 44))
+                        .padding(.top, Self.formTop)
+                        .padding(.bottom, 40)
+                        .frame(maxWidth: .infinity)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .opacity(revealed ? 1 : 0)
+                .offset(y: revealed ? 0 : 12)
+                .allowsHitTesting(revealed)
+            }
+        }
+        .preferredColorScheme(.light)
+        .onAppear {
+            guard !revealed else { return }
+            withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.7).delay(0.9)) {
+                revealed = true
+            }
+        }
+    }
+}
+
+/// The mark over the wordmark, centred. This is what animates.
+private struct LogoLockup: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            MountainMark(color: .white, inset: 0.16)
+                .frame(width: 84, height: 84)
+                .background(Theme.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
+            Text("Trace")
+                .font(Theme.serif(34, .semibold))
+                .foregroundStyle(Theme.blue)
+        }
+    }
+}
+
+// MARK: - Pieces shared by both forms
+
+private struct AuthField: View {
+    let label: String
+    @Binding var text: String
+    var placeholder: String
+    var keyboard: UIKeyboardType = .default
+    var secure: Bool = false
+    var contentType: UITextContentType?
+    var focused: Bool
+    var onSubmit: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(label)
+                .font(Theme.ui(13.5, .semibold))
+                .foregroundStyle(Theme.ink2)
+            Group {
+                if secure {
+                    SecureField("", text: $text,
+                                prompt: Text(placeholder).foregroundStyle(Theme.ink3))
+                } else {
+                    TextField("", text: $text,
+                              prompt: Text(placeholder).foregroundStyle(Theme.ink3))
+                }
+            }
+            .font(Theme.ui(16))
+            .foregroundStyle(Theme.ink)
+            .keyboardType(keyboard)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textContentType(contentType)
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+                .stroke(focused ? Theme.accent : .clear, lineWidth: 1.5))
+            .onSubmit(onSubmit)
+        }
+    }
+}
+
+/// The primary pill: dimmed until the form is fillable, like the reference's
+/// Continue button, which stays inert until a choice has been made.
+private struct AuthButton: View {
+    let title: String
+    let busyTitle: String
+    let busy: Bool
+    let enabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(busy ? busyTitle : title)
+                .font(Theme.ui(15.5, .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(enabled ? Theme.accent : Theme.accent.opacity(0.3))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled || busy)
+    }
+}
+
+/// "New to Trace? Sign up →", set the way the reference sets it: the question in
+/// muted ink, the action in the accent.
+private struct CrossLink: View {
+    let question: String
+    let action: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 5) {
+                Text(question)
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink3)
+                Text(action)
+                    .font(Theme.ui(13.5, .semibold))
+                    .foregroundStyle(Theme.accentText)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct LegalFooter: View {
+    var body: some View {
+        Text("By continuing you agree to our Terms and Privacy Policy.")
+            .font(Theme.ui(11.5))
+            .foregroundStyle(Theme.ink3)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 12)
+    }
+}
+
+/// With no red in the palette, a problem cannot be signalled by colouring the
+/// sentence. It gets an icon and a panel instead, which is a stronger signal
+/// anyway: it changes the shape of the screen rather than a few pixels of hue.
+private struct AuthMessage: View {
+    let text: String
+    var isError: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(isError ? Theme.blue : Theme.blueLight)
+            Text(text)
+                .font(Theme.ui(13))
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isError ? Theme.surface2 : Theme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+    }
+}
+
+/// Shown when no server is configured, so the sign-in button's failure is
+/// explained before it is pressed rather than after.
+private struct NotConnectedNote: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.blueLight)
+            Text("No server is configured on this build, so accounts will not work. Everything else does.")
+                .font(Theme.ui(12.5))
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+    }
+}
+
+// MARK: - Sign in
+
+/// The screen the app opens on. Sign in leads because most launches are a
+/// returning climber, not a new one.
+struct SignInScreen: View {
+    @ObservedObject private var store = Store.shared
+    @Binding var revealed: Bool
+    let goSignUp: () -> Void
+    let goLocal: () -> Void
+
+    @State private var email = ""
+    @State private var password = ""
+    @State private var busy = false
+    @State private var error: String?
+    @State private var notice: String?
+    @FocusState private var focus: Field?
+
+    private enum Field { case email, password }
+
+    private var canSubmit: Bool {
+        !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty && !busy
+    }
+
+    var body: some View {
+        AuthShell(revealed: $revealed) {
+            VStack(spacing: 14) {
+                if !AuthClient.isConfigured { NotConnectedNote() }
+
+                AuthField(label: "Email", text: $email, placeholder: "you@example.com",
+                          keyboard: .emailAddress, contentType: .emailAddress,
+                          focused: focus == .email)
+                    .focused($focus, equals: .email)
+
+                AuthField(label: "Password", text: $password, placeholder: "Your password",
+                          secure: true, contentType: .password,
+                          focused: focus == .password, onSubmit: submit)
+                    .focused($focus, equals: .password)
+
+                if let error { AuthMessage(text: error, isError: true) }
+                if let notice { AuthMessage(text: notice, isError: false) }
+
+                AuthButton(title: "Sign in", busyTitle: "Signing you in…",
+                           busy: busy, enabled: canSubmit, action: submit)
+                    .padding(.top, 4)
+
+                Button { resetPassword() } label: {
+                    Text("Forgot password?")
+                        .font(Theme.ui(13, .semibold))
+                        .foregroundStyle(Theme.ink3)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(busy)
+
+                CrossLink(question: "New to Trace?", action: "Sign up →", onTap: goSignUp)
+
+                Button(action: goLocal) {
+                    Text("Use Trace without an account")
+                        .font(Theme.ui(13, .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                LegalFooter()
+            }
+        }
+    }
+
+    private func submit() {
+        guard canSubmit else { return }
+        focus = nil
+        busy = true; error = nil; notice = nil
+        Task {
+            do {
+                let session = try await AuthClient.signIn(email: email, password: password)
+                store.signedIn(session: session)
+            } catch let e as AuthClient.AuthError {
+                error = e.errorDescription
+            } catch {
+                self.error = error.localizedDescription
+            }
+            busy = false
+        }
+    }
+
+    private func resetPassword() {
+        guard AuthClient.validateEmail(email) else {
+            error = AuthClient.AuthError.invalidEmail.errorDescription
+            return
+        }
+        busy = true; error = nil; notice = nil
+        Task {
+            do {
+                try await AuthClient.sendPasswordReset(email: email)
+                notice = "If that email has an account, a reset link is on its way."
+            } catch let e as AuthClient.AuthError {
+                error = e.errorDescription
+            } catch {
+                self.error = error.localizedDescription
+            }
+            busy = false
+        }
+    }
+}
+
+// MARK: - Sign up
+
+struct SignUpScreen: View {
+    @ObservedObject private var store = Store.shared
+    @Binding var revealed: Bool
+    let goSignIn: () -> Void
+
+    @State private var name = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var busy = false
+    @State private var error: String?
+    @FocusState private var focus: Field?
+
+    private enum Field { case name, email, password }
+
+    private var canSubmit: Bool {
+        AuthClient.validateEmail(email) && AuthClient.validatePassword(password) && !busy
+    }
+
+    var body: some View {
+        AuthShell(revealed: $revealed) {
+            VStack(spacing: 14) {
+                if !AuthClient.isConfigured { NotConnectedNote() }
+
+                AuthField(label: "What should I call you?", text: $name,
+                          placeholder: "Katie", contentType: .name,
+                          focused: focus == .name)
+                    .focused($focus, equals: .name)
+                    .textInputAutocapitalization(.words)
+
+                AuthField(label: "Email", text: $email, placeholder: "you@example.com",
+                          keyboard: .emailAddress, contentType: .emailAddress,
+                          focused: focus == .email)
+                    .focused($focus, equals: .email)
+
+                AuthField(label: "Password", text: $password,
+                          placeholder: "At least \(AuthClient.minimumPasswordLength) characters",
+                          secure: true, contentType: .newPassword,
+                          focused: focus == .password, onSubmit: submit)
+                    .focused($focus, equals: .password)
+
+                if let error { AuthMessage(text: error, isError: true) }
+
+                AuthButton(title: "Create account", busyTitle: "Creating your account…",
+                           busy: busy, enabled: canSubmit, action: submit)
+                    .padding(.top, 4)
+
+                CrossLink(question: "Already have an account?", action: "Sign in →",
+                          onTap: goSignIn)
+
+                LegalFooter()
+            }
+        }
+    }
+
+    private func submit() {
+        guard canSubmit else { return }
+        focus = nil
+        busy = true; error = nil
+        Task {
+            do {
+                let session = try await AuthClient.signUp(email: email, password: password)
+                store.signedIn(session: session, name: name)
+            } catch let e as AuthClient.AuthError {
+                error = e.errorDescription
+            } catch {
+                self.error = error.localizedDescription
+            }
+            busy = false
+        }
+    }
+}
+
+// MARK: - Carrying on without an account
+
+/// The third option, and not a cop-out. Trace stores everything on the phone, so
+/// an account genuinely is optional, and a screen that pretended otherwise would
+/// be lying to get an email address.
+struct LocalAccountScreen: View {
+    @ObservedObject private var store = Store.shared
+    @Binding var revealed: Bool
+    let goBack: () -> Void
+
+    @State private var name = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        AuthShell(revealed: $revealed) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Nothing changes, really")
+                    .font(Theme.serif(21, .semibold))
+                    .foregroundStyle(Theme.ink)
+                Text("Every measurement Trace makes happens on this phone, so it all works without an account. You lose one thing: if you replace this phone, the history does not follow you.")
+                    .font(Theme.ui(14.5))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                AuthField(label: "What should I call you?", text: $name,
+                          placeholder: "Katie", contentType: .name, focused: focused)
+                    .focused($focused)
+                    .textInputAutocapitalization(.words)
+                    .padding(.top, 2)
+
+                AuthButton(title: "Start climbing", busyTitle: "", busy: false,
+                           enabled: true) { store.continueLocally(name: name) }
+                    .padding(.top, 4)
+
+                Button(action: goBack) {
+                    Text("Back to sign in")
+                        .font(Theme.ui(13, .semibold))
+                        .foregroundStyle(Theme.ink3)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - Which one is showing
+
+/// Holds the reveal state across the three screens so the mark settles once and
+/// then stays put while you move between them.
+struct WelcomeScreen: View {
+    private enum Page { case signIn, signUp, local }
+    @State private var page: Page = .signIn
+    @State private var revealed = false
+
+    var body: some View {
+        Group {
+            switch page {
+            case .signIn:
+                SignInScreen(revealed: $revealed,
+                             goSignUp: { go(.signUp) },
+                             goLocal: { go(.local) })
+            case .signUp:
+                SignUpScreen(revealed: $revealed, goSignIn: { go(.signIn) })
+            case .local:
+                LocalAccountScreen(revealed: $revealed, goBack: { go(.signIn) })
+            }
+        }
+        .transition(.opacity)
+    }
+
+    private func go(_ next: Page) {
+        withAnimation(.easeInOut(duration: 0.2)) { page = next }
+    }
+}
