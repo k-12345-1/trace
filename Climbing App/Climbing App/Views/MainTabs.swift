@@ -53,6 +53,7 @@ struct MainTabs: View {
     @State private var entryOpen = false
     @State private var showCapture = false
     @State private var showScan = false
+    @State private var showPaywall = false
     @State private var showAnalyzer = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var pendingURL: URL?
@@ -106,7 +107,16 @@ struct MainTabs: View {
             if entryOpen {
                 AddPanel(
                     onRecord: { close(); showCapture = true },
-                    onScan:   { close(); showScan = true },
+                    // The second scan is where Trace asks. Entitlement is read
+                    // from StoreKit, never from a flag of our own.
+                    onScan: {
+                        close()
+                        if Store.shared.scanNeedsPro && !Subscription.shared.isPro {
+                            showPaywall = true
+                        } else {
+                            showScan = true
+                        }
+                    },
                     onClose: close,
                     pickerItem: $pickerItem
                 )
@@ -128,6 +138,11 @@ struct MainTabs: View {
             }
         }
         .fullScreenCover(isPresented: $showScan) { ScanScreen() }
+        .fullScreenCover(isPresented: $showPaywall) {
+            NavigationStack {
+                PaywallScreen { showScan = true }
+            }
+        }
         .fullScreenCover(isPresented: $showAnalyzer) {
             if let url = pendingURL {
                 AnalyzingScreen(sourceURL: url) { showAnalyzer = false; pendingURL = nil }

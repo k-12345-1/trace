@@ -12,6 +12,7 @@ import SwiftUI
 /// mark on a pale one.
 struct ProfileScreen: View {
     @ObservedObject private var store = Store.shared
+    @ObservedObject private var billing = Subscription.shared
     @State private var confirmingSignOut = false
     @State private var confirmingDelete = false
 
@@ -127,19 +128,19 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink { InfoScreen.subscription } label: {
+            NavigationLink { SubscriptionScreen() } label: {
                 row(icon: AnyView(Image(systemName: "creditcard")
                         .font(.system(size: 18, weight: .light))
                         .foregroundStyle(Theme.blue)),
-                    label: "Manage subscription", detail: "Plan · payment")
+                    label: "Manage subscription", detail: subscriptionDetail)
             }
             .buttonStyle(.plain)
 
-            NavigationLink { InfoScreen.privacy } label: {
+            NavigationLink { LegalScreen.privacy } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
                         .font(.system(size: 18, weight: .light))
                         .foregroundStyle(Theme.blue)),
-                    label: "Privacy & AI", detail: "On-device analysis · Terms")
+                    label: "Privacy & AI", detail: "On-device analysis · Policy")
             }
             .buttonStyle(.plain)
 
@@ -193,6 +194,10 @@ struct ProfileScreen: View {
         .contentShape(Rectangle())
     }
 
+    private var subscriptionDetail: String {
+        Subscription.shared.isPro ? "Trace Pro · active" : "Free · 1 route scan"
+    }
+
     private var bodyDetail: String {
         let b = store.body
         var parts: [String] = []
@@ -203,19 +208,18 @@ struct ProfileScreen: View {
     }
 }
 
-// MARK: - The two reading screens
+// MARK: - Subscription
 
-/// A row that opened nothing would be worse than no row. Each of these says the
-/// thing that is actually true today rather than describing a feature that is
-/// not built.
+/// What you are on, what it costs, and how to stop it.
 ///
-/// Pushed rather than presented, so Privacy and Subscription arrive the same way
-/// Personal info does: same header, same back ring, same ground.
-struct InfoScreen: View {
-    let title: String
-    let standfirst: String
-    let sections: [(String, String)]
+/// Trace cannot cancel a subscription itself. Apple owns that switch, which is
+/// why this screen sends you to Settings rather than pretending to a control it
+/// does not have.
+struct SubscriptionScreen: View {
+    @ObservedObject private var billing = Subscription.shared
+    @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var showPaywall = false
 
     var body: some View {
         ZStack {
@@ -225,33 +229,76 @@ struct InfoScreen: View {
                     NavHeader(title: nil) { dismiss() }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(title)
+                        Text("Subscription")
                             .font(Theme.title(30))
                             .foregroundStyle(Theme.ink)
-                        Text(standfirst)
-                            .font(Theme.ui(14.5))
+                        Text(billing.isPro
+                             ? "Trace Pro is active on this Apple ID."
+                             : "You are on the free plan.")
+                            .font(Theme.ui(15))
                             .foregroundStyle(Theme.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, Theme.gutter)
                     .padding(.top, 12)
-                    .padding(.bottom, 26)
+                    .padding(.bottom, 22)
+
+                    MetricStrip(items: [
+                        .init(value: billing.isPro ? "Pro" : "Free", label: "Plan"),
+                        .init(value: billing.isPro ? billing.priceText : "—", label: "Price"),
+                        .init(value: "\(store.scansUsed)", label: "Scans used")
+                    ])
+                    .padding(18)
+                    .card()
+                    .padding(.horizontal, Theme.gutter)
 
                     VStack(spacing: 12) {
-                        ForEach(Array(sections.enumerated()), id: \.offset) { _, part in
-                            VStack(alignment: .leading, spacing: 8) {
-                                SectionTitle(part.0)
-                                Text(part.1)
-                                    .font(Theme.ui(14.5))
-                                    .foregroundStyle(Theme.ink2)
-                                    .fixedSize(horizontal: false, vertical: true)
+                        if !billing.isPro {
+                            card("What the free plan includes",
+                                 "One route scan, and every climb you record or import analysed in full. Nothing you have already done is ever taken away.")
+                            Button { showPaywall = true } label: {
+                                Text("See Trace Pro")
+                                    .font(Theme.ui(16, .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Theme.accent)
+                                    .clipShape(Capsule())
+                                    .contentShape(Capsule())
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(18)
-                            .card()
+                            .buttonStyle(.plain)
+                        } else {
+                            card("Cancelling",
+                                 "Open Settings, tap your name, then Subscriptions, and turn off renewal for Trace. Do it at least a day before the next charge to stop that charge. Everything on this phone stays where it is.")
                         }
+                        card("Where the payment goes",
+                             "Through the App Store, billed to your Apple ID. Trace never sees your card or your billing details, and never receives a payment record with your name on it.")
+                        card("Refunds",
+                             "Handled by Apple under their own policy, at reportaproblem.apple.com. Trace cannot issue one.")
+
+                        Button {
+                            Task { await billing.restore() }
+                        } label: {
+                            Text("Restore a purchase")
+                                .font(Theme.ui(14.5, .semibold))
+                                .foregroundStyle(Theme.accentText)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink { LegalScreen.terms } label: {
+                            Text("Terms of Use")
+                                .font(Theme.ui(14.5, .semibold))
+                                .foregroundStyle(Theme.accentText)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, Theme.gutter)
+                    .padding(.top, 22)
                 }
                 .padding(.bottom, 156)
             }
@@ -259,35 +306,21 @@ struct InfoScreen: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
+        .fullScreenCover(isPresented: $showPaywall) {
+            NavigationStack { PaywallScreen() }
+        }
     }
 
-    static var subscription: InfoScreen {
-        InfoScreen(
-            title: "Subscription",
-            standfirst: "Nothing to pay for yet. No card is on file and no plan is running.",
-            sections: [
-                ("What you have",
-                 "Every part of Trace, while it is being built. There is no free tier to be moved off and no trial running down."),
-                ("What happens later",
-                 "When there is something to charge for it will appear here with the price before anything is taken, and you will have to agree to it. Nothing starts on its own."),
-                ("Where it would be handled",
-                 "Through the App Store, like any other iPhone subscription, so cancelling never means writing to anybody.")
-            ])
-    }
-
-    static var privacy: InfoScreen {
-        InfoScreen(
-            title: "Privacy & AI",
-            standfirst: "Everything stays on this phone. Trace uploads nothing.",
-            sections: [
-                ("Your clips",
-                 "Every climb is measured on device, so your footage never leaves the handset. That is what makes filming in a gym full of other people unproblematic."),
-                ("The only model involved",
-                 "Apple's on-device pose detector, which finds your joints in each frame. Nothing is sent to a language model. There is no analytics and no crash reporting."),
-                ("Your body measurements",
-                 "Height, reach and weight are stored on the phone and used to turn image units into metres and joules. They are not sent anywhere."),
-                ("Leaving",
-                 "Signing out leaves every climb, route and gym exactly where it is. Deleting your account removes all of it, and that cannot be undone.")
-            ])
+    private func card(_ heading: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionTitle(heading)
+            Text(text)
+                .font(Theme.ui(14.5))
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(17)
+        .card()
     }
 }

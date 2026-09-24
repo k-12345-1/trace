@@ -22,6 +22,12 @@ final class Store: ObservableObject {
     @Published private(set) var routes: [Route] = []
     /// Your height and reach. Optional: everything works without it, in body lengths.
     @Published private(set) var body: BodyProfile = .empty
+    /// How many route scans have been completed on this phone, ever.
+    ///
+    /// Counted rather than derived from `routes.count`, because deleting a route
+    /// must not hand back a free scan. It is the number of times the work was
+    /// done, not the number of results still kept.
+    @Published private(set) var scansUsed = 0
 
     static let shared = Store()
 
@@ -39,6 +45,7 @@ final class Store: ObservableObject {
     nonisolated private static var routesURL: URL { documents.appendingPathComponent("routes.json") }
     nonisolated private static var accountURL: URL { documents.appendingPathComponent("account.json") }
     nonisolated private static var bodyURL: URL { documents.appendingPathComponent("body.json") }
+    nonisolated private static var scansURL: URL { documents.appendingPathComponent("scans.json") }
 
     nonisolated static var routePhotosDirectory: URL {
         let url = documents.appendingPathComponent("Routes", isDirectory: true)
@@ -71,6 +78,14 @@ final class Store: ObservableObject {
         // An account on disk is someone who asked to be kept signed in, so they
         // go straight through rather than being asked again.
         staySignedIn = account != nil ? true : nil
+        if let data = try? Data(contentsOf: Self.scansURL) {
+            scansUsed = (try? decoder.decode(Int.self, from: data)) ?? 0
+        } else {
+            // No counter file, but routes on disk: this phone scanned before the
+            // counter existed. Seed it from what is there rather than handing
+            // back a free scan to someone who has already had several.
+            scansUsed = routes.count
+        }
         if let data = try? Data(contentsOf: Self.bodyURL) {
             body = (try? decoder.decode(BodyProfile.self, from: data)) ?? .empty
         }
@@ -241,9 +256,18 @@ final class Store: ObservableObject {
             routes[i] = route
         } else {
             routes.insert(route, at: 0)
+            scansUsed += 1
+            try? JSONEncoder().encode(scansUsed).write(to: Self.scansURL, options: .atomic)
         }
         persistRoutes()
     }
+
+    /// Whether the scanner opens, or the paywall does.
+    ///
+    /// The first scan is free and complete. Nobody can tell from a screenshot
+    /// whether colour segmentation copes with their gym's lighting, so they get
+    /// to find out on their own wall before being asked for anything.
+    var scanNeedsPro: Bool { scansUsed >= 1 }
 
     func deleteRoute(_ route: Route) {
         try? FileManager.default.removeItem(at: route.photoURL)
@@ -302,14 +326,14 @@ final class Store: ObservableObject {
             Thumbnails.remove(for: climb)
         }
         for url in [Self.indexURL, Self.focusURL, Self.gymsURL,
-                    Self.routesURL, Self.accountURL, Self.bodyURL] {
+                    Self.routesURL, Self.accountURL, Self.bodyURL, Self.scansURL] {
             try? FileManager.default.removeItem(at: url)
         }
         try? FileManager.default.removeItem(at: Self.routePhotosDirectory)
         try? FileManager.default.removeItem(at: Self.videosDirectory)
         try? FileManager.default.removeItem(at: Thumbnails.directory)
 
-        climbs = []; focus = nil; gyms = []; routes = []; body = .empty
+        climbs = []; focus = nil; gyms = []; routes = []; body = .empty; scansUsed = 0
         Keychain.clear()
         session = nil
         account = nil

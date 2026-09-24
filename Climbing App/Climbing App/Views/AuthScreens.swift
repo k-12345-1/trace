@@ -164,14 +164,45 @@ private struct CrossLink: View {
     }
 }
 
+/// Agreeing to something you cannot read is not agreeing. Both documents open
+/// from here, before the account exists.
 private struct LegalFooter: View {
+    @State private var showing: Document?
+
+    private enum Document: String, Identifiable {
+        case terms, privacy
+        var id: String { rawValue }
+    }
+
     var body: some View {
-        Text("By continuing you agree to our Terms and Privacy Policy.")
-            .font(Theme.ui(11.5))
-            .foregroundStyle(Theme.ink3)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 12)
+        VStack(spacing: 4) {
+            Text("By continuing you agree to our")
+                .font(Theme.ui(11.5))
+                .foregroundStyle(Theme.ink3)
+            HStack(spacing: 5) {
+                link("Terms", .terms)
+                Text("and").font(Theme.ui(11.5)).foregroundStyle(Theme.ink3)
+                link("Privacy Policy", .privacy)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
+        .sheet(item: $showing) { which in
+            NavigationStack {
+                which == .terms ? LegalScreen.terms : LegalScreen.privacy
+            }
+        }
+    }
+
+    private func link(_ title: String, _ which: Document) -> some View {
+        Button { showing = which } label: {
+            Text(title)
+                .font(Theme.ui(11.5, .semibold))
+                .foregroundStyle(Theme.accentText)
+                .underline()
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
