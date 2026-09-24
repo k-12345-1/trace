@@ -207,6 +207,20 @@ final class Store: ObservableObject {
     /// Clears the identity and the tokens. Climbs are not touched: they belong to
     /// the phone, and signing out of an identity should never delete a person's
     /// training history.
+    /// Sign in as the demo climber: an account with no server behind it.
+    ///
+    /// Trace cannot be used without an account, and there is no auth server yet,
+    /// which would otherwise leave the app unreachable on a fresh install. This
+    /// is the way in. It is a real account as far as the app is concerned, it is
+    /// written to this phone like any other, and everything it records stays
+    /// here, because that was always true.
+    func signedInAsDemo() {
+        session = nil
+        account = Account.local(name: DemoAccount.name)
+        staySignedIn = nil
+        persistAccount()
+    }
+
     func signOut() {
         if let session { Task { await AuthClient.signOut(session: session) } }
         session = nil

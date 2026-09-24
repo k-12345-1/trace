@@ -28,13 +28,17 @@ struct LegalScreen: View {
     static let version = "1.0"
 
     @Environment(\.dismiss) private var dismiss
+    /// True when this is pushed inside the tabbed app, false when it is opened
+    /// on its own from the sign-in screen or the paywall.
+    var insideApp = true
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    NavHeader(title: nil) { dismiss() }
+                    // Space for the pinned header, which is not in this column.
+                    Color.clear.frame(height: 52)
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text(title)
@@ -77,9 +81,24 @@ struct LegalScreen: View {
                         .padding(.horizontal, Theme.gutter)
                         .padding(.top, 20)
                 }
-                .padding(.bottom, 156)
+                // Enough to clear the tab bar when this is pushed inside the
+                // app, and no more. The fixed 156 that every screen behind the
+                // bar carries left a blank third of a screen under the last
+                // paragraph when the document opens on its own, where there is
+                // no bar to clear.
+                .padding(.bottom, insideApp ? 156 : 32)
             }
             .scrollIndicators(.hidden)
+
+            // Pinned, not scrolled with the text. These are long documents, and
+            // presented full screen there is no swipe back either, so a control
+            // that disappears once you start reading is a way to get stuck.
+            NavHeader(title: nil) { dismiss() }
+                .background {
+                    // Solid, and carried up through the status bar. Translucent,
+                    // the paragraphs scrolling underneath ghost through it.
+                    Theme.ground.ignoresSafeArea(edges: .top)
+                }
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
@@ -89,7 +108,7 @@ struct LegalScreen: View {
 // MARK: - Privacy Policy
 
 extension LegalScreen {
-    static var privacy: LegalScreen {
+    static func privacy(insideApp: Bool = true) -> LegalScreen {
         LegalScreen(
             title: "Privacy Policy",
             updated: "24 September 2026",
@@ -128,14 +147,15 @@ extension LegalScreen {
                 Section(heading: "Changes", body: [
                     "This document ships inside the app, so it can only change when you install an update. The version number at the top changes with it, and a material change will be flagged in the app rather than made quietly."
                 ])
-            ])
+            ],
+            insideApp: insideApp)
     }
 }
 
 // MARK: - Terms of Use
 
 extension LegalScreen {
-    static var terms: LegalScreen {
+    static func terms(insideApp: Bool = true) -> LegalScreen {
         LegalScreen(
             title: "Terms of Use",
             updated: "24 September 2026",
@@ -181,6 +201,7 @@ extension LegalScreen {
                     "You can stop using Trace whenever you like, and delete your account from Profile. We may end an account that breaks these terms.",
                     "These terms are governed by the laws of the Commonwealth of Massachusetts, United States."
                 ])
-            ])
+            ],
+            insideApp: insideApp)
     }
 }

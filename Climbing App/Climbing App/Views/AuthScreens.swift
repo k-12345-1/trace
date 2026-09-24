@@ -34,6 +34,14 @@ private struct AuthShell<Content: View>: View {
                               y: revealed ? Self.markTop + 58 : geo.size.height / 2)
                     .allowsHitTesting(false)
 
+                // A ScrollView, but one that only scrolls when it has to.
+                //
+                // The form is shorter than the screen, so on a normal phone it
+                // never scrolls: dragging the email and password fields around
+                // was the scroll view bouncing against its own limits, which
+                // reads as the page coming loose. `basedOnSize` stops the bounce
+                // until the content genuinely overflows, which is the keyboard
+                // on a small screen, and then scrolling is what you want.
                 ScrollView {
                     content
                         .frame(width: min(320, geo.size.width - 44))
@@ -41,6 +49,7 @@ private struct AuthShell<Content: View>: View {
                         .padding(.bottom, 40)
                         .frame(maxWidth: .infinity)
                 }
+                .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
                 .scrollIndicators(.hidden)
                 .opacity(revealed ? 1 : 0)
@@ -164,6 +173,61 @@ private struct CrossLink: View {
     }
 }
 
+/// A message about the attempt, faded in rather than snapped in.
+///
+/// It sits below the button that produced it, so nothing above it ever moves.
+private struct AuthMessageSlot: View {
+    let error: String?
+    let notice: String?
+
+    var body: some View {
+        ZStack {
+            if let error {
+                AuthMessage(text: error, isError: true)
+            } else if let notice {
+                AuthMessage(text: notice, isError: false)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+        .animation(.easeInOut(duration: 0.18), value: error)
+        .animation(.easeInOut(duration: 0.18), value: notice)
+    }
+}
+
+/// The way in while there is no authentication server.
+///
+/// Shown only when nothing is configured, and it names the credentials rather
+/// than hiding them behind a button, so it reads as a demo account rather than
+/// as a secret way past the sign-in screen.
+private struct DemoHint: View {
+    let onUse: () -> Void
+
+    var body: some View {
+        if !AuthClient.isConfigured {
+            VStack(spacing: 8) {
+                Hairline()
+                Text("No sign-in server yet")
+                    .font(Theme.ui(12.5, .semibold))
+                    .foregroundStyle(Theme.ink2)
+                Text("\(DemoAccount.email) · \(DemoAccount.password)")
+                    .font(Theme.ui(12)).monospacedDigit()
+                    .foregroundStyle(Theme.ink3)
+                Button(action: onUse) {
+                    Text("Use the demo account")
+                        .font(Theme.ui(13.5, .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Theme.accentWash, in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 6)
+        }
+    }
+}
+
 /// Agreeing to something you cannot read is not agreeing. Both documents open
 /// from here, before the account exists.
 private struct LegalFooter: View {
@@ -187,10 +251,12 @@ private struct LegalFooter: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 12)
-        .sheet(item: $showing) { which in
-            NavigationStack {
-                which == .terms ? LegalScreen.terms : LegalScreen.privacy
-            }
+        // Full screen rather than a sheet. A document you are being asked to
+        // agree to should not arrive as a card with the form still showing
+        // behind it.
+        .fullScreenCover(item: $showing) { which in
+            which == .terms ? LegalScreen.terms(insideApp: false)
+                            : LegalScreen.privacy(insideApp: false)
         }
     }
 
@@ -265,12 +331,14 @@ struct SignInScreen: View {
                           focused: focus == .password, onSubmit: submit)
                     .focused($focus, equals: .password)
 
-                if let error { AuthMessage(text: error, isError: true) }
-                if let notice { AuthMessage(text: notice, isError: false) }
-
                 AuthButton(title: "Sign in", busyTitle: "Signing you in…",
                            busy: busy, enabled: canSubmit, action: submit)
                     .padding(.top, 4)
+
+                // Under the button rather than over it. A message that appears
+                // above the control you just pressed pushes that control out
+                // from under your finger, which is the lurch on the way in.
+                AuthMessageSlot(error: error, notice: notice)
 
                 Button { resetPassword() } label: {
                     Text("Forgot password?")
@@ -285,6 +353,12 @@ struct SignInScreen: View {
 
                 CrossLink(question: "New to Trace?", action: "Sign up →", onTap: goSignUp)
 
+                DemoHint {
+                    email = DemoAccount.email
+                    password = DemoAccount.password
+                    submit()
+                }
+
                 LegalFooter()
             }
         }
@@ -294,6 +368,15 @@ struct SignInScreen: View {
         guard canSubmit else { return }
         focus = nil
         busy = true; error = nil; notice = nil
+
+        // The demo pair never leaves the phone, so it is answered here rather
+        // than by a network call that would fail for want of a server.
+        if DemoAccount.matches(email: email, password: password) {
+            store.signedInAsDemo()
+            busy = false
+            return
+        }
+
         Task {
             do {
                 let session = try await AuthClient.signIn(email: email, password: password)
@@ -350,7 +433,7 @@ struct SignUpScreen: View {
     var body: some View {
         AuthShell(revealed: $revealed) {
             VStack(spacing: 14) {
-                AuthField(label: "What should I call you?", text: $name,
+                AuthField(label: "Name", text: $name,
                           placeholder: "Katie", contentType: .name,
                           focused: focus == .name)
                     .focused($focus, equals: .name)
@@ -367,11 +450,11 @@ struct SignUpScreen: View {
                           focused: focus == .password, onSubmit: submit)
                     .focused($focus, equals: .password)
 
-                if let error { AuthMessage(text: error, isError: true) }
-
                 AuthButton(title: "Create account", busyTitle: "Creating your account…",
                            busy: busy, enabled: canSubmit, action: submit)
                     .padding(.top, 4)
+
+                AuthMessageSlot(error: error, notice: nil)
 
                 CrossLink(question: "Already have an account?", action: "Sign in →",
                           onTap: goSignIn)

@@ -40,8 +40,10 @@ struct PaywallScreen: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
-        .sheet(isPresented: $showTerms) { NavigationStack { LegalScreen.terms } }
-        .sheet(isPresented: $showPrivacy) { NavigationStack { LegalScreen.privacy } }
+        // Full screen, not a card over the price. These are the documents the
+        // purchase is made under.
+        .fullScreenCover(isPresented: $showTerms) { LegalScreen.terms(insideApp: false) }
+        .fullScreenCover(isPresented: $showPrivacy) { LegalScreen.privacy(insideApp: false) }
         .alert("That did not go through",
                isPresented: Binding(get: { billing.problem != nil },
                                     set: { if !$0 { billing.problem = nil } })) {

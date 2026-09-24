@@ -136,7 +136,7 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink { LegalScreen.privacy } label: {
+            NavigationLink { LegalScreen.privacy() } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
                         .font(.system(size: 18, weight: .light))
                         .foregroundStyle(Theme.blue)),
@@ -287,7 +287,7 @@ struct SubscriptionScreen: View {
                         }
                         .buttonStyle(.plain)
 
-                        NavigationLink { LegalScreen.terms } label: {
+                        NavigationLink { LegalScreen.terms() } label: {
                             Text("Terms of Use")
                                 .font(Theme.ui(14.5, .semibold))
                                 .foregroundStyle(Theme.accentText)
