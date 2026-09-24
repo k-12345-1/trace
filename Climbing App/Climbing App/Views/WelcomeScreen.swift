@@ -34,7 +34,7 @@ struct WelcomeScreen: View {
                     if showLocal { localForm } else { accountForm }
                 }
                 .padding(.horizontal, Theme.gutter)
-                .padding(.bottom, 40)
+                .padding(.bottom, 44)
             }
             .scrollDismissesKeyboard(.interactively)
         }
@@ -47,14 +47,17 @@ struct WelcomeScreen: View {
         VStack(alignment: .leading, spacing: 14) {
             // The icon itself, so the sign-in screen and the home screen icon
             // are recognisably the same object.
-            MountainMark(color: .white, inset: 0.12)
-                .frame(width: 60, height: 60)
-                .background(Theme.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                .padding(.bottom, 4)
-            Text("Trace")
-                .font(Theme.serif(26, .semibold))
-                .foregroundStyle(Theme.blue)
+            HStack(spacing: 12) {
+                MountainMark(color: .white, inset: 0.16)
+                    .frame(width: 46, height: 46)
+                    .background(Theme.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Text("Trace")
+                    .font(Theme.serif(28, .semibold))
+                    .foregroundStyle(Theme.blue)
+            }
+            .padding(.bottom, 6)
+
             Text("Watches you climb.\nTells you one thing.")
                 .font(Theme.title(34))
                 .foregroundStyle(Theme.ink)
@@ -64,20 +67,15 @@ struct WelcomeScreen: View {
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 54)
-        .padding(.bottom, 32)
+        .padding(.top, 48)
+        .padding(.bottom, 30)
     }
 
     // MARK: Email and password
 
     private var accountForm: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Picker("", selection: $mode) {
-                Text("Sign in").tag(Mode.signIn)
-                Text("Create account").tag(Mode.signUp)
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: mode) { _, _ in error = nil; notice = nil }
+        VStack(alignment: .leading, spacing: 18) {
+            modeToggle
 
             if !AuthClient.isConfigured { notConnected }
 
@@ -87,12 +85,12 @@ struct WelcomeScreen: View {
 
             if mode == .signUp {
                 Text("At least \(AuthClient.minimumPasswordLength) characters.")
-                    .font(Theme.body(11.5))
+                    .font(Theme.ui(13))
                     .foregroundStyle(Theme.ink3)
             }
 
-            if let error { message(error, tone: Theme.accentText) }
-            if let notice { message(notice, tone: Theme.ok) }
+            if let error { message(error, tone: Theme.ember[4]) }
+            if let notice { message(notice, tone: Theme.accentText) }
 
             Button(action: submit) {
                 HStack(spacing: 9) {
@@ -105,46 +103,62 @@ struct WelcomeScreen: View {
                 .padding(.vertical, 16)
                 .background(Theme.accent)
                 .clipShape(Capsule())
-                .opacity(canSubmit ? 1 : 0.4)
+                .opacity(canSubmit ? 1 : 0.35)
             }
             .buttonStyle(.plain)
             .disabled(!canSubmit)
 
             if mode == .signIn {
                 Button("Forgot your password?") { resetPassword() }
-                    .font(Theme.body(12.5))
-                    .foregroundStyle(Theme.ink3)
+                    .font(Theme.ui(14, .medium))
+                    .foregroundStyle(Theme.accentText)
+                    .frame(maxWidth: .infinity)
                     .disabled(busy)
             }
 
             divider
 
-            Button {
-                withAnimation(.easeInOut(duration: 0.18)) { showLocal = true }
-            } label: {
-                Text("Use Trace without an account")
-                    .font(Theme.ui(16, .semibold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Theme.surface)
-                    .clipShape(Capsule())
+            FlatButton(title: "Use Trace without an account") {
+                withAnimation(.easeInOut(duration: 0.2)) { showLocal = true }
             }
-            .buttonStyle(.plain)
         }
+    }
+
+    /// Two segments on a light grey track, the selected one filled in the dark
+    /// blue. The same shape language as the bar, rather than the stock control.
+    private var modeToggle: some View {
+        HStack(spacing: 4) {
+            segment("Sign in", .signIn)
+            segment("Create account", .signUp)
+        }
+        .padding(4)
+        .background(Theme.surface)
+        .clipShape(Capsule())
+    }
+
+    private func segment(_ title: String, _ m: Mode) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) { mode = m }
+            error = nil; notice = nil
+        } label: {
+            Text(title)
+                .font(Theme.ui(15, .semibold))
+                .foregroundStyle(mode == m ? .white : Theme.ink2)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(mode == m ? Theme.blue : .clear, in: Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: No account
 
     private var localForm: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 7) {
-                MicroLabel(text: "No account")
-                Text("Nothing changes, really")
-                    .font(Theme.heading(19))
-                    .foregroundStyle(Theme.ink)
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionTitle("Nothing changes, really")
                 Text("Every measurement Trace makes happens on this phone, so it all works without an account. You lose one thing: if you replace this phone, the history does not follow you.")
-                    .font(Theme.body(14))
+                    .font(Theme.ui(15))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -166,13 +180,13 @@ struct WelcomeScreen: View {
             .buttonStyle(.plain)
 
             Button {
-                withAnimation(.easeInOut(duration: 0.18)) { showLocal = false }
+                withAnimation(.easeInOut(duration: 0.2)) { showLocal = false }
             } label: {
                 Text("Back to sign in")
-                    .font(Theme.ui(15, .semibold))
+                    .font(Theme.ui(14, .medium))
                     .foregroundStyle(Theme.ink3)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
         }
@@ -181,32 +195,39 @@ struct WelcomeScreen: View {
     // MARK: Pieces
 
     private var notConnected: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            MicroLabel(text: "Not connected yet", color: Theme.accentText)
-            Text("No server is configured, so sign in will not work on this build. Everything else does. Carry on without an account below.")
-                .font(Theme.body(12.5))
-                .foregroundStyle(Theme.ink2)
-                .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 17))
+                .foregroundStyle(Theme.blueLight)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Not connected yet")
+                    .font(Theme.ui(15, .semibold))
+                    .foregroundStyle(Theme.ink)
+                Text("No server is configured, so sign in will not work on this build. Everything else does. Carry on without an account below.")
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(15)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.blueWash)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+        .background(Theme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
     }
 
     private func field(_ label: String, text: Binding<String>, field: Field,
                        placeholder: String, keyboard: UIKeyboardType) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            MicroLabel(text: label)
+        VStack(alignment: .leading, spacing: 8) {
+            fieldLabel(label)
             TextField("", text: text, prompt: Text(placeholder).foregroundStyle(Theme.ink3))
-                .font(Theme.body(16))
+                .font(Theme.ui(16))
                 .foregroundStyle(Theme.ink)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(field == .name ? .words : .never)
                 .autocorrectionDisabled()
                 .textContentType(field == .email ? .emailAddress : .name)
                 .focused($focus, equals: field)
-                .padding(.horizontal, 16).padding(.vertical, 15)
+                .padding(.horizontal, 17).padding(.vertical, 16)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
@@ -215,16 +236,18 @@ struct WelcomeScreen: View {
     }
 
     private var secureField: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            MicroLabel(text: "Password")
+        VStack(alignment: .leading, spacing: 8) {
+            fieldLabel("Password")
             SecureField("", text: $password,
-                        prompt: Text(mode == .signUp ? "At least 8 characters" : "Your password")
+                        // The length requirement lives under the field, where it
+                        // stays visible once typing has cleared the placeholder.
+                        prompt: Text(mode == .signUp ? "Choose a password" : "Your password")
                             .foregroundStyle(Theme.ink3))
-                .font(Theme.body(16))
+                .font(Theme.ui(16))
                 .foregroundStyle(Theme.ink)
                 .textContentType(mode == .signUp ? .newPassword : .password)
                 .focused($focus, equals: .password)
-                .padding(.horizontal, 16).padding(.vertical, 15)
+                .padding(.horizontal, 17).padding(.vertical, 16)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
@@ -233,18 +256,28 @@ struct WelcomeScreen: View {
         }
     }
 
+    /// Sentence case, like every other label in the app. The uppercase mono that
+    /// used to sit here belonged to the instrument panel the app no longer is.
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.ui(14, .semibold))
+            .foregroundStyle(Theme.ink2)
+    }
+
     private func message(_ text: String, tone: Color) -> some View {
         Text(text)
-            .font(Theme.body(13))
+            .font(Theme.ui(14))
             .foregroundStyle(tone)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var divider: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Hairline()
-            MicroLabel(text: "or")
+            Text("or")
+                .font(Theme.ui(13))
+                .foregroundStyle(Theme.ink3)
             Hairline()
         }
         .padding(.vertical, 2)
