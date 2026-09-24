@@ -79,9 +79,15 @@ enum MetricsEngine {
                   let torso = torsoLength(frame), torso > 0.02 else { continue }
             samples.append(abs(Double(com.x) - base) / torso)
         }
-        guard !samples.isEmpty else { return 0 }
+        // One frame of near-stillness is not a measurement of how someone rests.
+        // Below roughly half a second of it there is nothing to report.
+        guard samples.count >= Self.minimumStillSamples else { return 0 }
         return samples.reduce(0, +) / Double(samples.count)
     }
+
+    /// Frames of near-stillness needed before the offset is reported at all.
+    /// Roughly half a second at thirty frames a second.
+    static let minimumStillSamples = 15
 
     /// Midpoint of whichever ankles are visible.
     static func baseOfSupport(_ f: PoseFrame) -> Double? {
@@ -253,27 +259,66 @@ enum MetricsEngine {
     // duration and path length so clips of different lengths compare. Lower is
     // smoother. Comparable within one capture setup, not across setups.
 
-    static func logDimensionlessJerk(path: [CGPoint], times: [Double], length: Double) -> Double {
-        guard path.count > 6, length > 0.001 else { return 0 }
-        let dt = (times.last! - times.first!) / Double(times.count - 1)
-        guard dt > 0.0005 else { return 0 }
+    /// Log dimensionless jerk, computed on a path resampled to a fixed rate.
+    ///
+    /// Jerk is a third derivative, so finite differencing multiplies the tracker's
+    /// own noise by roughly one over the frame interval cubed. Left at the
+    /// capture rate, the same climb filmed at 60fps scores very differently from
+    /// one filmed at 30, and the difference is all noise. Resampling first is
+    /// what makes two of your own attempts comparable at all.
+    ///
+    /// The number that comes out is still dominated by the noise floor rather
+    /// than by you, which is why nothing in the app judges it against a fixed
+    /// threshold. It is only ever compared against your own other attempts.
+    static let jerkRate = 30.0
 
-        func derive(_ series: [CGPoint]) -> [CGPoint] {
-            guard series.count > 1 else { return [] }
-            return (1..<series.count).map {
-                CGPoint(x: (series[$0].x - series[$0 - 1].x) / dt,
-                        y: (series[$0].y - series[$0 - 1].y) / dt)
+    static func logDimensionlessJerk(path: [CGPoint], times: [Double], length: Double) -> Double {
+        guard path.count > 6, length > 0.001, times.count == path.count else { return 0 }
+        let T = times.last! - times.first!
+        guard T > 0.3 else { return 0 }
+
+        let series = resample(path: path, times: times, rate: Self.jerkRate)
+        guard series.count > 6 else { return 0 }
+        let dt = 1.0 / Self.jerkRate
+
+        func derive(_ s: [CGPoint]) -> [CGPoint] {
+            guard s.count > 1 else { return [] }
+            return (1..<s.count).map {
+                CGPoint(x: (s[$0].x - s[$0 - 1].x) / dt, y: (s[$0].y - s[$0 - 1].y) / dt)
             }
         }
-        let jerk = derive(derive(derive(path)))
+        let jerk = derive(derive(derive(series)))
         guard !jerk.isEmpty else { return 0 }
 
         let integral = jerk.reduce(0.0) { $0 + ($1.x * $1.x + $1.y * $1.y) * dt }
-        let T = times.last! - times.first!
-        guard T > 0, integral > 0 else { return 0 }
+        guard integral > 0 else { return 0 }
 
         let dimensionless = pow(T, 5) / (length * length) * integral
         return log(max(dimensionless, 1e-9))
+    }
+
+    /// Linear resampling of a path onto an even grid.
+    static func resample(path: [CGPoint], times: [Double], rate: Double) -> [CGPoint] {
+        guard path.count > 1, times.count == path.count, rate > 0 else { return path }
+        let start = times.first!, end = times.last!
+        guard end > start else { return path }
+
+        let count = Int(((end - start) * rate).rounded()) + 1
+        guard count > 1, count < 100_000 else { return path }
+
+        var out: [CGPoint] = []
+        out.reserveCapacity(count)
+        var j = 0
+        for i in 0..<count {
+            let t = start + Double(i) / rate
+            while j < times.count - 2 && times[j + 1] < t { j += 1 }
+            let t0 = times[j], t1 = times[j + 1]
+            let span = t1 - t0
+            let u = span > 0 ? min(max((t - t0) / span, 0), 1) : 0
+            out.append(CGPoint(x: path[j].x + (path[j + 1].x - path[j].x) * u,
+                               y: path[j].y + (path[j + 1].y - path[j].y) * u))
+        }
+        return out
     }
 
     // MARK: - Bent arms while static
@@ -325,33 +370,124 @@ enum MetricsEngine {
 
     // MARK: - Foot precision
     //
-    // A foot that lands, shifts, and lands again. High counts mean you are not
-    // looking at your feet.
+    // A foot that lands, shifts, and lands again near where it was. High counts
+    // mean you are not looking at your feet.
+    //
+    // The first version of this counted 41 adjustments in a thirteen second
+    // boulder, which is three a second, and it was counting the tracker rather
+    // than the climber. Three things were wrong with it. It compared a raw
+    // frame-to-frame distance against a fixed number, so a climber filmed twice
+    // as far away was judged twice as sensitively. It had a single threshold, so
+    // ankle jitter sitting right on that threshold toggled the state on every
+    // frame. And it never checked how far the foot actually went, so a genuine
+    // move to a new hold counted the same as a two centimetre shuffle.
+    //
+    // This version fixes all three: every distance is in torso lengths, moving
+    // and settled have separate thresholds with a gap between them, and an
+    // excursion only counts when the foot came back down near where it started.
+
+    /// How far an ankle may wander over `footPlantWindow` and still count as
+    /// planted, in torso lengths. Wider than the tracker's jitter, narrower
+    /// than any real movement.
+    static let footPlantRadius = 0.12
+    /// The span the wandering is measured over, either side of each frame.
+    static let footPlantWindow = 0.15
+    /// How long the foot has to stay planted before it counts as placed.
+    static let footSettleSeconds = 0.15
+    /// A hop longer than this, in torso lengths, went to a new hold.
+    static let footAdjustDistance = 0.9
+    /// And one that took longer than this was a considered move, not a fidget.
+    static let footAdjustSeconds = 2.0
 
     static func footAdjustments(frames: [PoseFrame]) -> Int {
-        var count = 0
-        for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
-            let series = frames.compactMap { $0.pt(ankle) }
-            guard series.count > 8 else { continue }
+        footAdjustmentTimes(frames: frames).count
+    }
 
-            var moving = false
-            var sinceSettle = 0
-            for i in 1..<series.count {
-                let d = distance(series[i], series[i - 1])
-                if d > 0.006 {
-                    if !moving { moving = true }
-                } else if moving {
-                    moving = false
-                    // A settle that lands soon after the previous one is a correction,
-                    // not a fresh placement. Roughly 1.5s at 30fps.
-                    if sinceSettle > 0 && sinceSettle < 45 { count += 1 }
-                    sinceSettle = 0
-                } else {
-                    sinceSettle += 1
+    /// The moments a foot was repositioned, so a finding can point at one.
+    ///
+    /// Two things have to be told apart from a real reposition, and they pull in
+    /// opposite directions. Tracker jitter is small and fast; a foot creeping
+    /// along with the body as the climber moves is slow but goes a long way.
+    /// Neither a speed test nor a radius test catches both. A speed test calls
+    /// jitter movement, and a radius test calls creep a series of placements:
+    /// the first version of this returned 41 on a thirteen second boulder, and
+    /// the second returned 19.
+    ///
+    /// So a frame counts as planted only when the ankle stayed inside a small
+    /// circle across a window either side of it. Jitter passes that, because it
+    /// never leaves the circle. Creep fails it, because given a third of a
+    /// second it always does. Runs of planted frames are placements, and two
+    /// placements close together in both space and time are a foot put down
+    /// twice.
+    static func footAdjustmentTimes(frames: [PoseFrame]) -> [Double] {
+        guard let torso = medianTorso(frames), torso > 0.01 else { return [] }
+        var out: [Double] = []
+
+        for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
+            // Time has to stay attached to the point. Compacting the series away
+            // from its timestamps was the other half of the original bug.
+            let series: [(t: Double, p: CGPoint)] = frames.compactMap {
+                guard let p = $0.pt(ankle) else { return nil }
+                return (t: $0.time, p: p)
+            }
+            guard series.count > 4 else { continue }
+
+            var planted = [Bool](repeating: false, count: series.count)
+            var lo = 0, hi = 0
+            for i in series.indices {
+                while lo < i && series[i].t - series[lo].t > Self.footPlantWindow { lo += 1 }
+                while hi < series.count - 1 && series[hi + 1].t - series[i].t <= Self.footPlantWindow {
+                    hi += 1
+                }
+                var worst = 0.0
+                for k in lo...hi { worst = max(worst, distance(series[k].p, series[i].p)) }
+                planted[i] = worst / torso <= Self.footPlantRadius
+            }
+
+            // Runs of planted frames, each long enough to be a placement.
+            var placements: [(start: Double, end: Double, at: CGPoint)] = []
+            var runStart: Int?
+            for i in series.indices {
+                if planted[i] {
+                    if runStart == nil { runStart = i }
+                } else if let from = runStart {
+                    appendPlacement(series, from, i - 1, &placements)
+                    runStart = nil
+                }
+            }
+            if let from = runStart { appendPlacement(series, from, series.count - 1, &placements) }
+
+            guard placements.count > 1 else { continue }
+            for k in 1..<placements.count {
+                let from = placements[k - 1], to = placements[k]
+                let moved = distance(from.at, to.at) / torso
+                let gap = to.start - from.end
+                if moved < Self.footAdjustDistance && gap < Self.footAdjustSeconds {
+                    out.append(to.start)
                 }
             }
         }
-        return count
+        return out.sorted()
+    }
+
+    private static func appendPlacement(_ series: [(t: Double, p: CGPoint)],
+                                        _ from: Int, _ to: Int,
+                                        _ into: inout [(start: Double, end: Double, at: CGPoint)]) {
+        guard to >= from else { return }
+        let span = series[to].t - series[from].t
+        guard span >= Self.footSettleSeconds else { return }
+        // The middle of the run, so a placement is named by where the foot
+        // actually sat rather than by where it happened to arrive.
+        let mid = series[(from + to) / 2].p
+        into.append((series[from].t, series[to].t, mid))
+    }
+
+    /// The body scale, taken once for the whole clip. A median rather than a
+    /// mean so one badly tracked frame cannot set the ruler.
+    static func medianTorso(_ frames: [PoseFrame]) -> Double? {
+        let lengths = frames.compactMap { torsoLength($0) }.sorted()
+        guard !lengths.isEmpty else { return nil }
+        return lengths[lengths.count / 2]
     }
 
     // MARK: - Helpers

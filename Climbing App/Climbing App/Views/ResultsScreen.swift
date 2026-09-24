@@ -381,8 +381,14 @@ struct ResultsScreen: View {
                         unit: "nats", delta: entropyDelta)
                 Readout(label: "Smoothness", value: String(format: "%.1f", climb.metrics.logJerk),
                         unit: "ldlj")
-                Readout(label: "Path ratio", value: String(format: "%.2f", climb.metrics.pathRatio),
-                        unit: "×")
+                // Zero means MetricsEngine declined: the climb ended near where
+                // it started, so there is no straight line to compare against.
+                // Printing "0.00" would read as a measurement rather than as a
+                // refusal to make one.
+                Readout(label: "Path ratio",
+                        value: climb.metrics.pathRatio > 0
+                            ? String(format: "%.2f", climb.metrics.pathRatio) : "—",
+                        unit: climb.metrics.pathRatio > 0 ? "×" : "went nowhere net")
                 Readout(label: "Static elbow",
                         value: "\(Int(climb.metrics.staticElbowAngle.rounded()))", unit: "°")
                 Readout(label: "Stops", value: "\(climb.metrics.pauseCount)",

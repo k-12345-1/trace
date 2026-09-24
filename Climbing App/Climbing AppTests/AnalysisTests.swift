@@ -214,7 +214,11 @@ struct FindingTests {
                                 offset: 0.75, deadpoints: [0.31, 0.28, 0.35])
         m.pauseTotal = 15
         m.pauseCount = 4
-        let found = Set(FindingEngine.findings(from: m, frames: []).map(\.kind))
+        // Smoothness is judged against the climber's own history, so lurchy is
+        // only reachable when there is one. A median of 11 makes 13 rough.
+        let found = Set(FindingEngine.findings(from: m, frames: [],
+                                               priorJerk: [10.8, 11.0, 11.2, 11.1])
+            .map(\.kind))
         for kind in [LeakKind.bentArms, .weightOnArms, .lurchy,
                      .impreciseFeet, .hesitation, .wandering, .mistimedDynamics] {
             #expect(found.contains(kind), "\(kind.rawValue) was never produced")
