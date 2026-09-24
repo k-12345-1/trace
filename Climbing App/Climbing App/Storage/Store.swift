@@ -11,6 +11,13 @@ final class Store: ObservableObject {
     @Published private(set) var gyms: [Gym] = []
     /// Who is signed in. Identity only: nothing about this moves climbs off the phone.
     @Published private(set) var account: Account?
+    /// Whether this sign-in should survive the app closing.
+    ///
+    /// nil means the question has not been put yet, which is the state straight
+    /// after signing in. The answer needs no file of its own: keeping someone
+    /// signed in *is* writing their account to disk, so the presence of that
+    /// file at launch is the answer.
+    @Published private(set) var staySignedIn: Bool?
     @Published private(set) var session: Session?
     @Published private(set) var routes: [Route] = []
     /// Your height and reach. Optional: everything works without it, in body lengths.
@@ -61,6 +68,9 @@ final class Store: ObservableObject {
         if let data = try? Data(contentsOf: Self.accountURL) {
             account = try? decoder.decode(Account.self, from: data)
         }
+        // An account on disk is someone who asked to be kept signed in, so they
+        // go straight through rather than being asked again.
+        staySignedIn = account != nil ? true : nil
         if let data = try? Data(contentsOf: Self.bodyURL) {
             body = (try? decoder.decode(BodyProfile.self, from: data)) ?? .empty
         }
@@ -150,15 +160,25 @@ final class Store: ObservableObject {
 
     // MARK: Account
 
+    /// Signs in for this session only. Nothing is written until the climber
+    /// says whether they want to be kept signed in, so declining costs no
+    /// cleanup: there is simply nothing on disk to remove.
     func signedIn(session: Session, name: String = "") {
         self.session = session
-        Keychain.save(session)
         var acc = Account.signedIn(session: session, name: name)
         // Keep a name already typed on this phone rather than losing it on sign-in.
         if acc.name.isEmpty, let existing = account, !existing.name.isEmpty {
             acc.name = existing.name
         }
         account = acc
+        staySignedIn = nil
+    }
+
+    /// The answer to that question.
+    func keepSignedIn(_ keep: Bool) {
+        staySignedIn = keep
+        guard keep else { return }
+        if let session { Keychain.save(session) }
         persistAccount()
     }
 

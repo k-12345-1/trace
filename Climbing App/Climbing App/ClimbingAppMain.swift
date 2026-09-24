@@ -9,22 +9,27 @@ struct TraceApp: App {
     }
 }
 
-/// First launch lands on the welcome screen. After that the account is on the
-/// phone and the app opens straight into the climbs.
+/// Three states, in order: no account, an account that has not yet said whether
+/// it wants to be remembered, and an account that is through.
 struct AppEntry: View {
     @ObservedObject private var store = Store.shared
 
+    private enum Stage: Equatable { case welcome, askStaySignedIn, app }
+
+    private var stage: Stage {
+        guard store.account != nil else { return .welcome }
+        return store.staySignedIn == nil ? .askStaySignedIn : .app
+    }
+
     var body: some View {
         Group {
-            if store.account == nil {
-                WelcomeScreen()
-                    .transition(.opacity)
-            } else {
-                MainTabs()
-                    .transition(.opacity)
+            switch stage {
+            case .welcome:          WelcomeScreen().transition(.opacity)
+            case .askStaySignedIn:  StaySignedInScreen().transition(.opacity)
+            case .app:              MainTabs().transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: store.account == nil)
+        .animation(.easeInOut(duration: 0.22), value: stage)
         .task { await store.refreshSessionIfNeeded() }
     }
 }

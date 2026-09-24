@@ -393,3 +393,74 @@ struct WelcomeScreen: View {
         withAnimation(.easeInOut(duration: 0.2)) { page = next }
     }
 }
+
+// MARK: - Stay signed in
+
+/// Asked once, straight after signing in.
+///
+/// It is a real question rather than a courtesy: answering no means nothing is
+/// written to this phone at all, so the next launch starts at sign-in. That is
+/// the right default for a shared or borrowed handset, and the wrong one for
+/// the phone in your chalk bag, which is why it is asked rather than assumed.
+struct StaySignedInScreen: View {
+    @ObservedObject private var store = Store.shared
+    @State private var revealed = true
+
+    var body: some View {
+        ZStack {
+            Theme.ground.ignoresSafeArea()
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+
+                VStack(spacing: 16) {
+                    MountainMark(color: .white, inset: 0.16)
+                        .frame(width: 72, height: 72)
+                        .background(Theme.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+
+                    Text("Stay signed in?")
+                        .font(Theme.serif(30, .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .multilineTextAlignment(.center)
+
+                    Text("Say yes and Trace opens straight into your climbs next time. Say no and it asks for your password again, and nothing about this account is written to the phone.")
+                        .font(Theme.ui(15))
+                        .foregroundStyle(Theme.ink2)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(spacing: 10) {
+                    Button { store.keepSignedIn(true) } label: {
+                        Text("Keep me signed in")
+                            .font(Theme.ui(16, .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Theme.accent)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { store.keepSignedIn(false) } label: {
+                        Text("Ask me every time")
+                            .font(Theme.ui(16, .semibold))
+                            .foregroundStyle(Theme.ink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Theme.surface)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: 340)
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 80)
+            .padding(.bottom, 44)
+        }
+        .preferredColorScheme(.light)
+    }
+}
