@@ -34,7 +34,7 @@ struct ProfileScreen: View {
                         .padding(.bottom, 10)
                     rows
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
         }

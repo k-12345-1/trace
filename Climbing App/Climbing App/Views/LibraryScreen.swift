@@ -36,7 +36,7 @@ struct LibraryScreen: View {
                         .padding(.horizontal, Theme.gutter)
                     }
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
         }

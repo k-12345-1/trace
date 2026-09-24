@@ -56,6 +56,25 @@ struct MainTabs: View {
                 }
             }
 
+            // A solid band under the bar, fading in at its top edge.
+            //
+            // The bar floats, so without this the page scrolls through the gaps
+            // beside and beneath it and the last card on every screen is shown
+            // sliced. Painted in the page's own ground rather than a tint, so it
+            // reads as the page ending rather than as a band laid over it.
+            VStack(spacing: 0) {
+                LinearGradient(
+                    stops: [
+                        .init(color: Theme.ground.opacity(0), location: 0),
+                        .init(color: Theme.ground, location: 1)
+                    ],
+                    startPoint: .top, endPoint: .bottom)
+                    .frame(height: 20)
+                Theme.ground.frame(height: 124)
+            }
+            .allowsHitTesting(false)
+            .ignoresSafeArea(edges: .bottom)
+
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.
             if entryOpen {

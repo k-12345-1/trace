@@ -39,7 +39,7 @@ struct GymsScreen: View {
                             }
                         }
                         .background(Theme.line)
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 156)
                     }
                 }
             }
@@ -110,7 +110,7 @@ struct RoutesScreen: View {
                         }
                     }
                     .background(Theme.line)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 156)
                 }
             }
             .scrollIndicators(.hidden)

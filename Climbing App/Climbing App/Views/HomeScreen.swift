@@ -18,7 +18,7 @@ struct HomeScreen: View {
                     library
                 }
                 // Clear of the tab bar.
-                .padding(.bottom, 120)
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
         }

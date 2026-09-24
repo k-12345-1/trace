@@ -56,7 +56,7 @@ struct PersonalInfoScreen: View {
                     whatItChanges
                     save
                 }
-                .padding(.bottom, 96)
+                .padding(.bottom, 156)
             }
             .scrollDismissesKeyboard(.interactively)
         }

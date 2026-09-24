@@ -397,7 +397,7 @@ struct ResultsScreen: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 40)
+            .padding(.bottom, 156)
         } else {
             Color.clear.frame(height: 40)
         }

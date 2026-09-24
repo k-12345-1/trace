@@ -37,7 +37,7 @@ struct ClimbCardScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .padding(.top, -28)
                 }
-                .padding(.bottom, 96)
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
         }
