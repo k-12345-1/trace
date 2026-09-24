@@ -61,6 +61,10 @@ enum FindingEngine {
         }
 
         // Wandering line. Path ratio is the most intuitive version of entropy.
+        //
+        // Zero means MetricsEngine declined to compute it, because the climb ended
+        // near where it started. On a traverse or a circuit the straight line is
+        // meaningless and so is anything divided by it.
         if m.pathRatio > 1.35 {
             let severity: Severity = m.pathRatio > 2.2 ? .costly
                                    : m.pathRatio > 1.7 ? .moderate : .minor

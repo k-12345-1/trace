@@ -78,14 +78,19 @@ enum PhaseTimeline {
             let com = comSpeeds[i]
 
             // Ranked: the rarest and most expensive state wins the label.
-            if apexes.contains(where: { abs($0 - t) <= deadpointWindow }) {
+            //
+            // Stillness is checked before the apex, not after it. A deadpoint is a
+            // body in flight; a climber who is not moving cannot be in one, and
+            // labelling a motionless frame "Deadpoint" is the single most obviously
+            // wrong thing the readout can say.
+            if com < stillSpeed {
+                out.append(isResting(at: t, comSpeeds: comSpeeds, times: times) ? .resting : .still)
+            } else if apexes.contains(where: { abs($0 - t) <= deadpointWindow }) {
                 out.append(.deadpoint)
             } else if max(leftWrist[i], rightWrist[i]) > reachSpeed {
                 out.append(.reaching)
             } else if max(leftAnkle[i], rightAnkle[i]) > reachSpeed * 0.55 {
                 out.append(.footSet)
-            } else if com < stillSpeed {
-                out.append(isResting(at: t, comSpeeds: comSpeeds, times: times) ? .resting : .still)
             } else {
                 out.append(.moving)
             }

@@ -19,6 +19,10 @@ enum MetricsEngine {
     /// A hand contact further than this from any apex was not a dynamic move.
     private static let deadpointWindow = 0.6
 
+    /// Net displacement below which a path ratio says nothing, in image units.
+    /// Roughly a third of a tracked body length at typical framing.
+    static let minimumTravel = 0.12
+
     static func compute(frames: [PoseFrame]) -> Metrics {
         let tracked = frames.filter { $0.meanConfidence > 0 && $0.com != nil }
         let confidence = frames.isEmpty ? 0 : Double(tracked.count) / Double(frames.count)
@@ -35,7 +39,12 @@ enum MetricsEngine {
         return Metrics(
             entropy: geometricEntropy(path: path, length: length),
             logJerk: logDimensionlessJerk(path: path, times: times, length: length),
-            pathRatio: straight > 0.001 ? length / straight : 0,
+            // A traverse ends near where it started, so the straight line is almost
+            // nothing and the ratio runs away: the first real clip through this
+            // produced 12.85, which the copy turned into "1185 percent further".
+            // Below a body length of net travel the number is not about wandering,
+            // it is about the climb not going anywhere, so it is not reported.
+            pathRatio: straight >= minimumTravel ? length / straight : 0,
             staticElbowAngle: staticElbow(frames: tracked, times: times),
             pauseCount: stops.count,
             pauseTotal: stops.reduce(0) { $0 + ($1.end - $1.start) },
@@ -123,16 +132,45 @@ enum MetricsEngine {
 
     /// Moments where the centre of mass stopped rising. In image coordinates y grows
     /// downward, so rising means a negative vertical velocity.
+    ///
+    /// An apex is only an apex if something was thrown. The first version of this
+    /// tested the sign of the vertical velocity alone, which on real footage fires
+    /// on every micro-wobble at 30 frames a second: a thirteen second boulder came
+    /// back with most of its frames labelled deadpoint. Three gates fix that.
+    ///
+    /// The rise has to be fast enough to be a move rather than noise; it has to
+    /// have lasted, so that a single jittery frame cannot qualify; and the climber
+    /// has to have actually gained height across the launch. A climber standing
+    /// still now produces no apexes at all, which is the correct answer.
+    static let launchSpeed = 0.12        // image units per second, upward
+    static let launchSeconds = 0.10      // how long the rise must hold
+    static let launchRise = 0.012        // height actually gained, image units
+
     static func verticalApexes(path: [CGPoint], times: [Double]) -> [Double] {
         guard path.count > 2, times.count == path.count else { return [] }
         var out: [Double] = []
-        var previous = 0.0
 
+        // Rising is a *fall* in y, so an upward velocity is negative. Flip it here
+        // once so the rest of this reads in the direction a climber thinks in.
+        var up = [Double](repeating: 0, count: path.count)
         for i in 1..<path.count {
             let dt = max(times[i] - times[i - 1], 0.0005)
-            let vy = Double(path[i].y - path[i - 1].y) / dt
-            if previous < -0.01 && vy >= -0.01 { out.append(times[i]) }
-            previous = vy
+            up[i] = Double(path[i - 1].y - path[i].y) / dt
+        }
+
+        var riseStart: Int?
+        for i in 1..<path.count {
+            if up[i] > Self.launchSpeed {
+                if riseStart == nil { riseStart = i }
+                continue
+            }
+            // The rise just ended. Was it a launch, or was it noise?
+            guard let start = riseStart else { continue }
+            riseStart = nil
+            let held = times[i] - times[start]
+            let gained = Double(path[start].y - path[i].y)
+            guard held >= Self.launchSeconds, gained >= Self.launchRise else { continue }
+            out.append(times[i])
         }
         return out
     }

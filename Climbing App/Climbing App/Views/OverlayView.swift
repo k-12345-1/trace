@@ -19,6 +19,8 @@ struct OverlayView: View {
     var metresPerUnit: Double? = nil
     /// Half the climber's span, in normalised units, when they have given it.
     var reachRadius: Double? = nil
+    /// What the panel calls this climber. The route's own name, normally.
+    var title: String = "Climber"
 
     /// The overlay palette: the app's four colours, on footage.
     ///
@@ -64,42 +66,36 @@ struct OverlayView: View {
                 .allowsHitTesting(false)
 
                 if let readout {
-                    phaseChip(readout)
-                        .padding(.leading, rect.minX + 12)
-                        .padding(.bottom, geo.size.height - rect.maxY + 12)
+                    // A chip, not the panel. On a portrait clip the panel covers
+                    // the climber it is describing, so the full telemetry lives
+                    // under the stage and only the headline stays on the footage.
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(readout.phase.isNotable ? Ink.joint : .white.opacity(0.8))
+                            .frame(width: 5, height: 5)
+                        Text(readout.phase.label.uppercased())
+                            .font(Theme.mono(9.5, weight: .medium))
+                            .tracking(1.2)
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(Ink.chip.opacity(0.9), in: Capsule())
+                    .padding(.leading, rect.minX + 10)
+                    .padding(.bottom, geo.size.height - rect.maxY + 10)
+                    .allowsHitTesting(false)
                 }
             }
         }
     }
 
-    // MARK: Phase chip
-    //
-    // The reference has no text panel, so this borrows the chip language of the
-    // angle labels and stays in one corner rather than chasing the climber.
+    // MARK: Telemetry
 
-    private func phaseChip(_ r: PhaseTimeline.Readout) -> some View {
-        HStack(spacing: 9) {
-            Text(r.phase.label.uppercased())
-                .font(Theme.mono(10, weight: .medium))
-                .tracking(1.2)
-                .foregroundStyle(r.phase.isNotable ? Ink.joint : .white)
-                .shadow(color: Ink.casing, radius: 1)
-            Text(speedText(r))
-                .font(Theme.mono(10))
-                .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.62))
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
-        .background(Ink.chip.opacity(0.92), in: Capsule())
-        .allowsHitTesting(false)
-    }
-
-    private func speedText(_ r: PhaseTimeline.Readout) -> String {
-        if let metres = BodyScale.metresPerSecond(r.speedRaw, metresPerUnit: metresPerUnit) {
-            return String(format: "%.1f m/s", metres)
-        }
-        return String(format: "%.1f bl/s", r.speed)
+    /// The centre of mass one beat earlier, so the panel can show where it came
+    /// from as well as where it is. Half a second back rather than one frame:
+    /// a single frame's difference is inside the tracker's own noise.
+    private func previousCOM(before t: Double) -> CGPoint? {
+        frames.last { $0.time <= t - 0.5 && $0.com != nil }?.com
     }
 
     // MARK: Geometry
@@ -335,5 +331,132 @@ struct OverlayView: View {
             guard let p = frame.pt(id) else { continue }
             ctx.fill(disc(at: place(p), r: 1.5), with: .color(Ink.joint))
         }
+    }
+}
+
+
+// MARK: - Telemetry panel
+
+/// The running commentary, in the shape PlayVision uses on a basketball player:
+/// who is being tracked, what they are doing right now, where they are and how
+/// fast, with the last reading kept beside the current one so a still frame
+/// still shows direction.
+///
+/// Every field is a number Trace already had. Nothing here is estimated for the
+/// sake of filling a row, which is why there is no force reading: a single
+/// camera cannot measure the load through a finger, and a plausible-looking
+/// newton figure would be the most quietly dishonest thing on the screen. The
+/// elbow angle takes that slot instead, because it is measured, and because it
+/// is the thing Trace actually coaches.
+struct TelemetryPanel: View {
+    let readout: PhaseTimeline.Readout
+    let com: CGPoint?
+    let previous: CGPoint?
+    let metresPerUnit: Double?
+    let title: String
+
+    private let ground = Theme.blue.opacity(0.88)
+    private let well = Color.white.opacity(0.07)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            header
+            field(label: "Current action", value: readout.phase.label,
+                  emphasis: true, tint: readout.phase.isNotable ? Theme.blueLight : .white)
+
+            HStack(spacing: 8) {
+                field(label: "Position", value: positionText)
+                field(label: "Velocity", value: velocityText)
+            }
+            HStack(spacing: 8) {
+                field(label: elbowLabel, value: elbowText)
+                footer
+            }
+        }
+        .padding(13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.blue, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title.uppercased())
+                .font(Theme.mono(9.5, weight: .medium))
+                .tracking(1.4)
+                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+            Rectangle().fill(.white.opacity(0.16)).frame(height: 1)
+        }
+    }
+
+    private func field(label: String, value: String,
+                       emphasis: Bool = false, tint: Color = .white) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label.uppercased())
+                .font(Theme.mono(8.5, weight: .medium))
+                .tracking(1.1)
+                .foregroundStyle(.white.opacity(0.5))
+            Text(value)
+                .font(Theme.mono(emphasis ? 13 : 11, weight: emphasis ? .medium : .regular))
+                .monospacedDigit()
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(well, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    /// Previous beside current, the way the reference keeps both. On a paused
+    /// frame this is the only thing that says which way the climber was going.
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("CAME FROM")
+                .font(Theme.mono(8.5, weight: .medium))
+                .tracking(1.1)
+                .foregroundStyle(.white.opacity(0.5))
+            Text(coords(previous))
+                .font(Theme.mono(11)).monospacedDigit()
+                .foregroundStyle(.white.opacity(0.8))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(well, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    // MARK: The numbers
+
+    /// Image coordinates, scaled to a thousand so they read as whole numbers
+    /// rather than as a row of decimals. They are positions in the frame, not
+    /// positions on the wall: the phone has no idea where the wall is.
+    private func coords(_ p: CGPoint?) -> String {
+        guard let p else { return "---" }
+        return "\(Int((p.x * 1000).rounded())), \(Int((p.y * 1000).rounded()))"
+    }
+
+    private var positionText: String { coords(com) }
+
+    /// Metres per second once the climber has given a height, body lengths per
+    /// second before that. Body lengths are not a fallback for a missing number,
+    /// they are the honest unit: a single camera cannot know the distance.
+    private var velocityText: String {
+        if let m = BodyScale.metresPerSecond(readout.speedRaw, metresPerUnit: metresPerUnit) {
+            return String(format: "%.1f m/s", m)
+        }
+        return String(format: "%.2f bl/s", readout.speed)
+    }
+
+    private var elbowLabel: String {
+        readout.elbow == nil ? "Elbows" : "Elbow angle"
+    }
+
+    private var elbowText: String {
+        guard let e = readout.elbow else { return "Not visible" }
+        let straightness = e >= 155 ? "straight" : e >= 130 ? "soft" : "bent"
+        return "\(Int(e.rounded()))°  \(straightness)"
     }
 }

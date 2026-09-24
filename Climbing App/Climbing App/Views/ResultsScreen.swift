@@ -97,6 +97,7 @@ struct ResultsScreen: View {
                     NavHeader { onClose?() ?? dismiss() }
                     header
                     stage
+                    telemetry
                     scrubber
                     Hairline()
                     if climb.metrics.isTrustworthy {
@@ -172,7 +173,8 @@ struct ResultsScreen: View {
                 time: playback.time,
                 videoAspect: aspect,
                 metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames, body: store.body),
-                reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body)
+                reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body),
+                title: label
             )
             VStack {
                 HStack {
@@ -190,6 +192,34 @@ struct ResultsScreen: View {
         .clipped()
         .contentShape(Rectangle())
         .onTapGesture { playback.toggle() }
+    }
+
+    // MARK: Telemetry
+    //
+    // The running commentary, under the stage rather than over it. On a portrait
+    // clip a panel floating on the footage covers the climber it is describing.
+
+    @ViewBuilder
+    private var telemetry: some View {
+        let phases = PhaseTimeline.build(frames: climb.frames)
+        if let r = PhaseTimeline.readout(frames: climb.frames, phases: phases, at: playback.time) {
+            TelemetryPanel(
+                readout: r,
+                com: nearestCOM(playback.time),
+                previous: nearestCOM(playback.time - 0.5),
+                metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames, body: store.body),
+                title: label
+            )
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 14)
+        }
+    }
+
+    private func nearestCOM(_ t: Double) -> CGPoint? {
+        guard t >= 0 else { return nil }
+        return climb.frames
+            .filter { $0.com != nil }
+            .min { abs($0.time - t) < abs($1.time - t) }?.com
     }
 
     private var scrubber: some View {
