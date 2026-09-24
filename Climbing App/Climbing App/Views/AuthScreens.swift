@@ -8,6 +8,9 @@ import SwiftUI
 /// underneath it. Because both screens settle the mark in the same place, moving
 /// between them does not move the logo, which is the whole point of doing it
 /// this way rather than pushing a different screen.
+///
+/// There is no way past this screen without an account. Trace still keeps every
+/// measurement on the device; the account is identity, and now it is required.
 
 // MARK: - Shared shell
 
@@ -39,6 +42,7 @@ private struct AuthShell<Content: View>: View {
                         .frame(maxWidth: .infinity)
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .scrollIndicators(.hidden)
                 .opacity(revealed ? 1 : 0)
                 .offset(y: revealed ? 0 : 12)
                 .allowsHitTesting(revealed)
@@ -195,26 +199,6 @@ private struct AuthMessage: View {
     }
 }
 
-/// Shown when no server is configured, so the sign-in button's failure is
-/// explained before it is pressed rather than after.
-private struct NotConnectedNote: View {
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.blueLight)
-            Text("No server is configured on this build, so accounts will not work. Everything else does.")
-                .font(Theme.ui(12.5))
-                .foregroundStyle(Theme.ink2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(13)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.accentWash)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
-    }
-}
-
 // MARK: - Sign in
 
 /// The screen the app opens on. Sign in leads because most launches are a
@@ -223,7 +207,6 @@ struct SignInScreen: View {
     @ObservedObject private var store = Store.shared
     @Binding var revealed: Bool
     let goSignUp: () -> Void
-    let goLocal: () -> Void
 
     @State private var email = ""
     @State private var password = ""
@@ -241,8 +224,6 @@ struct SignInScreen: View {
     var body: some View {
         AuthShell(revealed: $revealed) {
             VStack(spacing: 14) {
-                if !AuthClient.isConfigured { NotConnectedNote() }
-
                 AuthField(label: "Email", text: $email, placeholder: "you@example.com",
                           keyboard: .emailAddress, contentType: .emailAddress,
                           focused: focus == .email)
@@ -272,16 +253,6 @@ struct SignInScreen: View {
                 .disabled(busy)
 
                 CrossLink(question: "New to Trace?", action: "Sign up →", onTap: goSignUp)
-
-                Button(action: goLocal) {
-                    Text("Use Trace without an account")
-                        .font(Theme.ui(13, .semibold))
-                        .foregroundStyle(Theme.accentText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
 
                 LegalFooter()
             }
@@ -348,8 +319,6 @@ struct SignUpScreen: View {
     var body: some View {
         AuthShell(revealed: $revealed) {
             VStack(spacing: 14) {
-                if !AuthClient.isConfigured { NotConnectedNote() }
-
                 AuthField(label: "What should I call you?", text: $name,
                           placeholder: "Katie", contentType: .name,
                           focused: focus == .name)
@@ -399,60 +368,12 @@ struct SignUpScreen: View {
     }
 }
 
-// MARK: - Carrying on without an account
-
-/// The third option, and not a cop-out. Trace stores everything on the phone, so
-/// an account genuinely is optional, and a screen that pretended otherwise would
-/// be lying to get an email address.
-struct LocalAccountScreen: View {
-    @ObservedObject private var store = Store.shared
-    @Binding var revealed: Bool
-    let goBack: () -> Void
-
-    @State private var name = ""
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        AuthShell(revealed: $revealed) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Nothing changes, really")
-                    .font(Theme.serif(21, .semibold))
-                    .foregroundStyle(Theme.ink)
-                Text("Every measurement Trace makes happens on this phone, so it all works without an account. You lose one thing: if you replace this phone, the history does not follow you.")
-                    .font(Theme.ui(14.5))
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                AuthField(label: "What should I call you?", text: $name,
-                          placeholder: "Katie", contentType: .name, focused: focused)
-                    .focused($focused)
-                    .textInputAutocapitalization(.words)
-                    .padding(.top, 2)
-
-                AuthButton(title: "Start climbing", busyTitle: "", busy: false,
-                           enabled: true) { store.continueLocally(name: name) }
-                    .padding(.top, 4)
-
-                Button(action: goBack) {
-                    Text("Back to sign in")
-                        .font(Theme.ui(13, .semibold))
-                        .foregroundStyle(Theme.ink3)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
 // MARK: - Which one is showing
 
 /// Holds the reveal state across the three screens so the mark settles once and
 /// then stays put while you move between them.
 struct WelcomeScreen: View {
-    private enum Page { case signIn, signUp, local }
+    private enum Page { case signIn, signUp }
     @State private var page: Page = .signIn
     @State private var revealed = false
 
@@ -460,13 +381,9 @@ struct WelcomeScreen: View {
         Group {
             switch page {
             case .signIn:
-                SignInScreen(revealed: $revealed,
-                             goSignUp: { go(.signUp) },
-                             goLocal: { go(.local) })
+                SignInScreen(revealed: $revealed, goSignUp: { go(.signUp) })
             case .signUp:
                 SignUpScreen(revealed: $revealed, goSignIn: { go(.signIn) })
-            case .local:
-                LocalAccountScreen(revealed: $revealed, goBack: { go(.signIn) })
             }
         }
         .transition(.opacity)

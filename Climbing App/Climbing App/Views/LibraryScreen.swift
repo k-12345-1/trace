@@ -7,6 +7,7 @@ import SwiftUI
 /// than the bottom third of another one.
 struct LibraryScreen: View {
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         let entries = store.library()
@@ -14,8 +15,8 @@ struct LibraryScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    NavHeader(title: nil) { dismiss() }
                     header(count: entries.count)
-
                     if entries.isEmpty {
                         Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will tell you where the energy went.")
                             .font(Theme.ui(15))
@@ -37,6 +38,7 @@ struct LibraryScreen: View {
                 }
                 .padding(.bottom, 120)
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)

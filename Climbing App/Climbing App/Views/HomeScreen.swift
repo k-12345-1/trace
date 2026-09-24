@@ -20,6 +20,7 @@ struct HomeScreen: View {
                 // Clear of the tab bar.
                 .padding(.bottom, 120)
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .alert("New gym", isPresented: $namingGym) {

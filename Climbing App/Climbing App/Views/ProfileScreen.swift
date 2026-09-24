@@ -1,17 +1,25 @@
 import SwiftUI
 
-/// Who you are, and how to stop being them.
+/// Who you are, what you can change, and how to leave.
 ///
-/// Laid out like the Lineage Health settings screen: a large square avatar
-/// beside the name set over two lines, a pair of small stats under it, a
-/// full-width member pill, then one card holding every row. Each row is a round
-/// icon well, a bold label, a line of detail and a chevron. The reference marks
-/// its destructive row in red; this palette has none, so that row inverts its
-/// well instead.
+/// The same five rows the Lineage Health settings screen has, in the same
+/// shape: a large avatar tile beside a name set over two lines, a pair of small
+/// stats, a full-width member pill, then one card of rows made of a round icon
+/// well, a bold label, a line of detail and a chevron.
+///
+/// That app marks its two leaving rows in red. This palette has no red, so they
+/// invert their wells instead: a white mark on the dark blue rather than a dark
+/// mark on a pale one.
 struct ProfileScreen: View {
     @ObservedObject private var store = Store.shared
-    @State private var confirming = false
-    @State private var showPrivacy = false
+    @State private var panel: Panel?
+    @State private var confirmingSignOut = false
+    @State private var confirmingDelete = false
+
+    private enum Panel: String, Identifiable {
+        case subscription, privacy
+        var id: String { rawValue }
+    }
 
     var body: some View {
         ZStack {
@@ -28,15 +36,27 @@ struct ProfileScreen: View {
                 }
                 .padding(.bottom, 120)
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
-        .sheet(isPresented: $showPrivacy) { PrivacySheet() }
-        .alert("Sign out?", isPresented: $confirming) {
+        .sheet(item: $panel) { which in
+            switch which {
+            case .subscription: InfoSheet.subscription
+            case .privacy:      InfoSheet.privacy
+            }
+        }
+        .alert("Sign out?", isPresented: $confirmingSignOut) {
             Button("Sign out", role: .destructive) { store.signOut() }
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Your climbs stay on this phone.")
+        }
+        .alert("Delete your account?", isPresented: $confirmingDelete) {
+            Button("Delete everything", role: .destructive) { store.deleteEverything() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Every climb, clip, route and gym on this phone is removed, along with your height and reach. This cannot be undone.")
         }
     }
 
@@ -119,21 +139,36 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
 
-            Button { showPrivacy = true } label: {
-                row(icon: AnyView(Image(systemName: "lock")
-                        .font(.system(size: 19, weight: .light))
+            Button { panel = .subscription } label: {
+                row(icon: AnyView(Image(systemName: "creditcard")
+                        .font(.system(size: 18, weight: .light))
                         .foregroundStyle(Theme.blue)),
-                    label: "Privacy", detail: "Where your climbing lives")
+                    label: "Manage subscription", detail: "Plan · payment")
             }
             .buttonStyle(.plain)
 
-            Button { confirming = true } label: {
+            Button { panel = .privacy } label: {
+                row(icon: AnyView(Image(systemName: "checkmark.shield")
+                        .font(.system(size: 18, weight: .light))
+                        .foregroundStyle(Theme.blue)),
+                    label: "Privacy & AI", detail: "On-device analysis · Terms")
+            }
+            .buttonStyle(.plain)
+
+            Button { confirmingSignOut = true } label: {
                 row(icon: AnyView(Image(systemName: "xmark")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)),
-                    label: store.account?.isLocalOnly == true ? "Switch account" : "Sign out",
-                    detail: "End your session",
-                    danger: true)
+                    label: "Sign out", detail: "End your session", leaving: true)
+            }
+            .buttonStyle(.plain)
+
+            Button { confirmingDelete = true } label: {
+                row(icon: AnyView(Image(systemName: "xmark")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)),
+                    label: "Delete account", detail: "Permanently remove your data",
+                    leaving: true)
             }
             .buttonStyle(.plain)
         }
@@ -144,13 +179,11 @@ struct ProfileScreen: View {
     }
 
     private func row(icon: AnyView, label: String, detail: String,
-                     danger: Bool = false) -> some View {
+                     leaving: Bool = false) -> some View {
         HStack(spacing: 14) {
             icon
                 .frame(width: 50, height: 50)
-                // No red left in the palette, so the row that ends your session
-                // is told apart by inverting its well rather than by hue.
-                .background(danger ? Theme.blue : Theme.accentWash)
+                .background(leaving ? Theme.blue : Theme.accentWash)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 3) {
@@ -183,11 +216,14 @@ struct ProfileScreen: View {
     }
 }
 
-// MARK: - Privacy
+// MARK: - Panels
 
-/// A row that opens nothing would be worse than no row, so this one says the
-/// only thing there is to say about where the data goes: nowhere.
-private struct PrivacySheet: View {
+/// A row that opened nothing would be worse than no row. Each of these says the
+/// thing that is actually true today rather than describing a feature that is
+/// not built.
+private struct InfoSheet: View {
+    let title: String
+    let paragraphs: [String]
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -195,25 +231,38 @@ private struct PrivacySheet: View {
             Theme.ground.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    SectionTitle("Privacy")
+                    SectionTitle(title)
                     Spacer()
                     Button("Done") { dismiss() }
                         .font(Theme.ui(15, .semibold))
                         .foregroundStyle(Theme.accentText)
                 }
-                Text("On this phone. Trace measures everything on device and uploads nothing, with or without an account. Signing out leaves every climb, route and gym exactly where it is.")
-                    .font(Theme.ui(15))
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("There is no analytics, no crash reporting and no third party in the pipeline. Your clips never leave the device, which is what makes filming in a gym full of other people unproblematic.")
-                    .font(Theme.ui(15))
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, text in
+                    Text(text)
+                        .font(Theme.ui(15))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Spacer()
             }
             .padding(Theme.gutter)
         }
-        .presentationDetents([.height(360)])
+        .presentationDetents([.height(380)])
         .preferredColorScheme(.light)
+    }
+
+    static var subscription: InfoSheet {
+        InfoSheet(title: "Subscription", paragraphs: [
+            "Trace is free while it is being built, and there is nothing to pay for yet. No card is on file and no plan is running.",
+            "When there is something to charge for, it will appear here with the price before anything is taken."
+        ])
+    }
+
+    static var privacy: InfoSheet {
+        InfoSheet(title: "Privacy & AI", paragraphs: [
+            "Everything stays on this phone. Trace measures every climb on device and uploads nothing, so your clips never leave the handset. That is what makes filming in a gym full of other people unproblematic.",
+            "The only model involved is Apple's on-device pose detector, which finds your joints in each frame. Nothing is sent to a language model, there is no analytics and there is no crash reporting.",
+            "Signing out leaves every climb, route and gym exactly where it is. Deleting your account removes all of it."
+        ])
     }
 }

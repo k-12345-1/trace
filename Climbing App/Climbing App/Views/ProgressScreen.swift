@@ -3,6 +3,7 @@ import SwiftUI
 /// The memory that makes Trace a partner rather than a calculator.
 struct ProgressScreen: View {
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
 
     private var tracked: [Climb] {
         store.climbs.filter { $0.metrics.isTrustworthy }
@@ -14,6 +15,7 @@ struct ProgressScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader { dismiss() }
                     header
                     Hairline()
 
@@ -28,6 +30,7 @@ struct ProgressScreen: View {
                     }
                 }
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)

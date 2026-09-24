@@ -39,6 +39,7 @@ struct ClimbCardScreen: View {
                 }
                 .padding(.bottom, 96)
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
@@ -68,17 +69,9 @@ struct ClimbCardScreen: View {
 
     /// The photo runs under the status bar, so the way out has to sit on top of it.
     private var back: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 42, height: 42)
-                .background(Circle().fill(.black.opacity(0.32)))
-                .overlay(Circle().stroke(.white.opacity(0.35), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .padding(.leading, Theme.gutter - 4)
-        .padding(.top, 56)
+        BackOverlayButton { dismiss() }
+            .padding(.leading, Theme.gutter - 6)
+            .padding(.top, 54)
     }
 
     // MARK: Name and counts

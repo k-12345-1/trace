@@ -32,6 +32,7 @@ struct PersonalInfoScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader(title: nil) { dismiss() }
                     header
                     units
                     measurement(

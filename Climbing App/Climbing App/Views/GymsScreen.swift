@@ -3,12 +3,14 @@ import SwiftUI
 /// Every gym you have scanned something at, and what is on the wall there.
 struct GymsScreen: View {
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader { dismiss() }
                     VStack(alignment: .leading, spacing: 6) {
                         MicroLabel(text: "Your gyms")
                         Text(store.gyms.isEmpty ? "Nothing scanned yet" : "Where you climb")
@@ -41,6 +43,7 @@ struct GymsScreen: View {
                     }
                 }
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
@@ -76,12 +79,14 @@ struct GymsScreen: View {
 struct RoutesScreen: View {
     let gym: Gym
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader { dismiss() }
                     VStack(alignment: .leading, spacing: 6) {
                         MicroLabel(text: "\(store.routeCount(in: gym).total) scanned · \(store.routeCount(in: gym).sent) sent")
                         Text(gym.name).font(Theme.heading(22)).foregroundStyle(Theme.ink)
@@ -108,6 +113,7 @@ struct RoutesScreen: View {
                     .padding(.bottom, 40)
                 }
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
@@ -144,6 +150,7 @@ struct RoutesScreen: View {
 struct RouteDetailScreen: View {
     let route: Route
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
 
@@ -152,6 +159,7 @@ struct RouteDetailScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader { dismiss() }
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(live.displayName).font(Theme.heading(19)).foregroundStyle(Theme.ink)
@@ -197,6 +205,7 @@ struct RouteDetailScreen: View {
                     .padding(.horizontal, 20).padding(.vertical, 22)
                 }
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)

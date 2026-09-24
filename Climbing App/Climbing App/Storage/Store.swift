@@ -270,6 +270,31 @@ final class Store: ObservableObject {
         return name
     }
 
+    /// Removes everything Trace holds on this phone, then signs out.
+    ///
+    /// Local only, because that is where everything is. When there is a server
+    /// behind the account this must also call its delete endpoint: an account
+    /// that survives on a server after the app says it is gone would be a lie,
+    /// and App Review treats it as one.
+    func deleteEverything() {
+        for climb in climbs {
+            try? FileManager.default.removeItem(at: climb.videoURL)
+            Thumbnails.remove(for: climb)
+        }
+        for url in [Self.indexURL, Self.focusURL, Self.gymsURL,
+                    Self.routesURL, Self.accountURL, Self.bodyURL] {
+            try? FileManager.default.removeItem(at: url)
+        }
+        try? FileManager.default.removeItem(at: Self.routePhotosDirectory)
+        try? FileManager.default.removeItem(at: Self.videosDirectory)
+        try? FileManager.default.removeItem(at: Thumbnails.directory)
+
+        climbs = []; focus = nil; gyms = []; routes = []; body = .empty
+        Keychain.clear()
+        session = nil
+        account = nil
+    }
+
     // MARK: Body
 
     func updateBody(_ profile: BodyProfile) {

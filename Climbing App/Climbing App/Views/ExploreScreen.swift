@@ -7,6 +7,7 @@ import SwiftUI
 /// collection, across every gym, filterable by what you have not sent yet.
 struct ExploreScreen: View {
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
     @State private var unsentOnly = false
 
     private var routes: [Route] {
@@ -20,8 +21,8 @@ struct ExploreScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader(title: nil) { dismiss() }
                     header
-
                     if routes.isEmpty {
                         Text(store.routes.isEmpty
                              ? "Nothing scanned yet. Photograph a wall, tap one hold, and Trace picks out the rest of the route by colour."
@@ -42,6 +43,7 @@ struct ExploreScreen: View {
                 }
                 .padding(.bottom, 120)
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)

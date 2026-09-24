@@ -71,6 +71,7 @@ struct ResultsScreen: View {
 
     @StateObject private var playback: PlaybackModel
     @ObservedObject private var store = Store.shared
+    @Environment(\.dismiss) private var dismiss
     @State private var aspect: Double = 9.0 / 16.0
     @State private var showAllFindings = false
     @State private var renaming = false
@@ -93,6 +94,7 @@ struct ResultsScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    NavHeader { onClose?() ?? dismiss() }
                     header
                     stage
                     scrubber
@@ -107,6 +109,7 @@ struct ResultsScreen: View {
                     }
                 }
             }
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .alert("Rename climb", isPresented: $renaming) {
