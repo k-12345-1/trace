@@ -70,6 +70,52 @@ enum BodyScale {
         return (spanCM / 200) / mpu
     }
 
+    // MARK: Lifting
+
+    /// How much of the climb was spent going up, and how much of that you paid
+    /// for twice.
+    ///
+    /// `net` is the rise from the lowest point of the centre-of-mass path to the
+    /// highest: the lifting the route actually asked for. `gross` is the sum of
+    /// every upward step, which includes every time you dropped back down and
+    /// lifted the same weight again. Their ratio needs no scale at all, which is
+    /// why it is reported even with nothing entered on the personal info screen.
+    ///
+    /// Image coordinates grow downward, so a rise is a fall in y.
+    struct Lift {
+        /// Normalised image units.
+        var net: Double
+        var gross: Double
+        /// Gross over net. 1.0 is a climb with no lost height in it.
+        var ratio: Double { net > 0.0001 ? gross / net : 1 }
+    }
+
+    static func lift(path: [CGPoint]) -> Lift? {
+        guard path.count > 1 else { return nil }
+        let ys = path.map { Double($0.y) }
+        let net = (ys.max() ?? 0) - (ys.min() ?? 0)
+        var gross = 0.0
+        for i in 1..<ys.count {
+            let rise = ys[i - 1] - ys[i]
+            if rise > 0 { gross += rise }
+        }
+        return Lift(net: net, gross: gross)
+    }
+
+    static let g = 9.80665
+
+    /// The work done lifting the body, in joules.
+    ///
+    /// Gravity only, and only the going-up part: no tendon, no friction, no heat.
+    /// It is a floor on the energy the climb cost, not the cost itself, and the
+    /// screen says so rather than letting the number imply more than it holds.
+    static func work(joules lift: Lift, metresPerUnit: Double?, body: BodyProfile) -> (net: Double, gross: Double)? {
+        guard let metresPerUnit, metresPerUnit > 0,
+              let mass = body.massKG, mass > 0 else { return nil }
+        let k = mass * g * metresPerUnit
+        return (lift.net * k, lift.gross * k)
+    }
+
     /// A speed in normalised units per second, said in metres per second.
     static func metresPerSecond(_ normalised: Double, metresPerUnit: Double?) -> Double? {
         guard let metresPerUnit else { return nil }

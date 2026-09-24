@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Height and reach.
+/// Height, reach and weight.
 ///
-/// Two numbers, both optional, both doing real work. Height gives Trace a scale,
+/// Three numbers, all optional, all doing real work. Height gives Trace a scale,
 /// so speeds stop being body lengths and start being metres. Span sizes the
 /// balance envelope on the overlay to your arms rather than to an average.
+/// Weight turns the height your centre of mass gained into joules.
 struct PersonalInfoScreen: View {
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
@@ -12,12 +13,14 @@ struct PersonalInfoScreen: View {
     @State private var imperial = false
     @State private var heightCM: Double?
     @State private var spanCM: Double?
+    @State private var massKG: Double?
     @FocusState private var focus: Field?
 
-    enum Field: Hashable { case height, span }
+    enum Field: Hashable { case height, span, mass }
 
     private var draft: BodyProfile {
-        BodyProfile(heightCM: heightCM, spanCM: spanCM, usesImperial: imperial)
+        BodyProfile(heightCM: heightCM, spanCM: spanCM, massKG: massKG,
+                    usesImperial: imperial)
     }
 
     private var heightValid: Bool {
@@ -26,6 +29,10 @@ struct PersonalInfoScreen: View {
     private var spanValid: Bool {
         spanCM == nil || BodyProfile.plausibleSpan(spanCM!)
     }
+    private var massValid: Bool {
+        massKG == nil || BodyProfile.plausibleMass(massKG!)
+    }
+    private var allValid: Bool { heightValid && spanValid && massValid }
 
     var body: some View {
         ZStack {
@@ -52,6 +59,8 @@ struct PersonalInfoScreen: View {
                         valid: spanValid,
                         complaint: "That is outside 90 to 260 cm. Check the units."
                     )
+                    Hairline().padding(.horizontal, 20)
+                    weight
                     apeIndex
                     whatItChanges
                     save
@@ -66,6 +75,7 @@ struct PersonalInfoScreen: View {
             imperial = store.body.usesImperial
             heightCM = store.body.heightCM
             spanCM = store.body.spanCM
+            massKG = store.body.massKG
         }
     }
 
@@ -76,7 +86,7 @@ struct PersonalInfoScreen: View {
             Text("Personal info")
                 .font(Theme.heading(22))
                 .foregroundStyle(Theme.ink)
-            Text("Both are optional. Trace works without them, it just reports distances in body lengths instead of metres.")
+            Text("All three are optional. Trace works without them, it just reports distances in body lengths instead of metres.")
                 .font(Theme.body(13.5))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -111,7 +121,7 @@ struct PersonalInfoScreen: View {
                     .foregroundStyle(Theme.ink)
                 Spacer()
                 Text(draft.describe(value.wrappedValue))
-                    .font(Theme.mono(12, weight: .medium)).monospacedDigit()
+                    .font(Theme.ui(13, .medium)).monospacedDigit()
                     .foregroundStyle(value.wrappedValue == nil ? Theme.ink3 : Theme.blue)
             }
             Text(help)
@@ -126,6 +136,35 @@ struct PersonalInfoScreen: View {
 
             if !valid {
                 Text(complaint)
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, Theme.gutter).padding(.vertical, 18)
+    }
+
+    // MARK: Weight
+
+    private var weight: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Weight")
+                    .font(Theme.ui(18, .bold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Text(draft.describeMass(massKG))
+                    .font(Theme.ui(13, .medium)).monospacedDigit()
+                    .foregroundStyle(massKG == nil ? Theme.ink3 : Theme.blue)
+            }
+            Text("Climbing weight, shoes and harness included if you wear them.")
+                .font(Theme.body(12.5))
+                .foregroundStyle(Theme.ink3)
+
+            MassField(kg: $massKG, imperial: imperial, focus: $focus, valid: massValid)
+
+            if !massValid {
+                Text("That is outside 25 to 200 kg. Check the units.")
                     .font(Theme.ui(13))
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -150,7 +189,7 @@ struct PersonalInfoScreen: View {
                 }
                 Spacer(minLength: 12)
                 Text(label)
-                    .font(Theme.mono(17, weight: .medium)).monospacedDigit()
+                    .font(Theme.ui(17, .medium)).monospacedDigit()
                     .foregroundStyle(Theme.blue)
             }
             .padding(16)
@@ -174,6 +213,11 @@ struct PersonalInfoScreen: View {
                 "Reach",
                 on: spanCM != nil,
                 text: "The dashed circle on the overlay becomes your actual reach. A hold outside it needs a shift of weight before it needs more strength."
+            )
+            effect(
+                "Weight",
+                on: massKG != nil && heightCM != nil,
+                text: "With your height as well, the rise and fall of your centre of mass reads in joules rather than as a ratio. It does not move your centre of mass, which is a weighted average of where your limbs are and comes out in the same place whatever you weigh."
             )
         }
         .padding(.horizontal, Theme.gutter)
@@ -208,20 +252,20 @@ struct PersonalInfoScreen: View {
                 focus = nil
                 dismiss()
             }
-            .opacity(heightValid && spanValid ? 1 : 0.4)
-            .disabled(!(heightValid && spanValid))
+            .opacity(allValid ? 1 : 0.4)
+            .disabled(!allValid)
 
             if !store.body.isEmpty {
                 Button {
-                    heightCM = nil; spanCM = nil
+                    heightCM = nil; spanCM = nil; massKG = nil
                     store.updateBody(BodyProfile(usesImperial: imperial))
                 } label: {
-                    Text("CLEAR BOTH")
-                        .font(Theme.mono(10.5, weight: .medium))
-                        .tracking(1.2)
+                    Text("Clear all three")
+                        .font(Theme.ui(14, .semibold))
                         .foregroundStyle(Theme.ink3)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 14)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -243,14 +287,14 @@ private struct CentimetresField: View {
     var body: some View {
         HStack(spacing: 8) {
             TextField("", text: $text, prompt: Text("0").foregroundStyle(Theme.ink3))
-                .font(Theme.mono(17, weight: .medium))
+                .font(Theme.ui(17, .medium)).monospacedDigit()
                 .keyboardType(.numberPad)
                 .focused($focus, equals: field)
                 .onChange(of: text) { _, new in
                     cm = Double(new.filter(\.isNumber))
                 }
             Text("cm")
-                .font(Theme.mono(12))
+                .font(Theme.ui(13))
                 .foregroundStyle(Theme.ink3)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
@@ -296,11 +340,11 @@ private struct FeetInchesField: View {
     private func part(_ text: Binding<String>, unit: String) -> some View {
         HStack(spacing: 6) {
             TextField("", text: text, prompt: Text("0").foregroundStyle(Theme.ink3))
-                .font(Theme.mono(17, weight: .medium))
+                .font(Theme.ui(17, .medium)).monospacedDigit()
                 .keyboardType(.decimalPad)
                 .focused($focus, equals: field)
             Text(unit)
-                .font(Theme.mono(12))
+                .font(Theme.ui(13))
                 .foregroundStyle(Theme.ink3)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
@@ -321,5 +365,55 @@ private struct FeetInchesField: View {
     private var border: Color {
         if !valid { return Theme.blue }
         return focus == field ? Theme.accent : .clear
+    }
+}
+
+
+// MARK: - Weight entry
+
+/// One box, whose unit follows the picker above it.
+///
+/// Stored in kilogrammes whichever way the picker is set, so switching units
+/// re-reads the same number rather than re-typing it.
+private struct MassField: View {
+    @Binding var kg: Double?
+    let imperial: Bool
+    @FocusState.Binding var focus: PersonalInfoScreen.Field?
+    let valid: Bool
+
+    @State private var text = ""
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("", text: $text, prompt: Text("0").foregroundStyle(Theme.ink3))
+                .font(Theme.ui(17, .medium)).monospacedDigit()
+                .keyboardType(.decimalPad)
+                .focused($focus, equals: .mass)
+                .onChange(of: text) { _, new in
+                    let typed = Double(new.filter { $0.isNumber || $0 == "." })
+                    kg = typed.map { imperial ? BodyProfile.kg(pounds: $0) : $0 }
+                }
+            Text(imperial ? "lb" : "kg")
+                .font(Theme.ui(13))
+                .foregroundStyle(Theme.ink3)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+            .stroke(border, lineWidth: 1.5))
+        .onAppear { show() }
+        .onChange(of: imperial) { _, _ in show() }
+    }
+
+    private func show() {
+        guard let kg else { text = ""; return }
+        let shown = imperial ? kg * BodyProfile.poundsPerKG : kg
+        text = String(Int(shown.rounded()))
+    }
+
+    private var border: Color {
+        if !valid { return Theme.blue }
+        return focus == .mass ? Theme.accent : .clear
     }
 }

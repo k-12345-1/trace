@@ -423,7 +423,7 @@ struct StaySignedInScreen: View {
                         .foregroundStyle(Theme.ink)
                         .multilineTextAlignment(.center)
 
-                    Text("Say yes and Trace opens straight into your climbs next time. Say no and it asks for your password again, and nothing about this account is written to the phone.")
+                    Text("Say yes and Trace opens straight into your climbs next time. Say no and it asks for your password again.")
                         .font(Theme.ui(15))
                         .foregroundStyle(Theme.ink2)
                         .multilineTextAlignment(.center)

@@ -38,6 +38,18 @@ struct MainTabs: View {
     }
 
     @State private var tab: Tab = .home
+    // Tapping the tab you are already on pops it back to its root. Without this
+    // a screen three levels deep inside Home has no answer to the house icon,
+    // which is the one thing every iOS user tries.
+    //
+    // Done by identity rather than by a NavigationPath binding, because every
+    // link in the app is a destination link (`NavigationLink { Screen() }`) and
+    // a path binding only ever sees value links: clearing it would leave the
+    // stack exactly where it was. Changing the stack's id rebuilds it at its
+    // root, which also returns the page to the top, and that is what the gesture
+    // is asking for anyway.
+    @State private var homeRoot = 0
+    @State private var profileRoot = 0
     @State private var entryOpen = false
     @State private var showCapture = false
     @State private var showScan = false
@@ -51,8 +63,10 @@ struct MainTabs: View {
 
             Group {
                 switch tab {
-                case .home:    NavigationStack { HomeScreen() }
-                case .profile: NavigationStack { ProfileScreen() }
+                case .home:
+                    NavigationStack { HomeScreen() }.id(homeRoot)
+                case .profile:
+                    NavigationStack { ProfileScreen() }.id(profileRoot)
                 }
             }
 
@@ -102,7 +116,7 @@ struct MainTabs: View {
                 .transition(.opacity)
             }
 
-            TabBar(tab: $tab, entryOpen: entryOpen) {
+            TabBar(tab: $tab, entryOpen: entryOpen, onReselect: popToRoot) {
                 withAnimation(.easeOut(duration: 0.18)) { entryOpen.toggle() }
             }
             .padding(.horizontal, 10)
@@ -126,6 +140,14 @@ struct MainTabs: View {
         .preferredColorScheme(.light)
     }
 
+    /// Tapping the tab you are already on empties its stack.
+    private func popToRoot(_ which: Tab) {
+        switch which {
+        case .home:    homeRoot += 1
+        case .profile: profileRoot += 1
+        }
+    }
+
     private func close() {
         withAnimation(.easeOut(duration: 0.18)) { entryOpen = false }
     }
@@ -144,6 +166,7 @@ struct MainTabs: View {
 private struct TabBar: View {
     @Binding var tab: MainTabs.Tab
     let entryOpen: Bool
+    let onReselect: (MainTabs.Tab) -> Void
     let onCentre: () -> Void
 
     private let height: CGFloat = 64
@@ -167,7 +190,9 @@ private struct TabBar: View {
 
     private func item(_ which: MainTabs.Tab) -> some View {
         let active = tab == which && !entryOpen
-        return Button { tab = which } label: {
+        return Button {
+            if tab == which { onReselect(which) } else { tab = which }
+        } label: {
             ZStack(alignment: .bottom) {
                 which.icon(size: 23, color: active ? Theme.blueLight : .white.opacity(0.82))
                 // A short rule, not a pill. It marks the tab without turning

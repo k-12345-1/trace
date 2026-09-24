@@ -1,47 +1,57 @@
 import SwiftUI
 
 /// Every gym you have scanned something at, and what is on the wall there.
+///
+/// Trace has no directory of gyms. Each one here exists because you scanned a
+/// route at it, which is why the tile shows the colours on that wall rather than
+/// a logo: the routes you have saved are the only picture of the place it has.
 struct GymsScreen: View {
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
+
+    private var totals: (routes: Int, sent: Int) {
+        store.routes.reduce(into: (0, 0)) { acc, route in
+            acc.0 += 1
+            if route.sent { acc.1 += 1 }
+        }
+    }
 
     var body: some View {
         ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    NavHeader { dismiss() }
-                    VStack(alignment: .leading, spacing: 6) {
-                        MicroLabel(text: "Your gyms")
-                        Text(store.gyms.isEmpty ? "Nothing scanned yet" : "Where you climb")
-                            .font(Theme.heading(22))
-                            .foregroundStyle(Theme.ink)
-                    }
-                    .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 20)
-                    Hairline()
+                VStack(alignment: .leading, spacing: 18) {
+                    NavHeader(title: nil) { dismiss() }
+                    header
 
                     if store.gyms.isEmpty {
-                        Text("Scan a route and Trace will make the gym for you. There is no directory to join and nobody to ask.")
-                            .font(Theme.body(14))
-                            .foregroundStyle(Theme.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(20)
+                        empty
                     } else {
-                        LazyVStack(spacing: 1) {
+                        summary
+                        LazyVStack(spacing: 12) {
                             ForEach(store.gyms) { gym in
-                                NavigationLink { RoutesScreen(gym: gym) } label: { row(gym) }
-                                    .buttonStyle(.plain)
-                                    .contextMenu {
-                                        Button(role: .destructive) { store.deleteGym(gym) } label: {
-                                            Label("Delete gym and its routes", systemImage: "trash")
-                                        }
+                                NavigationLink { RoutesScreen(gym: gym) } label: {
+                                    GymCard(gym: gym)
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) { store.deleteGym(gym) } label: {
+                                        Label("Delete gym and its routes", systemImage: "trash")
                                     }
+                                }
                             }
                         }
-                        .background(Theme.line)
-                        .padding(.bottom, 156)
+                        .padding(.horizontal, Theme.gutter)
+
+                        Text("A gym is made the first time you scan a route at it. Press and hold one to remove it along with everything scanned there.")
+                            .font(Theme.ui(13))
+                            .foregroundStyle(Theme.ink3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, Theme.gutter)
+                            .padding(.top, 4)
                     }
                 }
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
         }
@@ -49,28 +59,117 @@ struct GymsScreen: View {
         .preferredColorScheme(.light)
     }
 
-    private func row(_ gym: Gym) -> some View {
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Your gyms")
+                .font(Theme.title(30))
+                .foregroundStyle(Theme.ink)
+            Text(store.gyms.isEmpty
+                 ? "Nothing scanned yet"
+                 : "\(store.gyms.count) place\(store.gyms.count == 1 ? "" : "s") you climb")
+                .font(Theme.ui(14))
+                .foregroundStyle(Theme.ink3)
+        }
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 12)
+    }
+
+    private var summary: some View {
+        MetricStrip(items: [
+            .init(value: "\(store.gyms.count)", label: "Gyms"),
+            .init(value: "\(totals.routes)", label: "Routes"),
+            .init(value: "\(totals.sent)", label: "Sent"),
+            .init(value: "\(max(0, totals.routes - totals.sent))", label: "Open")
+        ])
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .card()
+        .padding(.horizontal, Theme.gutter)
+    }
+
+    private var empty: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle("No gyms yet")
+            Text("Scan a route and Trace will make the gym for you. There is no directory to join and nobody to ask.")
+                .font(Theme.ui(14.5))
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .card()
+        .padding(.horizontal, Theme.gutter)
+    }
+}
+
+/// One gym: the colours on its walls, its name, and what you have done there.
+private struct GymCard: View {
+    let gym: Gym
+    @ObservedObject private var store = Store.shared
+
+    init(gym: Gym) { self.gym = gym }
+
+    var body: some View {
+        let routes = store.routes(in: gym)
         let counts = store.routeCount(in: gym)
-        return HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(gym.name).font(Theme.heading(16)).foregroundStyle(Theme.ink)
+
+        HStack(spacing: 15) {
+            face(routes)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(gym.name)
+                    .font(Theme.serif(19, .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
                 Text("\(counts.total) route\(counts.total == 1 ? "" : "s") · \(counts.sent) sent")
-                    .font(Theme.mono(10.5))
-                    .foregroundStyle(Theme.ink3)
-            }
-            Spacer()
-            // Colour of the routes on the wall, at a glance.
-            HStack(spacing: 3) {
-                ForEach(Array(store.routes(in: gym).prefix(6).enumerated()), id: \.offset) { _, route in
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(Color(hexString: route.colorHex))
-                        .frame(width: 8, height: 14)
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink2)
+                if let last = routes.map(\.scannedAt).max() {
+                    Text("Last scan \(last.formatted(date: .abbreviated, time: .omitted))")
+                        .font(Theme.ui(12.5))
+                        .foregroundStyle(Theme.ink3)
                 }
             }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Theme.ink3.opacity(0.7))
         }
-        .padding(.horizontal, 20).padding(.vertical, 16)
-        .background(Theme.ground)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
         .contentShape(Rectangle())
+    }
+
+    /// The wall, as far as Trace has seen it: a block of the route colours, or
+    /// the gym's initials when nothing has been scanned yet.
+    @ViewBuilder
+    private func face(_ routes: [Route]) -> some View {
+        ZStack {
+            Theme.surface2
+            if routes.isEmpty {
+                Text(initials)
+                    .font(Theme.serif(24, .semibold))
+                    .foregroundStyle(Theme.blue.opacity(0.55))
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3),
+                                         count: 3), spacing: 3) {
+                    ForEach(Array(routes.prefix(9).enumerated()), id: \.offset) { _, route in
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color(hexString: route.colorHex))
+                            .frame(height: 24)
+                    }
+                }
+                .padding(8)
+            }
+        }
+        .frame(width: 92, height: 92)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var initials: String {
+        let letters = gym.name.split(separator: " ").prefix(2).compactMap(\.first)
+        return letters.isEmpty ? "G" : String(letters).uppercased()
     }
 }
 
@@ -82,19 +181,24 @@ struct RoutesScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        let counts = store.routeCount(in: gym)
         ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    NavHeader { dismiss() }
-                    VStack(alignment: .leading, spacing: 6) {
-                        MicroLabel(text: "\(store.routeCount(in: gym).total) scanned · \(store.routeCount(in: gym).sent) sent")
-                        Text(gym.name).font(Theme.heading(22)).foregroundStyle(Theme.ink)
+                VStack(alignment: .leading, spacing: 16) {
+                    NavHeader(title: nil) { dismiss() }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(gym.name)
+                            .font(Theme.title(30))
+                            .foregroundStyle(Theme.ink)
+                        Text("\(counts.total) scanned · \(counts.sent) sent")
+                            .font(Theme.ui(14))
+                            .foregroundStyle(Theme.ink3)
                     }
-                    .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 20)
-                    Hairline()
+                    .padding(.horizontal, Theme.gutter)
+                    .padding(.top, 12)
 
-                    LazyVStack(spacing: 1) {
+                    LazyVStack(spacing: 10) {
                         ForEach(store.routes(in: gym)) { route in
                             NavigationLink { RouteDetailScreen(route: route) } label: { row(route) }
                                 .buttonStyle(.plain)
@@ -109,9 +213,9 @@ struct RoutesScreen: View {
                                 }
                         }
                     }
-                    .background(Theme.line)
-                    .padding(.bottom, 156)
+                    .padding(.horizontal, Theme.gutter)
                 }
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
         }
@@ -121,26 +225,35 @@ struct RoutesScreen: View {
 
     private func row(_ route: Route) -> some View {
         HStack(spacing: 13) {
-            RoundedRectangle(cornerRadius: 2)
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .fill(Color(hexString: route.colorHex))
-                .frame(width: 5, height: 40)
+                .frame(width: 8, height: 44)
             VStack(alignment: .leading, spacing: 5) {
-                Text(route.displayName).font(Theme.heading(16)).foregroundStyle(Theme.ink)
+                Text(route.displayName)
+                    .font(Theme.serif(17, .semibold))
+                    .foregroundStyle(Theme.ink)
                 HStack(spacing: 9) {
                     if !route.grade.isEmpty {
-                        Text(route.grade).font(Theme.mono(10.5)).foregroundStyle(Theme.accentText)
+                        Text(route.grade)
+                            .font(Theme.ui(13, .semibold))
+                            .foregroundStyle(Theme.accentText)
                     }
                     Text("\(route.holds.count) holds")
-                        .font(Theme.mono(10.5)).foregroundStyle(Theme.ink3)
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink3)
                 }
             }
             Spacer()
             if route.sent {
-                MicroLabel(text: "Sent", color: Theme.ok)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(Theme.blue))
             }
         }
-        .padding(.horizontal, 20).padding(.vertical, 15)
-        .background(Theme.ground)
+        .padding(14)
+        .card()
         .contentShape(Rectangle())
     }
 }
@@ -154,62 +267,95 @@ struct RouteDetailScreen: View {
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
 
+    private var hasPhoto: Bool { (try? Data(contentsOf: live.photoURL)) != nil }
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    NavHeader { dismiss() }
+                    // The photograph is the header: it runs to the very top of
+                    // the screen, under the status bar, with the back control
+                    // floating on it. The wall is what you came to look at.
+                    photo
+
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(live.displayName).font(Theme.heading(19)).foregroundStyle(Theme.ink)
+                            Text(live.displayName)
+                                .font(Theme.title(26))
+                                .foregroundStyle(Theme.ink)
                             HStack(spacing: 9) {
                                 if !live.grade.isEmpty {
-                                    Text(live.grade).font(Theme.mono(11)).foregroundStyle(Theme.accentText)
+                                    Text(live.grade)
+                                        .font(Theme.ui(13, .semibold))
+                                        .foregroundStyle(Theme.accentText)
                                 }
-                                MicroLabel(text: live.scannedAt.formatted(date: .abbreviated, time: .omitted))
+                                Text(live.scannedAt.formatted(date: .abbreviated, time: .omitted))
+                                    .font(Theme.ui(13))
+                                    .foregroundStyle(Theme.ink3)
                             }
                         }
                         Spacer()
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
                             .fill(Color(hexString: live.colorHex))
-                            .frame(width: 22, height: 22)
+                            .frame(width: 30, height: 30)
                     }
-                    .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 16)
+                    .padding(.horizontal, Theme.gutter)
+                    .padding(.top, 20)
+                    .padding(.bottom, 18)
 
-                    photo
-                    Hairline()
+                    MetricStrip(items: [
+                        .init(value: "\(live.holds.count)", label: "Holds"),
+                        .init(value: live.grade.isEmpty ? "—" : live.grade, label: "Grade"),
+                        .init(value: live.sent ? "Yes" : "Not yet", label: "Sent")
+                    ])
+                    .padding(18)
+                    .card()
+                    .padding(.horizontal, Theme.gutter)
 
                     VStack(alignment: .leading, spacing: 14) {
-                        HStack {
-                            MicroLabel(text: "\(live.holds.count) holds found")
-                            Spacer()
-                            MicroLabel(text: live.colorHex)
-                        }
                         Button { store.toggleSent(live) } label: {
-                            Text((live.sent ? "Mark unsent" : "Mark sent").uppercased())
-                                .font(Theme.mono(11, weight: .medium)).tracking(1.3)
-                                .foregroundStyle(live.sent ? Theme.ink : Theme.ground)
-                                .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(live.sent ? Color.clear : Theme.accent)
-                                .overlay(RoundedRectangle(cornerRadius: Theme.r)
-                                    .stroke(live.sent ? Theme.lineStrong : Color.clear, lineWidth: 1))
+                            Text(live.sent ? "Mark unsent" : "Mark sent")
+                                .font(Theme.ui(16, .semibold))
+                                .foregroundStyle(live.sent ? Theme.ink : .white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(live.sent ? Theme.surface : Theme.accent)
+                                .clipShape(Capsule())
+                                .contentShape(Capsule())
                         }
                         .buttonStyle(.plain)
 
                         Text("Trace found these holds by colour, not by reading the setter's intent. Anything it got wrong was dropped when you saved it.")
-                            .font(Theme.body(12.5))
+                            .font(Theme.ui(13))
                             .foregroundStyle(Theme.ink3)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 20).padding(.vertical, 22)
+                    .padding(.horizontal, Theme.gutter)
+                    .padding(.top, 22)
                 }
+                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
+            .ignoresSafeArea(edges: .top)
+
+            // On the photograph it is white on a disc; on the pale fallback
+            // panel that would be invisible, so it reverts to the paper control.
+            Group {
+                if hasPhoto {
+                    BackOverlayButton { dismiss() }
+                        .padding(.leading, Theme.gutter - 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    NavHeader(title: nil) { dismiss() }
+                }
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
     }
+
+    private let photoHeight: CGFloat = 420
 
     @ViewBuilder
     private var photo: some View {
@@ -220,19 +366,39 @@ struct RouteDetailScreen: View {
                     Color.black
                     Image(uiImage: ui).resizable().aspectRatio(contentMode: .fit)
                     ForEach(Array(live.holds.enumerated()), id: \.offset) { _, hold in
-                        Rectangle()
-                            .stroke(Theme.accent, lineWidth: 2)
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .stroke(Theme.blueLight, lineWidth: 2)
                             .frame(width: hold.width * r.width + 8, height: hold.height * r.height + 8)
                             .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
                     }
                 }
             }
-            .frame(height: 400)
+            .frame(height: photoHeight)
             .clipped()
         } else {
-            Color.black.frame(height: 200)
-                .overlay(MicroLabel(text: "Photo missing"))
+            missingPhoto
         }
+    }
+
+    /// No file on disk. A black rectangle reads as a broken screen, so this says
+    /// what happened and leaves the rest of the route usable.
+    private var missingPhoto: some View {
+        ZStack {
+            Theme.surface
+            VStack(spacing: 10) {
+                Image(systemName: "photo")
+                    .font(.system(size: 26, weight: .light))
+                    .foregroundStyle(Theme.ink3)
+                Text("The photo for this route is gone")
+                    .font(Theme.serif(17, .semibold))
+                    .foregroundStyle(Theme.ink2)
+                Text("Its holds and colour are still here.")
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink3)
+            }
+            .padding(.top, 40)
+        }
+        .frame(height: 260)
     }
 
     private func fitted(image: CGSize, in size: CGSize) -> CGRect {

@@ -38,10 +38,12 @@ struct ProgressScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            MicroLabel(text: "Over time")
-            Text("Is your movement changing?")
-                .font(Theme.heading(22))
+            Text("Over time")
+                .font(Theme.title(30))
                 .foregroundStyle(Theme.ink)
+            Text("Is your movement changing?")
+                .font(Theme.ui(14))
+                .foregroundStyle(Theme.ink3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
@@ -51,9 +53,7 @@ struct ProgressScreen: View {
 
     private var notEnoughYet: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Not enough tracked climbing yet.")
-                .font(Theme.heading(17))
-                .foregroundStyle(Theme.ink)
+            SectionTitle("Not enough tracked climbing yet")
             Text("Trace needs at least two clips it could see clearly before it will claim anything about a trend. One climb is noise.")
                 .font(Theme.body(14))
                 .foregroundStyle(Theme.ink2)
@@ -68,15 +68,19 @@ struct ProgressScreen: View {
     private var focusSection: some View {
         if let focus = store.focus {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(micro: focus.isResolved ? "Cleared" : "Working on",
-                              title: focus.kind.title)
+                VStack(alignment: .leading, spacing: 4) {
+                    SectionTitle(focus.kind.title)
+                    Text(focus.isResolved ? "Cleared" : "What you are working on")
+                        .font(Theme.ui(13.5))
+                        .foregroundStyle(Theme.ink3)
+                }
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 4) {
                             MicroLabel(text: "Started")
                             Text(focus.baselineReadout)
-                                .font(Theme.mono(15)).monospacedDigit()
+                                .font(Theme.ui(16, .medium)).monospacedDigit()
                                 .foregroundStyle(Theme.ink2)
                         }
                         Spacer()
@@ -119,10 +123,12 @@ struct ProgressScreen: View {
                     Button {
                         store.dismissFocus()
                     } label: {
-                        Text("WORK ON SOMETHING ELSE")
-                            .font(Theme.mono(10.5, weight: .medium))
-                            .tracking(1.2)
+                        Text("Work on something else")
+                            .font(Theme.ui(14, .semibold))
                             .foregroundStyle(Theme.ink3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -139,10 +145,10 @@ struct ProgressScreen: View {
 
         return VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("Geometric entropy, last \(values.count) climbs")
-                    .font(Theme.heading(16))
-                    .foregroundStyle(Theme.ink)
-                MicroLabel(text: "Lower is smoother")
+                SectionTitle("Geometric entropy, last \(values.count) climbs")
+                Text("Lower is smoother")
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink3)
             }
 
             TrendChart(values: values)
@@ -182,10 +188,10 @@ struct ProgressScreen: View {
 
         return VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("What comes up most")
-                    .font(Theme.heading(16))
-                    .foregroundStyle(Theme.ink)
-                MicroLabel(text: "Headline finding across your last \(total) climbs")
+                SectionTitle("What comes up most")
+                Text("Headline finding across your last \(total) climbs")
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink3)
             }
 
             if counts.isEmpty {
@@ -217,7 +223,7 @@ struct ProgressScreen: View {
                             .frame(height: 16)
 
                             Text("\(entry.count)")
-                                .font(Theme.mono(11)).monospacedDigit()
+                                .font(Theme.ui(13, .medium)).monospacedDigit()
                                 .foregroundStyle(Theme.ink2)
                                 .frame(width: 20, alignment: .trailing)
                         }
@@ -231,8 +237,8 @@ struct ProgressScreen: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 22)
-        .padding(.bottom, 30)
+        .padding(.top, 22)
+        .padding(.bottom, 156)
     }
 
     private func leakCounts() -> [(kind: LeakKind, count: Int)] {
@@ -298,7 +304,7 @@ struct TrendChart: View {
                     .stroke(Theme.line, lineWidth: 1)
 
                     Text(String(format: "%.2f", line.value))
-                        .font(Theme.mono(9.5)).monospacedDigit()
+                        .font(Theme.ui(11)).monospacedDigit()
                         .foregroundStyle(Theme.ink3)
                         .position(x: l.plot.minX - 20, y: line.y)
                 }
@@ -338,7 +344,7 @@ struct TrendChart: View {
                         .position(l.points[l.points.count - 1])
 
                     Text(String(format: "%.2f", values[values.count - 1]))
-                        .font(Theme.mono(11, weight: .medium)).monospacedDigit()
+                        .font(Theme.ui(12.5, .semibold)).monospacedDigit()
                         .foregroundStyle(Theme.accentText)
                         .position(x: l.points[l.points.count - 1].x - 18,
                                   y: l.points[l.points.count - 1].y - 14)
@@ -350,14 +356,14 @@ struct TrendChart: View {
                 }
                 .stroke(Theme.lineStrong, lineWidth: 1)
 
-                Text("OLDEST")
-                    .font(Theme.mono(9)).tracking(1)
+                Text("Oldest")
+                    .font(Theme.ui(11))
                     .foregroundStyle(Theme.ink3)
-                    .position(x: l.plot.minX + 22, y: l.plot.maxY + 12)
-                Text("LATEST")
-                    .font(Theme.mono(9)).tracking(1)
+                    .position(x: l.plot.minX + 20, y: l.plot.maxY + 12)
+                Text("Latest")
+                    .font(Theme.ui(11))
                     .foregroundStyle(Theme.ink3)
-                    .position(x: l.plot.maxX - 22, y: l.plot.maxY + 12)
+                    .position(x: l.plot.maxX - 20, y: l.plot.maxY + 12)
             }
         }
     }

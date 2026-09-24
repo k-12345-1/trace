@@ -13,13 +13,24 @@ import Foundation
 struct BodyProfile: Codable, Equatable {
     var heightCM: Double?
     var spanCM: Double?
+    /// Body mass in kilogrammes, whatever units you typed.
+    ///
+    /// It does not move your centre of mass. Where the COM sits is a weighted
+    /// average of segment positions, and Dempster's fractions are fractions, so
+    /// they cancel: a 60 kg and a 90 kg climber in the same pose have the COM in
+    /// the same place. What mass buys is the step after that. Once Trace knows
+    /// how far the COM moved in metres, mass turns that path into joules, and
+    /// the lifting you paid for stops being a ratio and becomes an amount.
+    var massKG: Double?
     /// Feet and inches, purely for display. It never touches the maths.
     var usesImperial: Bool = Locale.current.measurementSystem != .metric
 
     static let empty = BodyProfile()
 
-    var isEmpty: Bool { heightCM == nil && spanCM == nil }
+    var isEmpty: Bool { heightCM == nil && spanCM == nil && massKG == nil }
     var hasScale: Bool { (heightCM ?? 0) > 0 }
+    /// Work in joules needs both: metres from the height, kilogrammes from the mass.
+    var canWeighWork: Bool { hasScale && (massKG ?? 0) > 0 }
 
     /// Span minus height, the number climbers actually quote. Positive is a
     /// longer reach than your height, which is the one people call a plus ape.
@@ -45,11 +56,17 @@ struct BodyProfile: Codable, Equatable {
 
     static let heightRangeCM = 90.0...240.0
     static let spanRangeCM = 90.0...260.0
+    static let massRangeKG = 25.0...200.0
 
     static func plausibleHeight(_ cm: Double) -> Bool { heightRangeCM.contains(cm) }
     static func plausibleSpan(_ cm: Double) -> Bool { spanRangeCM.contains(cm) }
+    static func plausibleMass(_ kg: Double) -> Bool { massRangeKG.contains(kg) }
 
     // MARK: Unit conversion
+
+    static let poundsPerKG = 2.2046226218
+
+    static func kg(pounds: Double) -> Double { pounds / poundsPerKG }
 
     static func cm(feet: Int, inches: Double) -> Double {
         (Double(feet) * 12 + inches) * 2.54
@@ -75,5 +92,12 @@ struct BodyProfile: Codable, Equatable {
                 : String(format: "%d′ %.1f″", f, i)
         }
         return String(format: "%.0f cm", cm)
+    }
+
+    /// How a stored mass should read back on screen.
+    func describeMass(_ kg: Double?) -> String {
+        guard let kg, kg > 0 else { return "Not set" }
+        if usesImperial { return String(format: "%.0f lb", kg * Self.poundsPerKG) }
+        return String(format: "%.0f kg", kg)
     }
 }

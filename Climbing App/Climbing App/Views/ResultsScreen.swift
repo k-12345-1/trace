@@ -137,7 +137,7 @@ struct ResultsScreen: View {
                 } label: {
                     HStack(spacing: 7) {
                         Text(label)
-                            .font(Theme.heading(19))
+                            .font(Theme.serif(24, .semibold))
                             .foregroundStyle(Theme.ink)
                         Image(systemName: "pencil")
                             .font(.system(size: 11))
@@ -145,14 +145,16 @@ struct ResultsScreen: View {
                     }
                 }
                 .buttonStyle(.plain)
-                MicroLabel(text: climb.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                Text(climb.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(Theme.ui(14))
+                    .foregroundStyle(Theme.ink3)
             }
             Spacer()
             if let onClose {
-                Button("DONE") { onClose() }
-                    .font(Theme.mono(11, weight: .medium))
-                    .tracking(1.3)
+                Button("Done") { onClose() }
+                    .font(Theme.ui(15, .semibold))
                     .foregroundStyle(Theme.accentText)
+                    .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 20)
@@ -211,16 +213,16 @@ struct ResultsScreen: View {
 
             HStack {
                 Text(timecode(playback.time))
-                    .font(Theme.mono(10.5)).monospacedDigit()
+                    .font(Theme.ui(12.5)).monospacedDigit()
                     .foregroundStyle(Theme.ink3)
                 Spacer()
-                Button(playback.isPlaying ? "PAUSE" : "PLAY") { playback.toggle() }
-                    .font(Theme.mono(10.5, weight: .medium))
-                    .tracking(1.2)
-                    .foregroundStyle(Theme.ink2)
+                Button(playback.isPlaying ? "Pause" : "Play") { playback.toggle() }
+                    .font(Theme.ui(14, .semibold))
+                    .foregroundStyle(Theme.accentText)
+                    .buttonStyle(.plain)
                 Spacer()
                 Text(timecode(playback.duration))
-                    .font(Theme.mono(10.5)).monospacedDigit()
+                    .font(Theme.ui(12.5)).monospacedDigit()
                     .foregroundStyle(Theme.ink3)
             }
         }
@@ -244,7 +246,7 @@ struct ResultsScreen: View {
     private var headline: some View {
         VStack(alignment: .leading, spacing: 14) {
             if let top = climb.findings.first {
-                SectionHeader(micro: "The one thing", title: "Work on this")
+                SectionTitle("Work on this")
                 FindingCard(finding: top)
                     .onTapGesture { playback.seek(to: top.start) }
 
@@ -252,10 +254,14 @@ struct ResultsScreen: View {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) { showAllFindings.toggle() }
                     } label: {
-                        Text((showAllFindings ? "Hide the rest" : "\(climb.findings.count - 1) more, if you want them").uppercased())
-                            .font(Theme.mono(10.5, weight: .medium))
-                            .tracking(1.2)
-                            .foregroundStyle(Theme.ink3)
+                        Text(showAllFindings
+                             ? "Hide the rest"
+                             : "\(climb.findings.count - 1) more, if you want them")
+                            .font(Theme.ui(14, .semibold))
+                            .foregroundStyle(Theme.accentText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
@@ -269,7 +275,7 @@ struct ResultsScreen: View {
                     }
                 }
             } else {
-                SectionHeader(micro: "Nothing to flag", title: "That was clean")
+                SectionTitle("That was clean")
                 Text("No leak crossed the threshold worth mentioning. Climb it again and see whether it gets smoother, or take it to something harder.")
                     .font(Theme.body(14.5))
                     .foregroundStyle(Theme.ink2)
@@ -283,7 +289,7 @@ struct ResultsScreen: View {
 
     private var readouts: some View {
         VStack(alignment: .leading, spacing: 14) {
-            MicroLabel(text: "Measurements")
+            SectionTitle("Measurements")
             ReadoutGrid {
                 Readout(label: "Entropy", value: String(format: "%.2f", climb.metrics.entropy),
                         unit: "nats", delta: entropyDelta)
@@ -306,14 +312,63 @@ struct ResultsScreen: View {
                         value: climb.metrics.hasDynamicMoves
                             ? "\(Int(climb.metrics.meanDeadpointError.rounded()))" : "—",
                         unit: climb.metrics.hasDynamicMoves ? "ms off" : "no dynos")
+                if let lift {
+                    // A ratio, so it needs no scale and no weight. 1.4 means you
+                    // lifted yourself 40 percent further than the route asked.
+                    Readout(label: "Lifting done",
+                            value: String(format: "%.2f", lift.ratio),
+                            unit: "×",
+                            hint: liftHint(lift))
+                }
+                if let work {
+                    Readout(label: "Work against gravity",
+                            value: String(format: "%.1f", work.gross / 1000),
+                            unit: "kJ",
+                            // Only worth saying when some of it was spent twice.
+                            hint: work.gross - work.net > 50
+                                ? String(format: "%.1f kJ of it was the route itself",
+                                         work.net / 1000)
+                                : "None of it was spent twice")
+                }
             }
-            Text("Lower entropy and lower smoothness numbers mean less wasted movement. They compare against your own attempts, not against other climbers.")
+            Text(measurementNote)
                 .font(Theme.body(12.5))
                 .foregroundStyle(Theme.ink3)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 22)
+    }
+
+    /// The rise and fall of the centre of mass. Computed here rather than stored,
+    /// because it is a reading of a path the climb already carries.
+    private var lift: BodyScale.Lift? {
+        BodyScale.lift(path: climb.metrics.comPath)
+    }
+
+    private var work: (net: Double, gross: Double)? {
+        guard let lift else { return nil }
+        return BodyScale.work(joules: lift,
+                              metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames,
+                                                                     body: store.body),
+                              body: store.body)
+    }
+
+    private func liftHint(_ lift: BodyScale.Lift) -> String {
+        lift.ratio < 1.15
+            ? "Almost none of it repeated"
+            : String(format: "%.0f percent of it repeated", (lift.ratio - 1) * 100)
+    }
+
+    private var measurementNote: String {
+        let base = "Lower entropy and lower smoothness numbers mean less wasted movement. They compare against your own attempts, not against other climbers."
+        if work != nil {
+            return base + " The work figure counts gravity only, so it is a floor on what the climb cost rather than the cost itself."
+        }
+        if store.body.hasScale {
+            return base + " Add your weight on the personal info screen and the lifting reads in joules as well."
+        }
+        return base
     }
 
     private var entropyDelta: String? {
@@ -344,13 +399,10 @@ struct ResultsScreen: View {
         if attempts.count > 1 {
             VStack(alignment: .leading, spacing: 16) {
                 Hairline()
-                SectionHeader(
-                    micro: clusters.count > 1 ? "\(clusters.count) sequences" : "Your attempts",
-                    title: clusters.count > 1
-                        ? "You solved it more than one way"
-                        : "Same way each time"
-                )
-                .padding(.top, 8)
+                SectionTitle(clusters.count > 1
+                             ? "You solved it more than one way"
+                             : "Same way each time")
+                    .padding(.top, 8)
 
                 if let summary = BetaClustering.summary(for: clusters,
                                                         attemptCount: attempts.count) {
@@ -399,7 +451,7 @@ struct ResultsScreen: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 156)
         } else {
-            Color.clear.frame(height: 40)
+            Color.clear.frame(height: 156)
         }
     }
 
@@ -411,7 +463,7 @@ struct ResultsScreen: View {
                             maxEntropy: Double, isCheapest: Bool) -> some View {
         HStack(spacing: 12) {
             Text("\(index)")
-                .font(Theme.mono(11))
+                .font(Theme.ui(12.5)).monospacedDigit()
                 .foregroundStyle(Theme.ink3)
                 .frame(width: 18, alignment: .leading)
 
@@ -430,9 +482,9 @@ struct ResultsScreen: View {
             .frame(height: 18)
 
             Text(String(format: "%.2f", attempt.metrics.entropy))
-                .font(Theme.mono(11)).monospacedDigit()
+                .font(Theme.ui(12.5, .medium)).monospacedDigit()
                 .foregroundStyle(isCheapest ? Theme.accentText : Theme.ink2)
-                .frame(width: 40, alignment: .trailing)
+                .frame(width: 44, alignment: .trailing)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -443,7 +495,7 @@ struct ResultsScreen: View {
 
     private var untrustworthy: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(micro: "Low tracking", title: "I could not see that one clearly")
+            SectionTitle("I could not see that one clearly")
             Text("Only \(Int(climb.metrics.trackingConfidence * 100)) percent of frames had a usable skeleton, so any coaching from this clip would be guesswork. Confidently wrong feedback is worse than none.")
                 .font(Theme.body(14.5))
                 .foregroundStyle(Theme.ink2)
@@ -458,6 +510,7 @@ struct ResultsScreen: View {
             .padding(.top, 4)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 156)
     }
 }

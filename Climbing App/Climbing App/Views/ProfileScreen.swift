@@ -12,14 +12,8 @@ import SwiftUI
 /// mark on a pale one.
 struct ProfileScreen: View {
     @ObservedObject private var store = Store.shared
-    @State private var panel: Panel?
     @State private var confirmingSignOut = false
     @State private var confirmingDelete = false
-
-    private enum Panel: String, Identifiable {
-        case subscription, privacy
-        var id: String { rawValue }
-    }
 
     var body: some View {
         ZStack {
@@ -40,12 +34,6 @@ struct ProfileScreen: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
-        .sheet(item: $panel) { which in
-            switch which {
-            case .subscription: InfoSheet.subscription
-            case .privacy:      InfoSheet.privacy
-            }
-        }
         .alert("Sign out?", isPresented: $confirmingSignOut) {
             Button("Sign out", role: .destructive) { store.signOut() }
             Button("Cancel", role: .cancel) { }
@@ -56,7 +44,7 @@ struct ProfileScreen: View {
             Button("Delete everything", role: .destructive) { store.deleteEverything() }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("Every climb, clip, route and gym on this phone is removed, along with your height and reach. This cannot be undone.")
+            Text("Every climb, clip, route and gym on this phone is removed, along with your height, reach and weight. This cannot be undone.")
         }
     }
 
@@ -139,7 +127,7 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
 
-            Button { panel = .subscription } label: {
+            NavigationLink { InfoScreen.subscription } label: {
                 row(icon: AnyView(Image(systemName: "creditcard")
                         .font(.system(size: 18, weight: .light))
                         .foregroundStyle(Theme.blue)),
@@ -147,7 +135,7 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
 
-            Button { panel = .privacy } label: {
+            NavigationLink { InfoScreen.privacy } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
                         .font(.system(size: 18, weight: .light))
                         .foregroundStyle(Theme.blue)),
@@ -207,62 +195,99 @@ struct ProfileScreen: View {
 
     private var bodyDetail: String {
         let b = store.body
-        switch (b.heightCM, b.spanCM) {
-        case (nil, nil):   return "Height · reach"
-        case (_, nil):     return "Height \(b.describe(b.heightCM)) · no reach"
-        case (nil, _):     return "Reach \(b.describe(b.spanCM)) · no height"
-        default:           return "\(b.describe(b.heightCM)) · \(b.describe(b.spanCM))"
-        }
+        var parts: [String] = []
+        if b.heightCM != nil { parts.append(b.describe(b.heightCM)) }
+        if b.spanCM != nil { parts.append(b.describe(b.spanCM)) }
+        if b.massKG != nil { parts.append(b.describeMass(b.massKG)) }
+        return parts.isEmpty ? "Height · reach · weight" : parts.joined(separator: " · ")
     }
 }
 
-// MARK: - Panels
+// MARK: - The two reading screens
 
 /// A row that opened nothing would be worse than no row. Each of these says the
 /// thing that is actually true today rather than describing a feature that is
 /// not built.
-private struct InfoSheet: View {
+///
+/// Pushed rather than presented, so Privacy and Subscription arrive the same way
+/// Personal info does: same header, same back ring, same ground.
+struct InfoScreen: View {
     let title: String
-    let paragraphs: [String]
+    let standfirst: String
+    let sections: [(String, String)]
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
             Theme.ground.ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    SectionTitle(title)
-                    Spacer()
-                    Button("Done") { dismiss() }
-                        .font(Theme.ui(15, .semibold))
-                        .foregroundStyle(Theme.accentText)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    NavHeader(title: nil) { dismiss() }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(title)
+                            .font(Theme.title(30))
+                            .foregroundStyle(Theme.ink)
+                        Text(standfirst)
+                            .font(Theme.ui(14.5))
+                            .foregroundStyle(Theme.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, Theme.gutter)
+                    .padding(.top, 12)
+                    .padding(.bottom, 26)
+
+                    VStack(spacing: 12) {
+                        ForEach(Array(sections.enumerated()), id: \.offset) { _, part in
+                            VStack(alignment: .leading, spacing: 8) {
+                                SectionTitle(part.0)
+                                Text(part.1)
+                                    .font(Theme.ui(14.5))
+                                    .foregroundStyle(Theme.ink2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(18)
+                            .card()
+                        }
+                    }
+                    .padding(.horizontal, Theme.gutter)
                 }
-                ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, text in
-                    Text(text)
-                        .font(Theme.ui(15))
-                        .foregroundStyle(Theme.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer()
+                .padding(.bottom, 156)
             }
-            .padding(Theme.gutter)
+            .scrollIndicators(.hidden)
         }
-        .presentationDetents([.height(380)])
+        .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
     }
 
-    static var subscription: InfoSheet {
-        InfoSheet(title: "Subscription", paragraphs: [
-            "Trace is free while it is being built, and there is nothing to pay for yet. No card is on file and no plan is running.",
-            "When there is something to charge for, it will appear here with the price before anything is taken."
-        ])
+    static var subscription: InfoScreen {
+        InfoScreen(
+            title: "Subscription",
+            standfirst: "Nothing to pay for yet. No card is on file and no plan is running.",
+            sections: [
+                ("What you have",
+                 "Every part of Trace, while it is being built. There is no free tier to be moved off and no trial running down."),
+                ("What happens later",
+                 "When there is something to charge for it will appear here with the price before anything is taken, and you will have to agree to it. Nothing starts on its own."),
+                ("Where it would be handled",
+                 "Through the App Store, like any other iPhone subscription, so cancelling never means writing to anybody.")
+            ])
     }
 
-    static var privacy: InfoSheet {
-        InfoSheet(title: "Privacy & AI", paragraphs: [
-            "Everything stays on this phone. Trace measures every climb on device and uploads nothing, so your clips never leave the handset. That is what makes filming in a gym full of other people unproblematic.",
-            "The only model involved is Apple's on-device pose detector, which finds your joints in each frame. Nothing is sent to a language model, there is no analytics and there is no crash reporting.",
-            "Signing out leaves every climb, route and gym exactly where it is. Deleting your account removes all of it."
-        ])
+    static var privacy: InfoScreen {
+        InfoScreen(
+            title: "Privacy & AI",
+            standfirst: "Everything stays on this phone. Trace uploads nothing.",
+            sections: [
+                ("Your clips",
+                 "Every climb is measured on device, so your footage never leaves the handset. That is what makes filming in a gym full of other people unproblematic."),
+                ("The only model involved",
+                 "Apple's on-device pose detector, which finds your joints in each frame. Nothing is sent to a language model. There is no analytics and no crash reporting."),
+                ("Your body measurements",
+                 "Height, reach and weight are stored on the phone and used to turn image units into metres and joules. They are not sent anywhere."),
+                ("Leaving",
+                 "Signing out leaves every climb, route and gym exactly where it is. Deleting your account removes all of it, and that cannot be undone.")
+            ])
     }
 }

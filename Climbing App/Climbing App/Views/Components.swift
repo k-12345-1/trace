@@ -71,16 +71,15 @@ struct FindingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Text("\(finding.timecode)\(finding.duration > 0.5 ? " · \(String(format: "%.1f", finding.duration)) S" : "")")
-                    .font(Theme.mono(10.5))
-                    .tracking(0.6)
+                Text("\(finding.timecode)\(finding.duration > 0.5 ? " · \(String(format: "%.1f", finding.duration))s" : "")")
+                    .font(Theme.ui(12.5, .medium)).monospacedDigit()
                     .foregroundStyle(Theme.accentText)
                 Spacer(minLength: 0)
                 SeverityChip(severity: finding.severity)
             }
 
             Text(finding.kind.title)
-                .font(Theme.heading(17))
+                .font(Theme.serif(18, .semibold))
                 .foregroundStyle(Theme.ink)
 
             Text(finding.message)
@@ -103,10 +102,10 @@ struct FindingCard: View {
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
         .overlay(alignment: .leading) {
-            Rectangle().fill(Theme.accent).frame(width: 3)
+            Capsule().fill(Theme.accent).frame(width: 3, height: 34).padding(.leading, 6)
         }
-        .overlay(Rectangle().stroke(Theme.line, lineWidth: 1))
     }
 }
 
