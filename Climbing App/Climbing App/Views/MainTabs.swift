@@ -63,6 +63,7 @@ struct MainTabs: View {
             // sliced. Painted in the page's own ground rather than a tint, so it
             // reads as the page ending rather than as a band laid over it.
             VStack(spacing: 0) {
+                Spacer(minLength: 0)
                 LinearGradient(
                     stops: [
                         .init(color: Theme.ground.opacity(0), location: 0),
@@ -70,10 +71,14 @@ struct MainTabs: View {
                     ],
                     startPoint: .top, endPoint: .bottom)
                     .frame(height: 20)
-                Theme.ground.frame(height: 124)
+                // Fixed height plus a spacer above it, rather than a fixed
+                // height alone: the solid part has to reach the physical bottom
+                // of the screen, not the bottom of the safe area, or the page
+                // shows through under the home indicator.
+                Theme.ground.frame(height: 130)
             }
             .allowsHitTesting(false)
-            .ignoresSafeArea(edges: .bottom)
+            .ignoresSafeArea()
 
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.
@@ -84,20 +89,21 @@ struct MainTabs: View {
                     .transition(.opacity)
             }
 
-            VStack(spacing: 12) {
-                if entryOpen {
-                    EntryPanel(
-                        onRecord: { close(); showCapture = true },
-                        onScan:   { close(); showScan = true },
-                        pickerItem: $pickerItem
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                TabBar(tab: $tab, entryOpen: entryOpen) {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                        entryOpen.toggle()
-                    }
-                }
+            if entryOpen {
+                AddPanel(
+                    onRecord: { close(); showCapture = true },
+                    onScan:   { close(); showScan = true },
+                    onClose: close,
+                    pickerItem: $pickerItem
+                )
+                .padding(.horizontal, 14)
+                .padding(.top, 74)
+                .padding(.bottom, 112)
+                .transition(.opacity)
+            }
+
+            TabBar(tab: $tab, entryOpen: entryOpen) {
+                withAnimation(.easeOut(duration: 0.18)) { entryOpen.toggle() }
             }
             .padding(.horizontal, 10)
         }
@@ -121,7 +127,7 @@ struct MainTabs: View {
     }
 
     private func close() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) { entryOpen = false }
+        withAnimation(.easeOut(duration: 0.18)) { entryOpen = false }
     }
 
     private func loadPicked(_ item: PhotosPickerItem) async {
@@ -204,39 +210,69 @@ private struct TabBar: View {
 
 // MARK: - What the middle button opens
 
-/// Three ways to put something into Trace, on a card that rises over the page
-/// with the bar still visible beneath it.
-private struct EntryPanel: View {
+/// The add screen, built like the Lumi panel in the Lineage Health app: a dark
+/// rounded sheet that covers the page but stops above the bar, so the bar stays
+/// visible with its button already showing the way out. It fades into place
+/// rather than sliding, which is what stops it reading as a modal.
+private struct AddPanel: View {
     let onRecord: () -> Void
     let onScan: () -> Void
+    let onClose: () -> Void
     @Binding var pickerItem: PhotosPickerItem?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(spacing: 10) {
+                    row(icon: "record.circle", title: "Record a climb",
+                        detail: "Phone on the floor, square to the wall, whole boulder in frame. Side on is best.",
+                        action: onRecord)
+
+                    PhotosPicker(selection: $pickerItem, matching: .videos,
+                                 photoLibrary: .shared()) {
+                        rowBody(icon: "photo.on.rectangle", title: "Import a clip",
+                                detail: "Use something you already filmed.")
+                    }
+                    .buttonStyle(.plain)
+
+                    row(icon: "viewfinder", title: "Scan a route",
+                        detail: "Photograph a wall and tap one hold. Trace picks out the rest by colour and saves it to your gym.",
+                        action: onScan)
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 18)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.blue)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+    }
+
+    private var header: some View {
+        ZStack {
             Text("Add to Trace")
                 .font(Theme.serif(19, .semibold))
-                .foregroundStyle(Theme.ink)
-                .padding(.bottom, 2)
+                .foregroundStyle(.white)
 
-            row(icon: "record.circle", title: "Record a climb",
-                detail: "Phone on the floor, square to the wall, side on.",
-                action: onRecord)
-
-            PhotosPicker(selection: $pickerItem, matching: .videos, photoLibrary: .shared()) {
-                rowBody(icon: "photo.on.rectangle", title: "Import a clip",
-                        detail: "Use something you already filmed.")
+            HStack {
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(.white.opacity(0.12)))
+                        .overlay(Circle().stroke(.white.opacity(0.16), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close")
             }
-            .buttonStyle(.plain)
-
-            row(icon: "viewfinder", title: "Scan a route",
-                detail: "Tap one hold and Trace finds the rest by colour.",
-                action: onScan)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.ground)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .shadow(color: Theme.blue.opacity(0.16), radius: 22, y: 8)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
     }
 
     private func row(icon: String, title: String, detail: String,
@@ -246,25 +282,31 @@ private struct EntryPanel: View {
     }
 
     private func rowBody(icon: String, title: String, detail: String) -> some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 19, weight: .regular))
                 .foregroundStyle(Theme.blue)
-                .frame(width: 42, height: 42)
-                .background(Theme.accentWash)
-                .clipShape(Circle())
-            VStack(alignment: .leading, spacing: 2) {
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(Theme.blueLight))
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(Theme.ui(16, .semibold))
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(.white)
                 Text(detail)
                     .font(Theme.ui(13))
-                    .foregroundStyle(Theme.ink3)
+                    .foregroundStyle(.white.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(15)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .stroke(.white.opacity(0.10), lineWidth: 1))
         .contentShape(Rectangle())
     }
 }
