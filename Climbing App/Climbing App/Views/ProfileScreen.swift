@@ -19,7 +19,7 @@ struct ProfileScreen: View {
                     storage
                     signOut
                 }
-                .padding(.bottom, 96)
+                .padding(.bottom, 120)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

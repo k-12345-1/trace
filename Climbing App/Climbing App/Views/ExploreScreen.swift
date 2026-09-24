@@ -40,7 +40,7 @@ struct ExploreScreen: View {
                         .padding(.horizontal, Theme.gutter)
                     }
                 }
-                .padding(.bottom, 96)
+                .padding(.bottom, 120)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

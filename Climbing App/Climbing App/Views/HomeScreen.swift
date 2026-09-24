@@ -15,10 +15,9 @@ struct HomeScreen: View {
                     focusBanner
                     SuggestedRoutes()
                     gyms
-                    library
                 }
                 // Clear of the tab bar.
-                .padding(.bottom, 96)
+                .padding(.bottom, 120)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -162,44 +161,6 @@ struct HomeScreen: View {
 
     // MARK: Your library
 
-    private var library: some View {
-        let entries = store.library()
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                SectionTitle("Your library")
-                Spacer(minLength: 12)
-                if store.climbs.contains(where: { $0.metrics.isTrustworthy }) {
-                    NavigationLink { ProgressScreen() } label: {
-                        Text("Over time")
-                            .font(Theme.ui(14, .semibold))
-                            .foregroundStyle(Theme.accentText)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, Theme.gutter)
-            .padding(.top, 4)
-
-            if entries.isEmpty {
-                Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will tell you where the energy went.")
-                    .font(Theme.body(14))
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, Theme.gutter)
-            } else {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 13),
-                                    GridItem(.flexible(), spacing: 13)], spacing: 16) {
-                    ForEach(entries) { entry in
-                        NavigationLink { ClimbCardScreen(entry: entry) } label: {
-                            LibraryCard(entry: entry)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, Theme.gutter)
-            }
-        }
-    }
 }
 
 // MARK: - Section title
