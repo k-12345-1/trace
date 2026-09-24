@@ -20,16 +20,21 @@ struct OverlayView: View {
     /// Half the climber's span, in normalised units, when they have given it.
     var reachRadius: Double? = nil
 
-    /// The overlay palette. Deliberately not Theme's: these colours have to sit
-    /// on top of a gym wall painted every hue at once, so they are chosen for
-    /// separation from holds rather than for brand agreement.
+    /// The overlay palette: the app's four colours, on footage.
+    ///
+    /// A wall is painted every hue at once, so hue cannot be what separates the
+    /// drawing from the wall behind it. Lightness does that instead. Every light
+    /// mark is laid over a dark blue casing first, which is what makes white
+    /// read on a white volume and light blue read on a blue jug. The casing is
+    /// the whole reason a four colour overlay survives a gym.
     private enum Ink {
-        static let bone = Color(red: 0.09, green: 0.72, blue: 0.68)      // teal
-        static let joint = Color(red: 1.00, green: 0.77, blue: 0.00)     // yellow
-        static let trail = Color(red: 1.00, green: 0.24, blue: 0.59)     // magenta
-        static let chip = Color(red: 0.11, green: 0.11, blue: 0.12)
-        static let leader = Color.white.opacity(0.55)
-        static let envelope = Color.white.opacity(0.85)
+        static let bone = Color.white
+        static let joint = Theme.blueLight
+        static let trail = Theme.blueLight
+        static let casing = Theme.blue
+        static let chip = Theme.blue
+        static let leader = Color.white.opacity(0.7)
+        static let envelope = Color.white.opacity(0.9)
     }
 
     /// How far back the extremity trails reach.
@@ -78,6 +83,7 @@ struct OverlayView: View {
                 .font(Theme.mono(10, weight: .medium))
                 .tracking(1.2)
                 .foregroundStyle(r.phase.isNotable ? Ink.joint : .white)
+                .shadow(color: Ink.casing, radius: 1)
             Text(speedText(r))
                 .font(Theme.mono(10))
                 .monospacedDigit()
@@ -85,7 +91,7 @@ struct OverlayView: View {
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
-        .background(Ink.chip.opacity(0.88), in: RoundedRectangle(cornerRadius: 5))
+        .background(Ink.chip.opacity(0.92), in: Capsule())
         .allowsHitTesting(false)
     }
 
@@ -137,8 +143,10 @@ struct OverlayView: View {
         let c = map(com, rect)
         let r = (reachRadius.map { $0 * rect.height }) ?? (scale * 0.58)
         guard r > 8 else { return }
-        ctx.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
-                   with: .color(Ink.envelope),
+        let circle = Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+        ctx.stroke(circle, with: .color(Ink.casing.opacity(0.55)),
+                   style: StrokeStyle(lineWidth: 3.6, lineCap: .butt, dash: [7, 7]))
+        ctx.stroke(circle, with: .color(Ink.envelope),
                    style: StrokeStyle(lineWidth: 1.6, lineCap: .butt, dash: [7, 7]))
     }
 
@@ -171,6 +179,8 @@ struct OverlayView: View {
             guard alpha > 0.03 else { continue }
             var seg = Path()
             seg.move(to: map(a, rect)); seg.addLine(to: map(b, rect))
+            ctx.stroke(seg, with: .color(Ink.casing.opacity(alpha * 0.75)),
+                       style: StrokeStyle(lineWidth: width + 2.2, lineCap: .round))
             ctx.stroke(seg, with: .color(Ink.trail.opacity(alpha)),
                        style: StrokeStyle(lineWidth: width, lineCap: .round))
         }
@@ -185,18 +195,18 @@ struct OverlayView: View {
             guard let p1 = frame.pt(a), let p2 = frame.pt(b) else { continue }
             bones.move(to: map(p1, rect)); bones.addLine(to: map(p2, rect))
         }
-        // A dark pass first: holds are every saturated hue, and teal on yellow
-        // disappears without something behind it.
-        ctx.stroke(bones, with: .color(.black.opacity(0.42)),
-                   style: StrokeStyle(lineWidth: 4.4, lineCap: .round, lineJoin: .round))
+        // The casing first. Without it a white limb disappears against a white
+        // volume, which is the one hold colour a gym always has.
+        ctx.stroke(bones, with: .color(Ink.casing.opacity(0.85)),
+                   style: StrokeStyle(lineWidth: 5.0, lineCap: .round, lineJoin: .round))
         ctx.stroke(bones, with: .color(Ink.bone),
                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
-        let r = max(2.4, scale * 0.016)
+        let r = max(2.6, scale * 0.017)
         for id in Skeleton.dots {
             guard let p = frame.pt(id) else { continue }
             let c = map(p, rect)
-            ctx.fill(disc(at: c, r: r + 1.1), with: .color(.black.opacity(0.45)))
+            ctx.fill(disc(at: c, r: r + 1.6), with: .color(Ink.casing))
             ctx.fill(disc(at: c, r: r), with: .color(Ink.joint))
         }
     }
@@ -238,6 +248,7 @@ struct OverlayView: View {
 
             var leader = Path()
             leader.move(to: joint); leader.addLine(to: anchor)
+            ctx.stroke(leader, with: .color(Ink.casing.opacity(0.7)), lineWidth: 2.6)
             ctx.stroke(leader, with: .color(Ink.leader), lineWidth: 1)
 
             chip(&ctx, text: "\(degrees)", at: anchor, fontSize: size)
@@ -250,7 +261,8 @@ struct OverlayView: View {
         let s = resolved.measure(in: CGSize(width: 200, height: 60))
         let box = CGRect(x: c.x - s.width / 2 - 6, y: c.y - s.height / 2 - 3.5,
                          width: s.width + 12, height: s.height + 7)
-        ctx.fill(Path(roundedRect: box, cornerRadius: 4), with: .color(Ink.chip.opacity(0.92)))
+        ctx.fill(Path(roundedRect: box, cornerRadius: box.height / 2),
+                 with: .color(Ink.chip.opacity(0.94)))
         ctx.draw(resolved, at: c, anchor: .center)
     }
 
@@ -269,8 +281,9 @@ struct OverlayView: View {
         let c = map(com, rect)
         let r = max(7.0, scale * 0.032)
 
-        ctx.fill(disc(at: c, r: r + 2), with: .color(.white))
-        ctx.fill(disc(at: c, r: r), with: .color(Ink.trail))
+        ctx.fill(disc(at: c, r: r + 3), with: .color(Ink.casing))
+        ctx.fill(disc(at: c, r: r + 1.6), with: .color(.white))
+        ctx.fill(disc(at: c, r: r), with: .color(Theme.blue))
 
         var cross = Path()
         let arm = r * 0.62
@@ -278,11 +291,17 @@ struct OverlayView: View {
         cross.move(to: CGPoint(x: c.x, y: c.y - arm)); cross.addLine(to: CGPoint(x: c.x, y: c.y + arm))
         ctx.stroke(cross, with: .color(.white), style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
 
+        // The label sits on its own plate rather than on the wall, because white
+        // type on unknown footage is a coin toss.
+        let size = max(9, min(13, rect.width * 0.030))
         let label = ctx.resolve(
-            Text("COM")
-                .font(Theme.mono(max(9, min(13, rect.width * 0.030)), weight: .bold))
-                .foregroundStyle(Ink.trail))
-        ctx.draw(label, at: CGPoint(x: c.x + r + 7, y: c.y), anchor: .leading)
+            Text("COM").font(Theme.mono(size, weight: .bold)).foregroundStyle(.white))
+        let s = label.measure(in: CGSize(width: 120, height: 40))
+        let plate = CGRect(x: c.x + r + 7, y: c.y - s.height / 2 - 2.5,
+                           width: s.width + 11, height: s.height + 5)
+        ctx.fill(Path(roundedRect: plate, cornerRadius: plate.height / 2),
+                 with: .color(Ink.chip.opacity(0.94)))
+        ctx.draw(label, at: CGPoint(x: plate.midX, y: plate.midY), anchor: .center)
     }
 
     // MARK: Isolated pose inset
@@ -294,9 +313,9 @@ struct OverlayView: View {
         guard side > 40, let box = PhaseTimeline.boundingBox(frame) else { return }
         let panel = CGRect(x: rect.maxX - side - 10, y: rect.minY + rect.height * 0.38,
                            width: side, height: side)
-        ctx.fill(Path(roundedRect: panel, cornerRadius: 9), with: .color(.black.opacity(0.46)))
-        ctx.stroke(Path(roundedRect: panel, cornerRadius: 9),
-                   with: .color(.white.opacity(0.14)), lineWidth: 1)
+        ctx.fill(Path(roundedRect: panel, cornerRadius: 14), with: .color(Ink.casing.opacity(0.9)))
+        ctx.stroke(Path(roundedRect: panel, cornerRadius: 14),
+                   with: .color(.white.opacity(0.2)), lineWidth: 1)
 
         let pad = side * 0.14
         let fit = min((side - pad * 2) / max(box.width, 0.01),
