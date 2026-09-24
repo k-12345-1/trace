@@ -342,7 +342,7 @@ private struct PhysicsCard: View {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(title)
-                            .font(Theme.ui(16, .bold))
+                            .font(Theme.serif(17.5, .semibold))
                             .foregroundStyle(Theme.ink)
                             .multilineTextAlignment(.leading)
                         Text(note.concept)

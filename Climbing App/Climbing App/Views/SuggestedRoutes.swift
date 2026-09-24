@@ -72,7 +72,7 @@ struct SuggestedRoutes: View {
             Spacer(minLength: 8)
 
             Text(pick.route.displayName)
-                .font(Theme.ui(15.5, .bold))
+                .font(Theme.serif(17, .semibold))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)

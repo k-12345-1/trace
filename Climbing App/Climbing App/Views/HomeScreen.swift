@@ -45,8 +45,8 @@ struct HomeScreen: View {
                     .background(Theme.blue)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 Text("Trace")
-                    .font(Theme.ui(20, .bold))
-                    .foregroundStyle(Theme.ink)
+                    .font(Theme.serif(24, .semibold))
+                    .foregroundStyle(Theme.blue)
                 Spacer()
                 Text("\(store.climbs.count) climb\(store.climbs.count == 1 ? "" : "s")")
                     .font(Theme.ui(13.5))
@@ -78,7 +78,7 @@ struct HomeScreen: View {
                             .foregroundStyle(focus.isResolved ? Theme.ok : Theme.blue)
                     }
                     Text(focus.kind.title)
-                        .font(Theme.ui(19, .bold))
+                        .font(Theme.serif(21, .semibold))
                         .foregroundStyle(Theme.ink)
                     Text(FocusEngine.greeting(for: focus))
                         .font(Theme.body(13))
@@ -146,7 +146,7 @@ struct HomeScreen: View {
             }
             Spacer(minLength: 8)
             Text(gym.name)
-                .font(Theme.ui(15, .bold))
+                .font(Theme.serif(16.5, .semibold))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
@@ -211,7 +211,7 @@ struct SectionTitle: View {
     init(_ text: String) { self.text = text }
     var body: some View {
         Text(text)
-            .font(Theme.ui(19, .bold))
+            .font(Theme.serif(21, .semibold))
             .foregroundStyle(Theme.ink)
     }
 }
@@ -232,7 +232,7 @@ private struct GymCard: View {
                 .foregroundStyle(tint)
             Spacer(minLength: 8)
             Text(title)
-                .font(Theme.ui(15, .bold))
+                .font(Theme.serif(16.5, .semibold))
                 .foregroundStyle(Theme.ink)
             Text(subtitle)
                 .font(Theme.ui(13))
@@ -275,7 +275,7 @@ struct LibraryCard: View {
                 }
 
             Text(entry.name)
-                .font(Theme.ui(16, .bold))
+                .font(Theme.serif(17.5, .semibold))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)

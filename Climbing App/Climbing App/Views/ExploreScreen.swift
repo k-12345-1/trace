@@ -74,7 +74,7 @@ struct ExploreScreen: View {
                 .frame(width: 5, height: 40)
             VStack(alignment: .leading, spacing: 5) {
                 Text(route.displayName)
-                    .font(Theme.ui(16.5, .bold))
+                    .font(Theme.serif(18, .semibold))
                     .foregroundStyle(Theme.ink)
                 HStack(spacing: 7) {
                     if !route.grade.isEmpty {
