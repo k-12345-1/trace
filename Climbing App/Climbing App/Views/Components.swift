@@ -16,49 +16,49 @@ struct Readout: View {
     var hint: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            MicroLabel(text: label)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(Theme.ui(13))
+                .foregroundStyle(Theme.ink3)
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(value)
-                    .font(Theme.readout(26))
+                    .font(Theme.ui(27, .bold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
                 if let unit {
                     Text(unit)
-                        .font(Theme.mono(11))
+                        .font(Theme.ui(12.5))
                         .foregroundStyle(Theme.ink3)
                 }
             }
             if let delta {
                 Text(delta)
-                    .font(Theme.mono(10.5))
+                    .font(Theme.ui(12.5, .medium))
                     .foregroundStyle(deltaIsWork ? Theme.accentText : Theme.ok)
             }
             if let hint {
                 Text(hint)
-                    .font(Theme.mono(10))
+                    .font(Theme.ui(12.5))
                     .foregroundStyle(Theme.ink3)
             }
         }
         // maxHeight so every tile in a row fills it. Without this a tile carrying a
         // delta line makes its neighbour float in a half-filled cell.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 15)
-        .padding(.vertical, 14)
-        .background(Theme.surface)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
+        .card()
     }
 }
 
-/// Readouts sit in a hairline grid, not in separate rounded cards.
+/// Readouts sit apart from each other, with the gap doing the separating.
 struct ReadoutGrid<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)],
-            spacing: 1
+            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+            spacing: 10
         ) { content }
-        .background(Theme.line)
-        .overlay(Rectangle().stroke(Theme.line, lineWidth: 1))
     }
 }
 
@@ -117,14 +117,14 @@ struct SeverityChip: View {
             Rectangle()
                 .fill(Theme.ember[min(severity.rawValue, Theme.ember.count - 1)])
                 .frame(width: 7, height: 7)
-            Text(severity.label.uppercased())
-                .font(Theme.mono(9.5, weight: .medium))
-                .tracking(1.2)
+            Text(severity.label)
+                .font(Theme.ui(12.5, .medium))
                 .foregroundStyle(Theme.ink2)
         }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .overlay(RoundedRectangle(cornerRadius: Theme.rSmall).stroke(Theme.lineStrong, lineWidth: 1))
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(Theme.surface2)
+        .clipShape(Capsule())
     }
 }
 
@@ -136,15 +136,14 @@ struct StatusChip: View {
     var body: some View {
         HStack(spacing: 7) {
             Circle().fill(dot).frame(width: 6, height: 6)
-            Text(text.uppercased())
-                .font(Theme.mono(10, weight: .medium))
-                .tracking(1.2)
+            Text(text)
+                .font(Theme.ui(12.5, .medium))
                 .foregroundStyle(Theme.ink2)
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(Theme.surface.opacity(0.9))
-        .overlay(RoundedRectangle(cornerRadius: Theme.rSmall).stroke(Theme.lineStrong, lineWidth: 1))
+        .padding(.horizontal, 11)
+        .padding(.vertical, 6)
+        .background(Theme.ground.opacity(0.92))
+        .clipShape(Capsule())
     }
 }
 
@@ -173,23 +172,62 @@ struct RecordButton: View {
 struct FlatButton: View {
     let title: String
     var filled: Bool = false
+    var icon: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title.uppercased())
-                .font(Theme.mono(11, weight: .medium))
-                .tracking(1.3)
-                .foregroundStyle(filled ? Theme.ground : Theme.ink)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(filled ? Theme.accent : Color.clear)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.r)
-                        .stroke(filled ? Color.clear : Theme.lineStrong, lineWidth: 1)
-                )
+            HStack(spacing: 8) {
+                if let icon {
+                    Image(systemName: icon).font(.system(size: 15, weight: .semibold))
+                }
+                Text(title)
+                    .font(Theme.ui(16, .semibold))
+            }
+            .foregroundStyle(filled ? .white : Theme.ink)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(filled ? Theme.accent : Theme.surface)
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Metric strip
+
+/// Four numbers across, split by hairlines. The pattern every outdoor app uses
+/// for length, gain, time and shape, because it reads in one glance and costs
+/// one line of vertical space.
+struct MetricStrip: View {
+    struct Item: Identifiable {
+        let value: String
+        let label: String
+        var id: String { label }
+    }
+    let items: [Item]
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
+                if i > 0 {
+                    Rectangle().fill(Theme.line).frame(width: 1, height: 34)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.value)
+                        .font(Theme.ui(19, .semibold)).monospacedDigit()
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text(item.label)
+                        .font(Theme.ui(12.5, .regular))
+                        .foregroundStyle(Theme.ink3)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, i > 0 ? 14 : 0)
+            }
+        }
     }
 }
 

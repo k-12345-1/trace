@@ -33,7 +33,7 @@ struct WelcomeScreen: View {
                     masthead
                     if showLocal { localForm } else { accountForm }
                 }
-                .padding(.horizontal, 22)
+                .padding(.horizontal, Theme.gutter)
                 .padding(.bottom, 40)
             }
             .scrollDismissesKeyboard(.interactively)
@@ -52,16 +52,15 @@ struct WelcomeScreen: View {
                 .background(Theme.blue)
                 .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .padding(.bottom, 4)
-            Text("TRACE")
-                .font(Theme.ui(17, .bold))
-                .tracking(1.6)
+            Text("Trace")
+                .font(Theme.ui(20, .bold))
                 .foregroundStyle(Theme.ink)
             Text("Watches you climb.\nTells you one thing.")
-                .font(Theme.ui(30, .bold))
+                .font(Theme.title(34))
                 .foregroundStyle(Theme.ink)
                 .lineSpacing(2)
             Text("Your clips, your wall photos and your history stay on this phone. An account is identity, not storage.")
-                .font(Theme.body(14))
+                .font(Theme.ui(15))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -97,15 +96,15 @@ struct WelcomeScreen: View {
 
             Button(action: submit) {
                 HStack(spacing: 9) {
-                    if busy { ProgressView().tint(Theme.ground).scaleEffect(0.8) }
-                    Text((mode == .signIn ? "Sign in" : "Create account").uppercased())
-                        .font(Theme.mono(11, weight: .medium))
-                        .tracking(1.3)
+                    if busy { ProgressView().tint(.white).scaleEffect(0.8) }
+                    Text(mode == .signIn ? "Sign in" : "Create account")
+                        .font(Theme.ui(16, .semibold))
                 }
-                .foregroundStyle(Theme.ground)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
+                .padding(.vertical, 16)
                 .background(Theme.accent)
+                .clipShape(Capsule())
                 .opacity(canSubmit ? 1 : 0.4)
             }
             .buttonStyle(.plain)
@@ -123,14 +122,13 @@ struct WelcomeScreen: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.18)) { showLocal = true }
             } label: {
-                Text("Use Trace without an account".uppercased())
-                    .font(Theme.mono(10.5, weight: .medium))
-                    .tracking(1.2)
+                Text("Use Trace without an account")
+                    .font(Theme.ui(16, .semibold))
                     .foregroundStyle(Theme.ink)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .overlay(RoundedRectangle(cornerRadius: Theme.r)
-                        .stroke(Theme.lineStrong, lineWidth: 1))
+                    .padding(.vertical, 16)
+                    .background(Theme.surface)
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
         }
@@ -157,22 +155,21 @@ struct WelcomeScreen: View {
             Button {
                 store.continueLocally(name: name)
             } label: {
-                Text("Start climbing".uppercased())
-                    .font(Theme.mono(11, weight: .medium))
-                    .tracking(1.3)
-                    .foregroundStyle(Theme.ground)
+                Text("Start climbing")
+                    .font(Theme.ui(16, .semibold))
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
+                    .padding(.vertical, 16)
                     .background(Theme.accent)
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
 
             Button {
                 withAnimation(.easeInOut(duration: 0.18)) { showLocal = false }
             } label: {
-                Text("Back to sign in".uppercased())
-                    .font(Theme.mono(10.5, weight: .medium))
-                    .tracking(1.2)
+                Text("Back to sign in")
+                    .font(Theme.ui(15, .semibold))
                     .foregroundStyle(Theme.ink3)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -191,10 +188,10 @@ struct WelcomeScreen: View {
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(13)
+        .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.blueWash)
-        .overlay(Rectangle().stroke(Theme.lineStrong, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
     }
 
     private func field(_ label: String, text: Binding<String>, field: Field,
@@ -209,10 +206,11 @@ struct WelcomeScreen: View {
                 .autocorrectionDisabled()
                 .textContentType(field == .email ? .emailAddress : .name)
                 .focused($focus, equals: field)
-                .padding(.horizontal, 14).padding(.vertical, 13)
+                .padding(.horizontal, 16).padding(.vertical, 15)
                 .background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.r)
-                    .stroke(focus == field ? Theme.accent : Theme.lineStrong, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+                    .stroke(focus == field ? Theme.accent : .clear, lineWidth: 1.5))
         }
     }
 
@@ -226,10 +224,11 @@ struct WelcomeScreen: View {
                 .foregroundStyle(Theme.ink)
                 .textContentType(mode == .signUp ? .newPassword : .password)
                 .focused($focus, equals: .password)
-                .padding(.horizontal, 14).padding(.vertical, 13)
+                .padding(.horizontal, 16).padding(.vertical, 15)
                 .background(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: Theme.r)
-                    .stroke(focus == .password ? Theme.accent : Theme.lineStrong, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+                    .stroke(focus == .password ? Theme.accent : .clear, lineWidth: 1.5))
                 .onSubmit(submit)
         }
     }

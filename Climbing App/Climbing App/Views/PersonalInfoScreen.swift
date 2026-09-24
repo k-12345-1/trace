@@ -33,7 +33,6 @@ struct PersonalInfoScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                    Hairline()
                     units
                     measurement(
                         label: "Height",
@@ -73,7 +72,6 @@ struct PersonalInfoScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            MicroLabel(text: "Profile")
             Text("Personal info")
                 .font(Theme.heading(22))
                 .foregroundStyle(Theme.ink)
@@ -83,21 +81,21 @@ struct PersonalInfoScreen: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
         }
-        .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 20)
+        .padding(.horizontal, Theme.gutter).padding(.top, 12).padding(.bottom, 22)
     }
 
     // MARK: Units
 
     private var units: some View {
         VStack(alignment: .leading, spacing: 8) {
-            MicroLabel(text: "Units")
+            SectionTitle("Units")
             Picker("", selection: $imperial) {
                 Text("Metric").tag(false)
                 Text("Feet and inches").tag(true)
             }
             .pickerStyle(.segmented)
         }
-        .padding(.horizontal, 20).padding(.vertical, 20)
+        .padding(.horizontal, Theme.gutter).padding(.vertical, 18)
     }
 
     // MARK: One measurement
@@ -108,7 +106,7 @@ struct PersonalInfoScreen: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
-                    .font(Theme.heading(16))
+                    .font(Theme.ui(18, .bold))
                     .foregroundStyle(Theme.ink)
                 Spacer()
                 Text(draft.describe(value.wrappedValue))
@@ -132,7 +130,7 @@ struct PersonalInfoScreen: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, 20).padding(.vertical, 18)
+        .padding(.horizontal, Theme.gutter).padding(.vertical, 18)
     }
 
     // MARK: Ape index
@@ -142,7 +140,9 @@ struct PersonalInfoScreen: View {
         if let label = draft.apeIndexLabel {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    MicroLabel(text: "Ape index")
+                    Text("Ape index")
+                        .font(Theme.ui(15, .semibold))
+                        .foregroundStyle(Theme.ink2)
                     Text("Reach minus height, the number climbers quote.")
                         .font(Theme.body(12.5))
                         .foregroundStyle(Theme.ink3)
@@ -152,10 +152,10 @@ struct PersonalInfoScreen: View {
                     .font(Theme.mono(17, weight: .medium)).monospacedDigit()
                     .foregroundStyle(Theme.blue)
             }
-            .padding(14)
+            .padding(16)
             .background(Theme.blueWash)
-            .overlay(Rectangle().stroke(Theme.lineStrong, lineWidth: 1))
-            .padding(.horizontal, 20)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
+            .padding(.horizontal, Theme.gutter)
         }
     }
 
@@ -163,7 +163,7 @@ struct PersonalInfoScreen: View {
 
     private var whatItChanges: some View {
         VStack(alignment: .leading, spacing: 12) {
-            MicroLabel(text: "What these change")
+            SectionTitle("What these change")
             effect(
                 "Height",
                 on: heightCM != nil,
@@ -175,9 +175,9 @@ struct PersonalInfoScreen: View {
                 text: "The dashed circle on the overlay becomes your actual reach. A hold outside it needs a shift of weight before it needs more strength."
             )
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.gutter)
         .padding(.top, 26)
-        .padding(.bottom, 24)
+        .padding(.bottom, 26)
     }
 
     private func effect(_ title: String, on: Bool, text: String) -> some View {
@@ -225,7 +225,7 @@ struct PersonalInfoScreen: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.gutter)
     }
 }
 
@@ -252,16 +252,17 @@ private struct CentimetresField: View {
                 .font(Theme.mono(12))
                 .foregroundStyle(Theme.ink3)
         }
-        .padding(.horizontal, 14).padding(.vertical, 12)
+        .padding(.horizontal, 16).padding(.vertical, 14)
         .background(Theme.surface)
-        .overlay(RoundedRectangle(cornerRadius: Theme.r)
-            .stroke(border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+            .stroke(border, lineWidth: 1.5))
         .onAppear { text = cm.map { String(Int($0.rounded())) } ?? "" }
     }
 
     private var border: Color {
         if !valid { return Theme.ember[3] }
-        return focus == field ? Theme.accent : Theme.lineStrong
+        return focus == field ? Theme.accent : .clear
     }
 }
 
@@ -301,10 +302,12 @@ private struct FeetInchesField: View {
                 .font(Theme.mono(12))
                 .foregroundStyle(Theme.ink3)
         }
-        .padding(.horizontal, 14).padding(.vertical, 12)
+        .padding(.horizontal, 16).padding(.vertical, 14)
         .frame(maxWidth: .infinity)
         .background(Theme.surface)
-        .overlay(RoundedRectangle(cornerRadius: Theme.r).stroke(border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+            .stroke(border, lineWidth: 1.5))
     }
 
     /// Empty in both boxes means not set, rather than zero.
@@ -316,6 +319,6 @@ private struct FeetInchesField: View {
 
     private var border: Color {
         if !valid { return Theme.ember[3] }
-        return focus == field ? Theme.accent : Theme.lineStrong
+        return focus == field ? Theme.accent : .clear
     }
 }

@@ -12,11 +12,9 @@ struct HomeScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     masthead
-                    Hairline()
                     focusBanner
                     SuggestedRoutes()
                     gyms
-                    Hairline()
                     library
                 }
                 // Clear of the tab bar.
@@ -41,21 +39,23 @@ struct HomeScreen: View {
 
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("TRACE")
-                    .font(Theme.ui(16, .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(Theme.blue)
+            HStack(alignment: .center, spacing: 10) {
+                MountainMark(color: .white, inset: 0.16)
+                    .frame(width: 30, height: 30)
+                    .background(Theme.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                Text("Trace")
+                    .font(Theme.ui(20, .bold))
+                    .foregroundStyle(Theme.ink)
                 Spacer()
-                MicroLabel(text: "\(store.climbs.count) climb\(store.climbs.count == 1 ? "" : "s")")
+                Text("\(store.climbs.count) climb\(store.climbs.count == 1 ? "" : "s")")
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink3)
             }
-            Text("The partner who watches you climb.")
-                .font(Theme.body(14))
-                .foregroundStyle(Theme.ink2)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-        .padding(.bottom, 20)
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 10)
+        .padding(.bottom, 18)
     }
 
     // MARK: The session opening
@@ -78,7 +78,7 @@ struct HomeScreen: View {
                             .foregroundStyle(focus.isResolved ? Theme.ok : Theme.blue)
                     }
                     Text(focus.kind.title)
-                        .font(Theme.heading(17))
+                        .font(Theme.ui(19, .bold))
                         .foregroundStyle(Theme.ink)
                     Text(FocusEngine.greeting(for: focus))
                         .font(Theme.body(13))
@@ -86,12 +86,10 @@ struct HomeScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(focus.isResolved ? Theme.surface : Theme.blueWash)
-                .overlay(Rectangle().stroke(
-                    focus.isResolved ? Theme.line : Theme.lineStrong, lineWidth: 1))
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(18)
+                .card(fill: focus.isResolved ? Theme.surface : Theme.blueWash)
+                .padding(.horizontal, Theme.gutter)
+                .padding(.top, 4)
             }
             .buttonStyle(.plain)
         }
@@ -101,8 +99,8 @@ struct HomeScreen: View {
 
     private var gyms: some View {
         VStack(alignment: .leading, spacing: 12) {
-            MicroLabel(text: "Your gyms")
-                .padding(.horizontal, 20)
+            SectionTitle("Your gyms")
+                .padding(.horizontal, Theme.gutter)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -123,11 +121,11 @@ struct HomeScreen: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, Theme.gutter)
             }
         }
-        .padding(.top, 22)
-        .padding(.bottom, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 26)
     }
 
     private func card(_ gym: Gym) -> some View {
@@ -141,27 +139,25 @@ struct HomeScreen: View {
                         .frame(width: 7, height: 18)
                 }
                 if counts.total == 0 {
-                    Text("NOTHING SCANNED")
-                        .font(Theme.mono(8, weight: .medium))
-                        .tracking(0.8)
+                    Text("Nothing scanned")
+                        .font(Theme.ui(12))
                         .foregroundStyle(Theme.ink3)
                 }
             }
             Spacer(minLength: 8)
             Text(gym.name)
-                .font(Theme.ui(13, .semibold))
+                .font(Theme.ui(15, .bold))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
             Text("\(counts.total) route\(counts.total == 1 ? "" : "s") · \(counts.sent) sent")
-                .font(Theme.mono(9.5))
+                .font(Theme.ui(13))
                 .foregroundStyle(Theme.ink3)
         }
-        .frame(width: 134, height: 74, alignment: .topLeading)
-        .padding(12)
-        .background(Theme.surface)
-        .overlay(RoundedRectangle(cornerRadius: Theme.r).stroke(Theme.line, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r))
+        .frame(width: 152, height: 86, alignment: .topLeading)
+        .padding(14)
+        .card()
     }
 
     // MARK: Your library
@@ -170,30 +166,29 @@ struct HomeScreen: View {
         let entries = store.library()
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
-                MicroLabel(text: "Your library")
+                SectionTitle("Your library")
                 Spacer(minLength: 12)
                 if store.climbs.contains(where: { $0.metrics.isTrustworthy }) {
                     NavigationLink { ProgressScreen() } label: {
-                        Text("OVER TIME →")
-                            .font(Theme.mono(10, weight: .medium))
-                            .tracking(1.2)
+                        Text("Over time")
+                            .font(Theme.ui(14, .semibold))
                             .foregroundStyle(Theme.accentText)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 4)
 
             if entries.isEmpty {
                 Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will tell you where the energy went.")
                     .font(Theme.body(14))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Theme.gutter)
             } else {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10),
-                                    GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 13),
+                                    GridItem(.flexible(), spacing: 13)], spacing: 16) {
                     ForEach(entries) { entry in
                         NavigationLink { ClimbCardScreen(entry: entry) } label: {
                             LibraryCard(entry: entry)
@@ -201,9 +196,23 @@ struct HomeScreen: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, Theme.gutter)
             }
         }
+    }
+}
+
+// MARK: - Section title
+
+/// Sentence case and the interface font. The old uppercase mono headings turned
+/// every list into a control panel.
+struct SectionTitle: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Text(text)
+            .font(Theme.ui(19, .bold))
+            .foregroundStyle(Theme.ink)
     }
 }
 
@@ -223,10 +232,10 @@ private struct GymCard: View {
                 .foregroundStyle(tint)
             Spacer(minLength: 8)
             Text(title)
-                .font(Theme.ui(13, .semibold))
+                .font(Theme.ui(15, .bold))
                 .foregroundStyle(Theme.ink)
             Text(subtitle)
-                .font(Theme.mono(9.5))
+                .font(Theme.ui(13))
                 .foregroundStyle(Theme.ink3)
         }
         .frame(width: 134, height: 74, alignment: .topLeading)
@@ -251,60 +260,60 @@ struct LibraryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ClimbThumbnail(climb: entry.latest)
-                .frame(height: 84)
+                .frame(height: 112)
                 .frame(maxWidth: .infinity)
-                .padding(.bottom, 11)
-
-            HStack(spacing: 6) {
-                if let top = entry.topFinding {
-                    SeverityChip(severity: top.severity)
-                } else {
-                    MicroLabel(text: "No findings")
+                .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
+                .overlay(alignment: .topTrailing) {
+                    if entry.sendCount > 0 {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(6)
+                            .background(Circle().fill(Theme.accent))
+                            .padding(8)
+                    }
                 }
-                Spacer(minLength: 0)
-                if entry.sendCount > 0 {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.accent)
-                }
-            }
-
-            Spacer(minLength: 10)
 
             Text(entry.name)
-                .font(Theme.heading(15))
+                .font(Theme.ui(16, .bold))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
 
-            Spacer(minLength: 6)
-
-            HStack(spacing: 8) {
-                count(entry.attemptCount, "attempt")
-                count(entry.sendCount, "send")
+            HStack(spacing: 5) {
+                if let top = entry.topFinding {
+                    Circle()
+                        .fill(Theme.ember[min(top.severity.rawValue, Theme.ember.count - 1)])
+                        .frame(width: 8, height: 8)
+                    Text(top.severity.label)
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink2)
+                } else {
+                    Text("No findings")
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink2)
+                }
             }
-            Text(entry.lastClimbed.formatted(date: .abbreviated, time: .omitted))
-                .font(Theme.mono(9.5))
+            .padding(.top, 4)
+
+            Text(meta)
+                .font(Theme.ui(13))
                 .foregroundStyle(Theme.ink3)
-                .padding(.top, 4)
+                .lineLimit(1)
+                .padding(.top, 2)
         }
-        .frame(height: 232, alignment: .topLeading)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(13)
-        .background(Theme.surface)
-        .overlay(RoundedRectangle(cornerRadius: Theme.r).stroke(Theme.line, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r))
     }
 
-    private func count(_ n: Int, _ noun: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text("\(n)")
-                .font(Theme.mono(13, weight: .medium)).monospacedDigit()
-                .foregroundStyle(Theme.ink)
-            Text(n == 1 ? noun : noun + "s")
-                .font(Theme.mono(9))
-                .foregroundStyle(Theme.ink3)
-        }
+    /// The one line under the name. It has half a screen to live in, so the
+    /// send count only appears once there is one to report.
+    private var meta: String {
+        var parts = ["\(entry.attemptCount) attempt\(entry.attemptCount == 1 ? "" : "s")"]
+        if entry.sendCount > 0 { parts.append("\(entry.sendCount) sent") }
+        parts.append(entry.lastClimbed.formatted(.dateTime.month(.abbreviated).day()))
+        return parts.joined(separator: " · ")
     }
+
 }

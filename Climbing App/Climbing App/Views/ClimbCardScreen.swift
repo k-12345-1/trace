@@ -27,12 +27,15 @@ struct ClimbCardScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     photo
-                    heading
-                    Hairline()
-                    attempts
-                    Hairline()
-                    analysis
-                    physics
+                    VStack(alignment: .leading, spacing: 0) {
+                        heading
+                        attempts
+                        analysis
+                        physics
+                    }
+                    .background(Theme.ground)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .padding(.top, -28)
                 }
                 .padding(.bottom, 96)
             }
@@ -58,62 +61,78 @@ struct ClimbCardScreen: View {
 
     private var photo: some View {
         ClimbThumbnail(climb: live.latest)
-            .frame(height: 260)
+            .frame(height: 330)
             .frame(maxWidth: .infinity)
             .overlay(alignment: .topLeading) { back }
-            .overlay(alignment: .bottomLeading) {
-                if let top = live.topFinding {
-                    SeverityChip(severity: top.severity)
-                        .padding(9)
-                        .background(Theme.ground.opacity(0.92))
-                        .padding(12)
-                }
-            }
     }
 
     /// The photo runs under the status bar, so the way out has to sit on top of it.
     private var back: some View {
         Button { dismiss() } label: {
             Image(systemName: "chevron.left")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ink)
-                .frame(width: 34, height: 34)
-                .background(Circle().fill(Theme.ground.opacity(0.92)))
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(Circle().fill(.black.opacity(0.32)))
+                .overlay(Circle().stroke(.white.opacity(0.35), lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .padding(.leading, 14)
-        .padding(.top, 58)
+        .padding(.leading, Theme.gutter - 4)
+        .padding(.top, 56)
     }
 
     // MARK: Name and counts
 
     private var heading: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(live.name)
-                    .font(Theme.heading(23))
+                    .font(Theme.title(30))
                     .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                 Button {
                     draftName = live.name == "Untitled climb" ? "" : live.name
                     renaming = true
                 } label: {
                     Image(systemName: "pencil")
-                        .font(.system(size: 13))
+                        .font(.system(size: 15))
                         .foregroundStyle(Theme.ink3)
                 }
                 .buttonStyle(.plain)
                 Spacer(minLength: 0)
             }
 
-            HStack(spacing: 26) {
-                tally(live.attemptCount, "attempt")
-                tally(live.sendCount, "send")
-                tally(daysOn, "day")
+            if let top = live.topFinding {
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(Theme.ember[min(top.severity.rawValue, Theme.ember.count - 1)])
+                        .frame(width: 9, height: 9)
+                    Text(top.severity.label)
+                        .font(Theme.ui(15))
+                        .foregroundStyle(Theme.ink2)
+                    Text("·").foregroundStyle(Theme.ink3)
+                    Text(top.kind.title)
+                        .font(Theme.ui(15))
+                        .foregroundStyle(Theme.ink2)
+                        .lineLimit(1)
+                }
             }
+
+            MetricStrip(items: [
+                .init(value: "\(live.attemptCount)", label: live.attemptCount == 1 ? "Attempt" : "Attempts"),
+                .init(value: "\(live.sendCount)", label: live.sendCount == 1 ? "Send" : "Sends"),
+                .init(value: "\(daysOn)", label: daysOn == 1 ? "Day" : "Days"),
+                .init(value: bestEntropy, label: "Best H")
+            ])
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-        .padding(.bottom, 20)
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 26)
+        .padding(.bottom, 24)
+    }
+
+    private var bestEntropy: String {
+        guard let best = bestMeasured else { return "—" }
+        return String(format: "%.2f", best.metrics.entropy)
     }
 
     /// Distinct calendar days on which this route was climbed.
@@ -121,30 +140,20 @@ struct ClimbCardScreen: View {
         Set(live.attempts.map { Calendar.current.startOfDay(for: $0.recordedAt) }).count
     }
 
-    private func tally(_ n: Int, _ noun: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("\(n)")
-                .font(Theme.readout(26)).monospacedDigit()
-                .foregroundStyle(Theme.ink)
-            MicroLabel(text: n == 1 ? noun : noun + "s")
-        }
-    }
-
     // MARK: Attempts
 
     private var attempts: some View {
         VStack(alignment: .leading, spacing: 12) {
-            MicroLabel(text: "Attempts")
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+            SectionTitle("Attempts")
+                .padding(.horizontal, Theme.gutter)
 
-            VStack(spacing: 1) {
+            VStack(spacing: 4) {
                 ForEach(live.attempts.sorted { $0.recordedAt > $1.recordedAt }) { climb in
                     attemptRow(climb)
                 }
             }
-            .background(Theme.line)
-            .padding(.bottom, 20)
+            .padding(.horizontal, Theme.gutter)
+            .padding(.bottom, 26)
         }
     }
 
@@ -152,17 +161,17 @@ struct ClimbCardScreen: View {
         HStack(spacing: 12) {
             NavigationLink { ResultsScreen(climb: climb) } label: {
                 HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(climb.recordedAt.formatted(date: .abbreviated, time: .shortened))
-                            .font(Theme.body(14))
+                            .font(Theme.ui(15, .medium))
                             .foregroundStyle(Theme.ink)
                         if climb.metrics.isTrustworthy {
                             Text("H \(String(format: "%.2f", climb.metrics.entropy)) · \(Int(climb.metrics.staticElbowAngle.rounded()))° elbows")
-                                .font(Theme.mono(10))
+                                .font(Theme.ui(13))
                                 .foregroundStyle(Theme.ink3)
                         } else {
-                            Text("LOW TRACKING")
-                                .font(Theme.mono(9.5, weight: .medium)).tracking(1)
+                            Text("Low tracking")
+                                .font(Theme.ui(13))
                                 .foregroundStyle(Theme.ink3)
                         }
                     }
@@ -183,17 +192,16 @@ struct ClimbCardScreen: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 20).padding(.vertical, 14)
-        .background(Theme.ground)
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .card()
     }
 
     // MARK: Movement analysis
 
     private var analysis: some View {
         VStack(alignment: .leading, spacing: 14) {
-            MicroLabel(text: "Movement analysis")
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+            SectionTitle("Movement analysis")
+                .padding(.horizontal, Theme.gutter)
 
             if let best = bestMeasured {
                 ReadoutGrid {
@@ -208,21 +216,21 @@ struct ClimbCardScreen: View {
                             unit: String(format: "%.1f s", best.metrics.pauseTotal),
                             hint: "while hanging on")
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, Theme.gutter)
 
                 Text("From your \(ordinalBest) attempt, the cleanest one Trace could track.")
-                    .font(Theme.body(12.5))
+                    .font(Theme.ui(13))
                     .foregroundStyle(Theme.ink3)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Theme.gutter)
             } else {
                 Text("Trace could not track any attempt on this route well enough to measure it. Film side on, with the whole boulder in frame.")
                     .font(Theme.body(14))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Theme.gutter)
             }
         }
-        .padding(.bottom, 24)
+        .padding(.bottom, 28)
     }
 
     /// The lowest-entropy attempt Trace could trust, which is the one worth
@@ -248,22 +256,22 @@ struct ClimbCardScreen: View {
 
     private var physics: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 5) {
-                MicroLabel(text: "The physics")
+            VStack(alignment: .leading, spacing: 4) {
+                SectionTitle("The physics")
                 Text("What each of these is standing on")
-                    .font(Theme.heading(18))
-                    .foregroundStyle(Theme.ink)
+                    .font(Theme.ui(14))
+                    .foregroundStyle(Theme.ink3)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, Theme.gutter)
 
             if notes.isEmpty {
                 Text("Nothing was flagged on this route, so there is nothing to explain. The numbers above are defined under Entropy and Smoothness on any attempt Trace could track.")
                     .font(Theme.body(13.5))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Theme.gutter)
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     ForEach(notes, id: \.0) { title, note in
                         PhysicsCard(
                             title: title,
@@ -276,19 +284,19 @@ struct ClimbCardScreen: View {
                         )
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, Theme.gutter)
             }
 
             Button(role: .destructive) { confirmingDelete = true } label: {
-                Text("DELETE THIS ROUTE")
-                    .font(Theme.mono(10.5, weight: .medium)).tracking(1.2)
+                Text("Delete this route")
+                    .font(Theme.ui(15, .semibold))
                     .foregroundStyle(Theme.ember[4])
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 15)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 20)
         }
         .padding(.top, 8)
     }
@@ -334,11 +342,11 @@ private struct PhysicsCard: View {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(title)
-                            .font(Theme.ui(14, .semibold))
+                            .font(Theme.ui(16, .bold))
                             .foregroundStyle(Theme.ink)
                             .multilineTextAlignment(.leading)
-                        Text(note.concept.uppercased())
-                            .font(Theme.mono(9.5, weight: .medium)).tracking(1.1)
+                        Text(note.concept)
+                            .font(Theme.ui(13, .medium))
                             .foregroundStyle(Theme.blueLight)
                     }
                     Spacer(minLength: 0)
@@ -355,29 +363,30 @@ private struct PhysicsCard: View {
                 .font(Theme.mono(11.5))
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(11)
+                .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.blueWash)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
 
             if open {
                 Text(note.why)
-                    .font(Theme.body(13.5))
+                    .font(Theme.ui(14.5))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    MicroLabel(text: "What Trace measured")
+                    Text("What Trace measured")
+                        .font(Theme.ui(13, .semibold))
+                        .foregroundStyle(Theme.ink2)
                     Text(note.measured)
-                        .font(Theme.body(12.5))
+                        .font(Theme.ui(13.5))
                         .foregroundStyle(Theme.ink3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface)
-        .overlay(RoundedRectangle(cornerRadius: Theme.r).stroke(Theme.line, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r))
+        .card()
     }
 }

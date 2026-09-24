@@ -21,24 +21,23 @@ struct ExploreScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                    Hairline()
 
                     if routes.isEmpty {
                         Text(store.routes.isEmpty
                              ? "Nothing scanned yet. Photograph a wall, tap one hold, and Trace picks out the rest of the route by colour."
                              : "Everything you have scanned is sent. Nothing left on this list.")
-                            .font(Theme.body(14))
+                            .font(Theme.ui(15))
                             .foregroundStyle(Theme.ink2)
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(20)
+                            .padding(Theme.gutter)
                     } else {
-                        LazyVStack(spacing: 1) {
+                        LazyVStack(spacing: 6) {
                             ForEach(routes) { route in
                                 NavigationLink { RouteDetailScreen(route: route) } label: { row(route) }
                                     .buttonStyle(.plain)
                             }
                         }
-                        .background(Theme.line)
+                        .padding(.horizontal, Theme.gutter)
                     }
                 }
                 .padding(.bottom, 96)
@@ -50,20 +49,22 @@ struct ExploreScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                MicroLabel(text: "\(store.routes.count) scanned · \(store.gyms.count) gym\(store.gyms.count == 1 ? "" : "s")")
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Explore")
-                    .font(Theme.heading(22))
+                    .font(Theme.title(30))
                     .foregroundStyle(Theme.ink)
+                Text("\(store.routes.count) scanned · \(store.gyms.count) gym\(store.gyms.count == 1 ? "" : "s")")
+                    .font(Theme.ui(14))
+                    .foregroundStyle(Theme.ink3)
             }
             Toggle(isOn: $unsentOnly) {
                 Text("Only what I have not sent")
-                    .font(Theme.body(13.5))
+                    .font(Theme.ui(15))
                     .foregroundStyle(Theme.ink2)
             }
             .tint(Theme.accent)
         }
-        .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 18)
+        .padding(.horizontal, Theme.gutter).padding(.top, 12).padding(.bottom, 20)
     }
 
     private func row(_ route: Route) -> some View {
@@ -73,16 +74,17 @@ struct ExploreScreen: View {
                 .frame(width: 5, height: 40)
             VStack(alignment: .leading, spacing: 5) {
                 Text(route.displayName)
-                    .font(Theme.heading(15.5))
+                    .font(Theme.ui(16.5, .bold))
                     .foregroundStyle(Theme.ink)
-                HStack(spacing: 9) {
+                HStack(spacing: 7) {
                     if !route.grade.isEmpty {
                         Text(route.grade)
-                            .font(Theme.mono(10.5, weight: .medium))
-                            .foregroundStyle(Theme.blueLight)
+                            .font(Theme.ui(13.5, .semibold)).monospacedDigit()
+                            .foregroundStyle(Theme.ink2)
+                        Text("·").foregroundStyle(Theme.ink3)
                     }
                     Text(gymName(for: route))
-                        .font(Theme.mono(10.5))
+                        .font(Theme.ui(13.5))
                         .foregroundStyle(Theme.ink3)
                 }
             }
@@ -93,8 +95,8 @@ struct ExploreScreen: View {
                     .foregroundStyle(Theme.accent)
             }
         }
-        .padding(.horizontal, 20).padding(.vertical, 14)
-        .background(Theme.ground)
+        .padding(.horizontal, 16).padding(.vertical, 15)
+        .card()
         .contentShape(Rectangle())
     }
 

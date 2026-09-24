@@ -10,10 +10,15 @@ enum Theme {
     // you write your climbing into, and it keeps every surface out of the way of
     // the one thing that is actually dark, which is footage of a gym.
     static let ground   = Color(hex: 0xFFFFFF)
-    static let surface  = Color(hex: 0xF4F7FA)
-    static let surface2 = Color(hex: 0xE7EDF4)
-    static let line     = Color(hex: 0xE1E8F0)
-    static let lineStrong = Color(hex: 0xC3D0DE)
+    static let surface  = Color(hex: 0xF4F6F9)
+    static let surface2 = Color(hex: 0xE8EDF3)
+    static let line     = Color(hex: 0xEBEFF4)
+    static let lineStrong = Color(hex: 0xD6DEE7)
+
+    /// Cards are separated by fill and a little lift, not by a drawn border.
+    /// A 1 pixel outline on every surface is what makes a layout look ruled
+    /// rather than composed.
+    static let lift = Color(hex: 0x16395E).opacity(0.07)
 
     /// The blue. Mastheads, banners, anything that needs to carry the identity
     /// rather than ask for a tap.
@@ -49,16 +54,26 @@ enum Theme {
     /// Skeleton overlay colour. Chalk, so it never competes with the accent.
     static let chalk = Color(hex: 0xF5F0EA)
 
-    // MARK: Radius. Low radius reads as instrument.
-    static let rSmall: CGFloat = 2
-    static let r: CGFloat = 4
+    // MARK: Radius
+    //
+    // Generous. The old near-square corners read as instrument panel, which is
+    // accurate about what the app does and wrong about how it should feel to
+    // open.
+    static let rSmall: CGFloat = 9     // chips and small marks
+    static let r: CGFloat = 14         // fields and inline controls
+    static let rCard: CGFloat = 20     // cards, photos, sheets
+    static let rPill: CGFloat = 999    // buttons
+
+    // MARK: Rhythm
+    static let gutter: CGFloat = 22    // page margin
+    static let gap: CGFloat = 12       // between siblings
 
     // MARK: Type.
     //
     // Inter for the interface, matching KAYA. Numbers stay monospaced: Inter has
     // no mono cut, and every readout in this app depends on tabular digits lining
     // up, so SF Mono keeps that job.
-    static func ui(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+    static func ui(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         if let name = Fonts.name(for: weight) {
             return .custom(name, size: size)
         }
@@ -66,6 +81,7 @@ enum Theme {
     }
 
     static func display(_ size: CGFloat = 32) -> Font { ui(size, .bold) }
+    static func title(_ size: CGFloat = 28) -> Font { ui(size, .bold) }
     static func heading(_ size: CGFloat = 19) -> Font { ui(size, .semibold) }
     static func body(_ size: CGFloat = 15) -> Font { ui(size, .regular) }
     /// Readouts. A metric should look like an instrument, not like body copy.
@@ -85,9 +101,30 @@ struct MicroLabel: View {
     var color: Color = Theme.ink3
     var body: some View {
         Text(text.uppercased())
-            .font(Theme.mono(10, weight: .medium))
-            .tracking(1.4)
+            .font(Theme.ui(11, .semibold))
+            .tracking(0.7)
             .foregroundStyle(color)
+    }
+}
+
+// MARK: - Card
+
+/// A surface that reads as an object: filled, rounded, lifted a little, and
+/// with no drawn edge.
+struct CardSurface: ViewModifier {
+    var radius: CGFloat = Theme.rCard
+    var fill: Color = Theme.surface
+    func body(content: Content) -> some View {
+        content
+            .background(fill)
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .shadow(color: Theme.lift, radius: 10, y: 3)
+    }
+}
+
+extension View {
+    func card(radius: CGFloat = Theme.rCard, fill: Color = Theme.surface) -> some View {
+        modifier(CardSurface(radius: radius, fill: fill))
     }
 }
 

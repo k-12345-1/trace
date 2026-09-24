@@ -26,29 +26,28 @@ struct SuggestedRoutes: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Theme.gutter)
                 }
                 Text(picks[0].reason)
-                    .font(Theme.body(12.5))
+                    .font(Theme.ui(14))
                     .foregroundStyle(Theme.ink3)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Theme.gutter)
             }
-            .padding(.top, 22)
+            .padding(.top, 26)
             .padding(.bottom, 24)
         }
     }
 
     private func header(_ focus: Focus) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            MicroLabel(text: "Try these")
-            Spacer(minLength: 12)
-            Text("for \(focus.kind.title.lowercased())")
-                .font(Theme.mono(9.5))
+        VStack(alignment: .leading, spacing: 3) {
+            SectionTitle("Try these")
+            Text("For \(focus.kind.title.lowercased())")
+                .font(Theme.ui(14))
                 .foregroundStyle(Theme.ink3)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Theme.gutter)
     }
 
     private func card(_ pick: Recommendation) -> some View {
@@ -59,8 +58,8 @@ struct SuggestedRoutes: View {
                     .frame(width: 6, height: 18)
                 if !pick.route.grade.isEmpty {
                     Text(pick.route.grade)
-                        .font(Theme.mono(11, weight: .medium))
-                        .foregroundStyle(Theme.blue)
+                        .font(Theme.ui(14, .bold)).monospacedDigit()
+                        .foregroundStyle(Theme.ink)
                 }
                 Spacer(minLength: 0)
                 if pick.route.sent {
@@ -73,29 +72,27 @@ struct SuggestedRoutes: View {
             Spacer(minLength: 8)
 
             Text(pick.route.displayName)
-                .font(Theme.ui(13.5, .semibold))
+                .font(Theme.ui(15.5, .bold))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
             Text(gymName(pick.route))
-                .font(Theme.mono(9.5))
+                .font(Theme.ui(13))
                 .foregroundStyle(Theme.ink3)
                 .lineLimit(1)
 
             if let note = pick.gradeNote {
                 Text(note)
-                    .font(Theme.mono(9))
+                    .font(Theme.ui(12.5))
                     .foregroundStyle(Theme.blueLight)
                     .lineLimit(1)
                     .padding(.top, 3)
             }
         }
-        .frame(width: 148, height: 96, alignment: .topLeading)
-        .padding(12)
-        .background(Theme.surface)
-        .overlay(RoundedRectangle(cornerRadius: Theme.r).stroke(Theme.line, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.r))
+        .frame(width: 168, height: 104, alignment: .topLeading)
+        .padding(15)
+        .card()
     }
 
     private func gymName(_ route: Route) -> String {
