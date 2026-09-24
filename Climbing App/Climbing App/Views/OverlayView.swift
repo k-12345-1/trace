@@ -61,7 +61,6 @@ struct OverlayView: View {
                     drawSkeleton(ctx: &ctx, frame: frame, rect: rect, scale: scale)
                     drawAngles(ctx: &ctx, frame: frame, rect: rect, scale: scale)
                     drawCOM(ctx: &ctx, frame: frame, rect: rect, scale: scale)
-                    drawInset(ctx: &ctx, frame: frame, in: rect)
                 }
                 .allowsHitTesting(false)
 
@@ -214,6 +213,14 @@ struct OverlayView: View {
     // MARK: Angle chips
 
     /// The joints worth a number: vertex, and the two joints that define the angle.
+    /// The eight joints that get a number, each read as the angle at the middle
+    /// joint between the two named either side of it.
+    ///
+    /// Every one is in degrees, and 180 means the limb is straight. An elbow at
+    /// 180 is hanging off the skeleton; an elbow at 90 is being held there by
+    /// the biceps, which is the single most expensive thing a climber does. The
+    /// chip carries the degree sign for exactly that reason: a bare "136" reads
+    /// as an identifier or a score, and it is neither.
     private static let angled: [(JointID, JointID, JointID)] = [
         (.leftElbow, .leftShoulder, .leftWrist),
         (.rightElbow, .rightShoulder, .rightWrist),
@@ -247,7 +254,7 @@ struct OverlayView: View {
             ctx.stroke(leader, with: .color(Ink.casing.opacity(0.7)), lineWidth: 2.6)
             ctx.stroke(leader, with: .color(Ink.leader), lineWidth: 1)
 
-            chip(&ctx, text: "\(degrees)", at: anchor, fontSize: size)
+            chip(&ctx, text: "\(degrees)°", at: anchor, fontSize: size)
         }
     }
 
@@ -300,38 +307,6 @@ struct OverlayView: View {
         ctx.draw(label, at: CGPoint(x: plate.midX, y: plate.midY), anchor: .center)
     }
 
-    // MARK: Isolated pose inset
-
-    /// The skeleton on its own, away from the wall. Holds are visual noise when
-    /// what you are looking at is the shape of the body.
-    private func drawInset(ctx: inout GraphicsContext, frame: PoseFrame, in rect: CGRect) {
-        let side = min(86, rect.width * 0.22)
-        guard side > 40, let box = PhaseTimeline.boundingBox(frame) else { return }
-        let panel = CGRect(x: rect.maxX - side - 10, y: rect.minY + rect.height * 0.38,
-                           width: side, height: side)
-        ctx.fill(Path(roundedRect: panel, cornerRadius: 14), with: .color(Ink.casing.opacity(0.9)))
-        ctx.stroke(Path(roundedRect: panel, cornerRadius: 14),
-                   with: .color(.white.opacity(0.2)), lineWidth: 1)
-
-        let pad = side * 0.14
-        let fit = min((side - pad * 2) / max(box.width, 0.01),
-                      (side - pad * 2) / max(box.height, 0.01))
-        let ox = panel.midX - (box.midX * fit)
-        let oy = panel.midY - (box.midY * fit)
-        func place(_ p: CGPoint) -> CGPoint { CGPoint(x: ox + p.x * fit, y: oy + p.y * fit) }
-
-        var bones = Path()
-        for (a, b) in Skeleton.bones {
-            guard let p1 = frame.pt(a), let p2 = frame.pt(b) else { continue }
-            bones.move(to: place(p1)); bones.addLine(to: place(p2))
-        }
-        ctx.stroke(bones, with: .color(Ink.bone),
-                   style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
-        for id in Skeleton.dots {
-            guard let p = frame.pt(id) else { continue }
-            ctx.fill(disc(at: place(p), r: 1.5), with: .color(Ink.joint))
-        }
-    }
 }
 
 

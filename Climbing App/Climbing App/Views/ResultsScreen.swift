@@ -94,9 +94,11 @@ struct ResultsScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    NavHeader { onClose?() ?? dismiss() }
-                    header
+                    // The footage is the header. It runs to both edges and to
+                    // the very top of the screen, under the status bar, with the
+                    // back control floating on it.
                     stage
+                    header
                     telemetry
                     scrubber
                     Hairline()
@@ -111,6 +113,7 @@ struct ResultsScreen: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .ignoresSafeArea(edges: .top)
         }
         .toolbar(.hidden, for: .navigationBar)
         .alert("Rename climb", isPresented: $renaming) {
@@ -129,28 +132,33 @@ struct ResultsScreen: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 7) {
                 // Tappable, because a typo in the label quietly stops this climb
                 // being grouped with its own other attempts.
                 Button {
                     draftLabel = climb.label
                     renaming = true
                 } label: {
-                    HStack(spacing: 7) {
+                    HStack(spacing: 8) {
                         Text(label)
-                            .font(Theme.serif(24, .semibold))
+                            .font(Theme.title(27))
                             .foregroundStyle(Theme.ink)
+                            .multilineTextAlignment(.leading)
                         Image(systemName: "pencil")
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundStyle(Theme.ink3)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+
+                verdict
+
                 Text(climb.recordedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(Theme.ui(14))
+                    .font(Theme.ui(12.5))
                     .foregroundStyle(Theme.ink3)
             }
-            Spacer()
+            Spacer(minLength: 10)
             if let onClose {
                 Button("Done") { onClose() }
                     .font(Theme.ui(15, .semibold))
@@ -158,9 +166,35 @@ struct ResultsScreen: View {
                     .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-        .padding(.bottom, 16)
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 20)
+        .padding(.bottom, 4)
+    }
+
+    /// What this attempt came down to, on one line under the name. It is the
+    /// same sentence the library card shows, so a climb reads the same wherever
+    /// you meet it.
+    @ViewBuilder
+    private var verdict: some View {
+        if let top = climb.findings.first {
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(Theme.ember[min(top.severity.rawValue, Theme.ember.count - 1)])
+                    .frame(width: 7, height: 7)
+                Text(top.severity.label)
+                    .font(Theme.ui(13.5, .semibold))
+                    .foregroundStyle(Theme.ink2)
+                Text("·").foregroundStyle(Theme.ink3)
+                Text(top.kind.title)
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink2)
+                    .lineLimit(1)
+            }
+        } else if climb.metrics.isTrustworthy {
+            Text("Nothing worth flagging")
+                .font(Theme.ui(13.5))
+                .foregroundStyle(Theme.ink2)
+        }
     }
 
     // MARK: Stage
@@ -176,20 +210,35 @@ struct ResultsScreen: View {
                 reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body),
                 title: label
             )
+            // Top right, because the back ring now floats top left.
             VStack {
                 HStack {
+                    Spacer()
                     StatusChip(
                         text: "Tracking \(Int(climb.metrics.trackingConfidence * 100))%",
                         dot: climb.metrics.isTrustworthy ? Theme.ok : Theme.ember[1]
                     )
-                    Spacer()
                 }
                 Spacer()
             }
-            .padding(12)
+            .padding(.horizontal, 14)
+            .padding(.top, 58)
         }
-        .frame(height: 400)
+        // The video's own aspect, so it fills the width exactly and there is
+        // never a letterbox. Cropping to a fixed height would be the other way
+        // to kill the black bars, and it would cut the climber out of a tall
+        // portrait clip, which is the one thing the screen exists to show.
+        .aspectRatio(aspect > 0 ? aspect : 9.0 / 16.0, contentMode: .fit)
+        .frame(maxWidth: .infinity)
         .clipped()
+        // The back control rides on the footage rather than being pinned to the
+        // screen. Pinned, it ends up as a white-on-dark disc floating over white
+        // paper as soon as you scroll past the video, which reads as a bug.
+        .overlay(alignment: .topLeading) {
+            BackOverlayButton { onClose?() ?? dismiss() }
+                .padding(.leading, Theme.gutter - 6)
+                .padding(.top, 52)
+        }
         .contentShape(Rectangle())
         .onTapGesture { playback.toggle() }
     }
@@ -212,6 +261,13 @@ struct ResultsScreen: View {
             )
             .padding(.horizontal, Theme.gutter)
             .padding(.top, 14)
+
+            Text("The numbers on the climber are joint angles in degrees: elbows, shoulders, hips and knees. 180° is a straight limb hanging off the skeleton. The lower the number, the more of that load a muscle is holding.")
+                .font(Theme.ui(12.5))
+                .foregroundStyle(Theme.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Theme.gutter)
+                .padding(.top, 10)
         }
     }
 

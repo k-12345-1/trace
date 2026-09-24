@@ -267,17 +267,22 @@ struct RouteDetailScreen: View {
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
 
-    private var hasPhoto: Bool { (try? Data(contentsOf: live.photoURL)) != nil }
-
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // The photograph is the header: it runs to the very top of
                     // the screen, under the status bar, with the back control
                     // floating on it. The wall is what you came to look at.
+                    // The control rides on the photograph. Pinned to the screen
+                    // it would float over white paper once you scrolled past.
                     photo
+                        .overlay(alignment: .topLeading) {
+                            BackOverlayButton { dismiss() }
+                                .padding(.leading, Theme.gutter - 6)
+                                .padding(.top, 52)
+                        }
 
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 5) {
@@ -338,18 +343,6 @@ struct RouteDetailScreen: View {
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)
-
-            // On the photograph it is white on a disc; on the pale fallback
-            // panel that would be invisible, so it reverts to the paper control.
-            Group {
-                if hasPhoto {
-                    BackOverlayButton { dismiss() }
-                        .padding(.leading, Theme.gutter - 6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    NavHeader(title: nil) { dismiss() }
-                }
-            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
