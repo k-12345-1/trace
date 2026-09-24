@@ -6,56 +6,62 @@ enum Theme {
 
     // MARK: Ground and surfaces
     //
-    // White and blue. The app chrome is paper: a light ground reads as a notebook
-    // you write your climbing into, and it keeps every surface out of the way of
-    // the one thing that is actually dark, which is footage of a gym.
-    static let ground   = Color(hex: 0xFCFBF6)   // warm paper, not white
-    static let surface  = Color(hex: 0xF4F2E9)
-    static let surface2 = Color(hex: 0xE9E6D9)
-    static let line     = Color(hex: 0xE6E2D5)
-    static let lineStrong = Color(hex: 0xD2CDBC)
+    // Four colours and nothing else: white, a light grey, a light blue and a
+    // dark blue. Everything on screen is one of those, at a weight or an
+    // opacity. The grey is given a blue cast so it belongs to the same family
+    // rather than sitting beside it as a neutral.
+    static let ground   = Color(hex: 0xFFFFFF)
+    static let surface  = Color(hex: 0xF2F5F9)   // the light grey
+    static let surface2 = Color(hex: 0xE5EBF2)
+    static let line     = Color(hex: 0xE8EDF3)
+    static let lineStrong = Color(hex: 0xCBD6E2)
 
     /// Cards are separated by fill and a little lift, not by a drawn border.
     /// A 1 pixel outline on every surface is what makes a layout look ruled
     /// rather than composed.
-    static let lift = Color(hex: 0x22269B).opacity(0.07)
+    static let lift = Color(hex: 0x0F2C5C).opacity(0.07)
 
-    /// The ink. One blue does everything: the wordmark, the mark, the buttons,
-    /// the links. A single pigment on paper is the whole idea, so a second
-    /// accent would break it rather than help.
-    static let blue      = Color(hex: 0x22269B)
-    static let blueLight = Color(hex: 0x4A4FBE)
-    static let blueWash  = Color(hex: 0x22269B).opacity(0.07)
+    /// The two blues. Dark carries the words and the actions; light carries the
+    /// washes, the highlights and the low end of the severity ramp.
+    static let blue      = Color(hex: 0x0F2C5C)
+    static let blueLight = Color(hex: 0x5B95D6)
+    static let blueWash  = Color(hex: 0x5B95D6).opacity(0.13)
 
     /// Kept so older code that asked for the banner colour still compiles.
     static let wine = blue
 
     // MARK: Ink
-    static let ink   = Color(hex: 0x15162E)      // near-black, carrying the blue
-    static let ink2  = Color(hex: 0x4C4E6B)
-    static let ink3  = Color(hex: 0x8A8B9E)
+    //
+    // Text is the dark blue rather than a black, so the page has no fifth colour
+    // hiding in it.
+    static let ink   = Color(hex: 0x0F2C5C)
+    static let ink2  = Color(hex: 0x4A6183)
+    static let ink3  = Color(hex: 0x8C9CB0)
 
     // MARK: Accent
     //
-    // The same ink. Hierarchy comes from weight, size and ground rather than
-    // from a second hue, which is what makes a one-pigment identity hold.
-    static let accent     = Color(hex: 0x22269B)
-    static let accentText = Color(hex: 0x22269B)
-    static let accentWash = Color(hex: 0x22269B).opacity(0.09)
+    // The dark blue. Hierarchy comes from weight, size and ground rather than
+    // from a second hue, which is what makes a small palette hold together.
+    static let accent     = Color(hex: 0x0F2C5C)
+    static let accentText = Color(hex: 0x1C4C8F)
+    static let accentWash = Color(hex: 0x5B95D6).opacity(0.13)
 
-    /// Affirmative. The same blue: with no green in the palette, a cleared focus
-    /// is told apart from an open one by its words and its ground, not its hue.
+    /// Affirmative. The same blue: a cleared focus is told apart from an open
+    /// one by its words and its ground, not by its hue.
     static let ok = accent
 
-    /// Severity ramp. A leak costs more or less, so it gets a ramp and not a
-    /// traffic light. Status colour, deliberately outside the brand pair.
+    /// Severity ramp, light blue into dark blue.
+    ///
+    /// A leak costs more or less, so it is a magnitude, and a magnitude belongs
+    /// on one hue running light to dark rather than on a traffic light. It never
+    /// carries the meaning alone: every severity mark ships beside its own word.
     static let ember: [Color] = [
-        Color(hex: 0xE8B44A), Color(hex: 0xE09338), Color(hex: 0xD4702B),
-        Color(hex: 0xC24D28), Color(hex: 0x9E2E1E)
+        Color(hex: 0xBBD4EE), Color(hex: 0x8FB6E0), Color(hex: 0x5B95D6),
+        Color(hex: 0x2E639F), Color(hex: 0x0F2C5C)
     ]
 
-    /// Skeleton overlay colour. Chalk, so it never competes with the accent.
-    static let chalk = Color(hex: 0xF5F0EA)
+    /// Overlay ink on footage, where the ground is a gym wall rather than a page.
+    static let chalk = Color(hex: 0xFFFFFF)
 
     // MARK: Radius
     //
