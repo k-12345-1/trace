@@ -94,6 +94,7 @@ struct MainTabs: View {
             }
             .allowsHitTesting(false)
             .ignoresSafeArea()
+            .ignoresSafeArea(.keyboard, edges: .bottom)
 
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.
@@ -134,6 +135,13 @@ struct MainTabs: View {
                 withAnimation(.easeOut(duration: 0.18)) { entryOpen.toggle() }
             }
             .padding(.horizontal, 10)
+            // The keyboard is a safe area inset like any other, so by default
+            // the bar rides up on top of it: two rows of controls stacked over
+            // the keys, which is neither useful nor what anyone expects. The
+            // bar stays at the bottom of the screen and the keyboard covers it.
+            // Only the bar opts out. The page underneath still gets the inset,
+            // so a field being typed into is still lifted clear of the keys.
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .fullScreenCover(isPresented: $showCapture) {
             CaptureScreen { url in
