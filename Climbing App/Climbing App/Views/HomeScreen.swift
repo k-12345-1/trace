@@ -42,12 +42,15 @@ struct HomeScreen: View {
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
-                MountainMark(color: Theme.blue, inset: 0.14)
-                    .frame(width: 32, height: 32)
-                    .background(Theme.ground,
-                                in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .stroke(Theme.lineStrong, lineWidth: 1))
+                // No tile and no border: the artwork is already a print on
+                // paper, and boxing it makes it look like a sticker of itself.
+                //
+                // Bigger than a conventional masthead glyph would be, because
+                // this is a stippled print rather than an icon. Below about
+                // forty points the texture stops resolving and the figure turns
+                // into a smudge, so the mark is given the room it needs.
+                MountainMark(inset: 0)
+                    .frame(width: 46, height: 46)
                 Text("Trace")
                     .font(Theme.serif(24, .semibold))
                     .foregroundStyle(Theme.blue)

@@ -98,7 +98,9 @@ struct ClimbThumbnail: View {
                         .resizable()
                         .scaledToFill()
                 } else {
-                    MountainMark(color: Theme.ink3.opacity(0.4), inset: 0.3)
+                    // Quiet: this is a placeholder for a missing frame, not a
+                    // second logo on the page.
+                    MountainMark(inset: 0.3).opacity(0.18)
                 }
             }
             .clipped()

@@ -55,7 +55,7 @@ struct PaywallScreen: View {
     }
 
     private var mark: some View {
-        MountainMark(color: Theme.blue)
+        MountainMark(inset: 0)
             .frame(width: 46, height: 46)
             .padding(.horizontal, Theme.gutter)
             .padding(.top, 8)

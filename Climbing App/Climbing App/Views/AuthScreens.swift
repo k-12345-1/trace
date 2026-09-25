@@ -70,17 +70,11 @@ private struct AuthShell<Content: View>: View {
 /// The mark over the wordmark, centered. This is what animates.
 private struct LogoLockup: View {
     var body: some View {
-        VStack(spacing: 14) {
-            MountainMark(color: Theme.blue, inset: 0.12)
-                .frame(width: 92, height: 92)
-                .background(Theme.ground,
-                            in: RoundedRectangle(cornerRadius: 23, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 23, style: .continuous)
-                    .stroke(Theme.lineStrong, lineWidth: 1))
-            Text("Trace")
-                .font(Theme.serif(34, .semibold))
-                .foregroundStyle(Theme.blue)
-        }
+        // The mark and the word are one piece of artwork, so they are drawn
+        // together rather than assembled out of a picture and a typeface that
+        // is not the one the word was set in.
+        TraceLockup()
+            .frame(width: 162)
     }
 }
 
@@ -490,12 +484,8 @@ struct StaySignedInScreen: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 16) {
-                    MountainMark(color: Theme.blue, inset: 0.12)
-                        .frame(width: 76, height: 76)
-                        .background(Theme.ground,
-                                    in: RoundedRectangle(cornerRadius: 19, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 19, style: .continuous)
-                            .stroke(Theme.lineStrong, lineWidth: 1))
+                    MountainMark(inset: 0)
+                        .frame(width: 96, height: 96)
 
                     Text("Stay signed in?")
                         .font(Theme.serif(30, .semibold))
