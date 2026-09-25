@@ -3,6 +3,7 @@ import SwiftUI
 /// Home: what you are working on, where you climb, and everything you have climbed.
 struct HomeScreen: View {
     @ObservedObject private var store = Store.shared
+    @ObservedObject private var logos = VenueLogos.shared
     @State private var namingGym = false
     @State private var newGymName = ""
 
@@ -190,13 +191,19 @@ struct HomeScreen: View {
         ) {
             ZStack {
                 Theme.surface
-                if let picture = GymPicture.image(for: gym) {
-                    // Their logo, or the photo you took. Fitted, because a
-                    // logo cropped to a square loses the end of the name.
-                    Image(uiImage: picture)
+                if let photo = GymPicture.image(for: gym) {
+                    // Fitted, because a picture cropped to a square loses the
+                    // ends of it.
+                    Image(uiImage: photo)
                         .resizable()
                         .scaledToFit()
                         .padding(14)
+                } else if let logo = logos.logo(for: gym) {
+                    // Edge to edge: a site icon is drawn to fill a rounded
+                    // square already.
+                    Image(uiImage: logo)
+                        .resizable()
+                        .scaledToFit()
                 } else if colors.isEmpty {
                     Text(initials(of: gym.name))
                         .font(Theme.serif(34, .semibold))

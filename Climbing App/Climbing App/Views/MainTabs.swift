@@ -474,7 +474,10 @@ private struct AddPanel: View {
             }
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 16)
+        // Lower than it was, so the room above the title matches the room
+        // between the title and the first card rather than being half of it.
+        .padding(.top, 32)
+        .padding(.bottom, 16)
     }
 
     private func row(icon: String, title: String, detail: String,

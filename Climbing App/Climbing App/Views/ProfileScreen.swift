@@ -137,6 +137,12 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
 
+            // The one switch in the app, because it is the one thing Trace
+            // does over the network that is not your account or your
+            // subscription. It says what it costs rather than being a word
+            // with a toggle beside it.
+            logoSwitch
+
             NavigationLink { LegalScreen.privacy() } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
                         .font(.system(size: 18, weight: .light))
@@ -166,6 +172,36 @@ struct ProfileScreen: View {
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
         .padding(.horizontal, Theme.gutter)
+    }
+
+    private var logoSwitch: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "building.2")
+                .font(.system(size: 18, weight: .light))
+                .foregroundStyle(Theme.blue)
+                .frame(width: 50, height: 50)
+                .background(Theme.surface2)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Gym logos")
+                    .font(Theme.ui(16, .medium))
+                    .foregroundStyle(Theme.ink)
+                Text("Trace asks a gym's own website for its logo the first time you see that gym, and keeps it on this phone. Nothing about you goes with the request. Off means initials instead.")
+                    .font(Theme.ui(12.5))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            Toggle("", isOn: Binding(get: { store.fetchesGymLogos },
+                                     set: { store.setFetchesGymLogos($0) }))
+                .labelsHidden()
+                .tint(Theme.button)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
     }
 
     private func row(icon: AnyView, label: String, detail: String,

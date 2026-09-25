@@ -46,6 +46,13 @@ struct GymPictureSquare: View {
     let image: UIImage
     var size: CGFloat = 54
     var radius: CGFloat? = nil
+    /// Share of the square left as margin.
+    ///
+    /// A photograph you took wants a little air around it. A logo does not: a
+    /// site icon is drawn to fill a rounded square already, and leaving a ring
+    /// of cream around one makes it look like a sticker of a logo rather than
+    /// the logo.
+    var inset: Double = 0.10
 
     var body: some View {
         Theme.surface
@@ -53,7 +60,7 @@ struct GymPictureSquare: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                    .padding(size * 0.10)
+                    .padding(size * inset)
             }
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: radius ?? size * 0.22,

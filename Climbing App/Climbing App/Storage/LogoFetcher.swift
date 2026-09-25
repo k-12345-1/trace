@@ -3,18 +3,20 @@ import UIKit
 
 /// Fetches a gym's logo from the gym's own website.
 ///
-/// ## Why this is a button and not something the app does
+/// ## What this costs, and who decides
 ///
-/// Trace ships no gym logos. They are trademarks, there is no licensed source
-/// for six hundred of them, and quietly pulling each one when a list scrolls
-/// would tell six hundred servers that someone opened this app. That last part
-/// is the objection that matters: everything else in Trace stays on the phone.
+/// Trace ships no gym logos. They are trademarks and there is no licensed
+/// source for six hundred of them, so the only place a gym's logo exists is on
+/// the gym's own site. Asking for it is a request, and a request tells that
+/// server somebody is interested in that gym, which is the one thing in Trace
+/// that leaves the phone for a reason that is not the person's account or their
+/// subscription.
 ///
-/// So this happens only when you press the button, only for the one gym you
-/// pressed it on, and only to that gym's own website, which is the one server
-/// with a reason to know you are interested in that gym. What comes back is
-/// saved on the phone like any picture you took yourself. The button says all
-/// of this before you press it.
+/// So it is a setting, on by default, that says exactly that and can be turned
+/// off, and the privacy policy lists it rather than claiming nothing goes out.
+/// Nothing about the person goes with the request: no id, no account, no
+/// location, and the session is ephemeral so no cookie survives it. What comes
+/// back is saved on the phone and never asked for twice.
 ///
 /// What it gets is the site's own icon, which for most gyms is their logo and
 /// for a few is whatever their web host set. It is not guaranteed to be good.
@@ -44,8 +46,13 @@ enum LogoFetcher {
 
     static func logo(for gym: Gym) async throws -> Data {
         guard let venueID = gym.venueID,
-              let venue = GymDirectory.all.first(where: { $0.id == venueID }),
-              let site = venue.website,
+              let venue = GymDirectory.all.first(where: { $0.id == venueID })
+        else { throw Failure.noWebsite }
+        return try await logo(for: venue)
+    }
+
+    static func logo(for venue: Venue) async throws -> Data {
+        guard let site = venue.website,
               let base = URL(string: site),
               base.host != nil
         else { throw Failure.noWebsite }

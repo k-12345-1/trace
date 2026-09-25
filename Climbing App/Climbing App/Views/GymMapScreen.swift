@@ -18,6 +18,7 @@ struct GymMapScreen: View {
     let focus: CLLocation?
 
     @ObservedObject private var store = Store.shared
+    @ObservedObject private var logos = VenueLogos.shared
     @Environment(\.dismiss) private var dismiss
     @State private var camera: MapCameraPosition = .automatic
     @State private var selected: Venue?
@@ -48,10 +49,10 @@ struct GymMapScreen: View {
                 }
                 if focus != nil { UserAnnotation() }
             }
-            .mapControls {
-                MapUserLocationButton()
-                MapCompass()
-            }
+            // No recentre arrow. The map already opens on you when it knows
+            // where you are, and the control sat in the one corner the count
+            // was in, on top of the only thing up there worth reading.
+            .mapControls { MapCompass() }
             // The tiles run to the bottom of the phone; what sits on top of
             // them does not. Apple's attribution has to stay legible, and the
             // bar floats over the last ninety points of the screen, so the
@@ -146,6 +147,8 @@ struct GymMapScreen: View {
         return HStack(spacing: 14) {
             if let picture = GymPicture.image(for: gym) {
                 GymPictureSquare(image: picture, size: 46)
+            } else if let logo = logos.logo(for: venue) {
+                GymPictureSquare(image: logo, size: 46, inset: 0)
             } else {
                 GymMark(name: venue.name, seed: venue.id, size: 46)
             }

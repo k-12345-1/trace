@@ -25,7 +25,7 @@ struct LegalScreen: View {
     /// Bumped whenever either document changes in a way that alters what a
     /// person agreed to. Shown at the top of both so a support question about
     /// "which terms" has an answer.
-    static let version = "1.0"
+    static let version = "1.1"
 
     @Environment(\.dismiss) private var dismiss
     /// True when this is pushed inside the tabbed app, false when it is opened
@@ -133,7 +133,7 @@ extension LegalScreen {
         LegalScreen(
             title: "Privacy Policy",
             updated: "24 September 2026",
-            standfirst: "Trace measures your climbing on your phone and uploads none of it. This policy exists to say exactly what that means, and to be honest about the two places where something does leave the device.",
+            standfirst: "Trace measures your climbing on your phone and uploads none of it. This policy exists to say exactly what that means, and to be honest about the three places where something does leave the device.",
             sections: [
                 Section(heading: "What stays on your phone", body: [
                     "Your video clips, the pose data extracted from them, every measurement, every finding, your route photographs, the holds found in them, your gyms, and your height, reach and weight. All of it is written to this app's own storage on this device.",
@@ -151,6 +151,7 @@ extension LegalScreen {
                 Section(heading: "What does leave the device", body: [
                     "Your account. Signing in sends your email address and password to our authentication provider so we can tell whether the person opening the app is you. We store your email address, when the account was made, and nothing else about you. We do not store your password: the provider holds a hash of it.",
                     "Your subscription. Purchases are handled by Apple. Apple tells the app whether a subscription is active. We never see your card, your billing address, or your Apple ID. We do not receive a payment record with your name on it.",
+                    "Gym logos. Trace ships none: a gym's logo is theirs, and the only place it exists is on their own website. So the first time you see a particular gym in Explore, Trace asks that gym's website for the icon it publishes, and saves it on this phone. Nothing about you goes with that request: no name, no account, no location, no identifier, and no cookie survives it. The gym's web host can see that someone asked. Each gym is asked once, ever, and you can turn the whole thing off in Profile, which leaves initials in place of logos.",
                     "That is the complete list. There is no analytics, no crash reporting, no advertising identifier, no tracking pixel, and no third party SDK that phones home."
                 ]),
                 Section(heading: "Filming other people", body: [
@@ -170,7 +171,8 @@ extension LegalScreen {
                     "If you are in California, the CCPA gives you similar rights. We do not sell or share personal information, and we never have."
                 ]),
                 Section(heading: "Changes", body: [
-                    "This document ships inside the app, so it can only change when you install an update. The version number at the top changes with it, and a material change will be flagged in the app rather than made quietly."
+                    "This document ships inside the app, so it can only change when you install an update. The version number at the top changes with it, and a material change will be flagged in the app rather than made quietly.",
+                    "Version 1.1 added gym logos, described above. It is the only thing that has ever been added to the list of what leaves this phone, and it is the only one with a switch, because it is the only one that is not required to run the app."
                 ])
             ],
             insideApp: insideApp)

@@ -18,6 +18,7 @@ import CoreLocation
 /// The list is OpenStreetMap, credited at the bottom as its license requires.
 struct ExploreScreen: View {
     @ObservedObject private var store = Store.shared
+    @ObservedObject private var logos = VenueLogos.shared
     @StateObject private var whereabouts = Whereabouts()
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
@@ -267,16 +268,20 @@ struct ExploreScreen: View {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    /// The gym's own picture if it has one, then the colors you have scanned
-    /// there, then the mark Trace draws.
+    /// Your own picture for the gym, then their logo, then the colors you have
+    /// scanned there, then the mark Trace draws.
     ///
-    /// The picture wins because it is the one thing here that is actually the
-    /// gym: their logo, fetched from their own site, or a photograph of the
-    /// place. A grid of hold colors is a good stand-in and a poor substitute.
+    /// A picture you set wins, because you set it. Their logo comes next: it is
+    /// the thing that makes a row recognizable before you have read the name
+    /// beside it, which is the whole job of a square in a list this long. Hold
+    /// colors and initials are both stand-ins for that, in the order of how
+    /// much they say.
     private func face(for venue: Venue) -> some View {
         Group {
             if let picture = GymPicture.image(for: mine(venue)) {
                 GymPictureSquare(image: picture)
+            } else if let logo = logos.logo(for: venue) {
+                GymPictureSquare(image: logo, inset: 0)
             } else if let gym = mine(venue), !store.routes(in: gym).isEmpty {
                 ZStack {
                     Theme.surface2
