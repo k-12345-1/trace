@@ -429,7 +429,7 @@ private struct AddPanel: View {
                 .buttonStyle(.plain)
 
                 row(icon: "viewfinder", title: "Scan a route",
-                    detail: "Photograph a wall and tap one hold. Trace picks out the rest by color and saves it to your gym.",
+                    detail: "Photograph a wall. Trace reads the route colors on it and saves the one you pick to your gym.",
                     action: onScan)
             }
             .padding(.horizontal, 14)

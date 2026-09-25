@@ -23,6 +23,10 @@ struct ScanScreen: View {
     @State private var tolerance: Double = 30
     @State private var sample: CGPoint?
     @State private var scanning = false
+    /// Every route color Trace can see on this wall, best first.
+    @State private var swatches: [RouteScanner.Swatch] = []
+    @State private var chosen: RouteScanner.Swatch?
+    @State private var reading = false
 
     @State private var pickerItem: PhotosPickerItem?
 
@@ -93,7 +97,7 @@ struct ScanScreen: View {
                 Text("Scan a route")
                     .font(Theme.heading(19))
                     .foregroundStyle(Theme.ink)
-                MicroLabel(text: image == nil ? "Photograph the wall" : "Tap a hold on the route")
+                MicroLabel(text: image == nil ? "Photograph the wall" : "Pick the route's color")
             }
             Spacer()
             Button("CANCEL") { dismiss() }
@@ -144,11 +148,54 @@ struct ScanScreen: View {
                 let p = CGPoint(x: (location.x - rect.minX) / rect.width,
                                 y: (location.y - rect.minY) / rect.height)
                 sample = p
+                chosen = nil
                 run(sample: p)
             }
         }
         .frame(height: 380)
         .clipped()
+    }
+
+    /// The wall's own colors, offered rather than asked for.
+    ///
+    /// A gym sets routes in colors. Standing at the bottom of the wall that is
+    /// the first thing anybody sees, and it is the first thing this screen
+    /// should show: the colors that are on this wall, with how many holds each
+    /// one has. Tapping a hold still works, and is the way out when a route is
+    /// set in two shades of the same green, but nobody has to start there.
+    @ViewBuilder
+    private var colors: some View {
+        if reading {
+            MicroLabel(text: "Reading the wall")
+        } else if !swatches.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                MicroLabel(text: "Routes on this wall")
+                HStack(spacing: 9) {
+                    ForEach(swatches) { swatch in
+                        Button { pick(swatch) } label: { chip(swatch) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(swatch.holds.count) holds")
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    private func chip(_ swatch: RouteScanner.Swatch) -> some View {
+        let on = chosen?.id == swatch.id
+        return VStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color(hex: UInt32(swatch.hex.dropFirst(), radix: 16) ?? 0x888888))
+                .frame(width: 42, height: 34)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(on ? Theme.ink : Theme.line, lineWidth: on ? 2.5 : 1))
+            Text("\(swatch.holds.count)")
+                .font(Theme.mono(10.5, weight: on ? .medium : .regular))
+                .foregroundStyle(on ? Theme.ink : Theme.ink3)
+        }
+        .contentShape(Rectangle())
     }
 
     private func fitted(image: CGSize, in size: CGSize) -> CGRect {
@@ -166,13 +213,15 @@ struct ScanScreen: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 14) {
+            colors
+
             HStack {
-                if scanning {
+                if scanning || reading {
                     MicroLabel(text: "Reading the wall")
                 } else if holds.isEmpty {
-                    MicroLabel(text: sample == nil
-                               ? "Tap a hold on the route"
-                               : "Nothing found. Try a wider color range.")
+                    MicroLabel(text: swatches.isEmpty
+                               ? "No route colors found. Tap a hold instead."
+                               : "Pick a color above, or tap a hold.")
                 } else {
                     HStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 2)
@@ -182,13 +231,13 @@ struct ScanScreen: View {
                     }
                 }
                 Spacer()
-                Button("START OVER") { reset() }
+                Button("START OVER") { startOver() }
                     .font(Theme.mono(10, weight: .medium))
                     .tracking(1.2)
                     .foregroundStyle(Theme.ink3)
             }
 
-            if sample != nil {
+            if sample != nil || chosen != nil {
                 VStack(alignment: .leading, spacing: 7) {
                     HStack {
                         MicroLabel(text: "Color range")
@@ -200,6 +249,7 @@ struct ScanScreen: View {
                         .tint(Theme.accent)
                         .onChange(of: tolerance) { _, _ in
                             if let s = sample { run(sample: s) }
+                            else if let chosen { run(color: chosen) }
                         }
                     Text("Widen this if holds are missing, tighten it if the wall itself is being picked up. Tap any box to drop a hold that is not part of the route.")
                         .font(Theme.body(12))
@@ -306,6 +356,7 @@ struct ScanScreen: View {
         image = ui
         reset()
         guard let cg = ui.cgImage else { return }
+        readTheWall(cg)
         Task {
             let found = await RouteScanner.readGrades(in: cg)
             await MainActor.run {
@@ -319,6 +370,56 @@ struct ScanScreen: View {
         guard let data = try? await item.loadTransferable(type: Data.self),
               let ui = UIImage(data: data) else { return }
         await MainActor.run { adopt(ui); pickerItem = nil }
+    }
+
+    /// Read the colors, then lead with the best of them.
+    ///
+    /// Opening straight onto the strongest route is the difference between a
+    /// screen that has done something and a screen waiting to be told what to
+    /// do. It is one tap to any of the others.
+    private func readTheWall(_ cg: CGImage) {
+        reading = true
+        Task.detached {
+            let found = RouteScanner.palette(in: cg)
+            await MainActor.run {
+                swatches = found
+                reading = false
+                if let first = found.first { pick(first) }
+            }
+        }
+    }
+
+    private func pick(_ swatch: RouteScanner.Swatch) {
+        chosen = swatch
+        sample = nil
+        colorHex = swatch.hex
+        // The slider starts where this color's own reach ends, which is as wide
+        // as it can go without taking in the route next to it. Moving it is
+        // still the way to argue with that.
+        tolerance = swatch.reach
+        run(color: swatch)
+    }
+
+    /// The chosen color, found again at full resolution. The swatch's own holds
+    /// come from the coarse pass that read the whole wall, which is right for
+    /// counting them and not good enough to draw boxes from.
+    private func run(color swatch: RouteScanner.Swatch) {
+        guard let cg = image?.cgImage,
+              let index = swatches.firstIndex(of: swatch) else { return }
+        scanning = true
+        let tol = tolerance
+        let all = swatches
+        Task.detached {
+            // The whole palette, not just the one color, so the full resolution
+            // pass divides the wall exactly the way the chips did.
+            let found = RouteScanner.detectHolds(in: cg, palette: all, index: index,
+                                                 tolerance: tol)
+            await MainActor.run {
+                holds = found
+                dropped = []
+                scanning = false
+            }
+        }
     }
 
     private func run(sample p: CGPoint) {
@@ -341,7 +442,15 @@ struct ScanScreen: View {
     }
 
     private func reset() {
-        holds = []; dropped = []; sample = nil
+        holds = []; dropped = []; sample = nil; chosen = nil; swatches = []
+    }
+
+    /// Back to the photograph, with the wall read again. Clearing the colors
+    /// and leaving them cleared would put the screen in a state it cannot get
+    /// into on its own: a photograph with nothing offered about it.
+    private func startOver() {
+        reset()
+        if let cg = image?.cgImage { readTheWall(cg) }
     }
 
     private func save() {

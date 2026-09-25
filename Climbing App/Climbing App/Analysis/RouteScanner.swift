@@ -51,18 +51,47 @@ enum RouteScanner {
         let sy = Int((Double(bmp.height) * sample.y).rounded())
         let target = bmp.averageLab(around: (sx, sy), radius: 2)
         let hex = bmp.hex(at: (min(max(sx, 0), bmp.width - 1), min(max(sy, 0), bmp.height - 1)))
+        return (holds(in: bmp, target: target, tolerance: tolerance), hex)
+    }
 
-        // Binary mask of everything close enough in color to what was tapped.
+    /// The same, from a color rather than from a point on the screen. This is
+    /// what a tap on a chip runs when the wall's other colors are not to hand.
+    static func detectHolds(in image: CGImage, color: Lab,
+                            tolerance: Double = 30) -> [Hold] {
+        guard let bmp = Bitmap(image, targetWidth: workingWidth) else { return [] }
+        return holds(in: bmp, target: color, tolerance: tolerance)
+    }
+
+    /// One color of the wall's palette, at full resolution, with the others
+    /// there to keep it honest.
+    ///
+    /// The same arbitration as the palette pass, so the number on a chip is the
+    /// number of boxes you get when you press it.
+    static func detectHolds(in image: CGImage, palette: [Swatch], index: Int,
+                            tolerance: Double) -> [Hold] {
+        guard let bmp = Bitmap(image, targetWidth: workingWidth) else { return [] }
+        return holds(in: bmp, colors: palette.map(\.lab), index: index,
+                     tolerance: tolerance)
+    }
+
+    /// Every blob close enough to one color to be a hold of it.
+    static func holds(in bmp: Bitmap, target: Lab, tolerance: Double) -> [Hold] {
         var mask = [Bool](repeating: false, count: bmp.width * bmp.height)
         for i in 0..<(bmp.width * bmp.height) {
             mask[i] = bmp.lab(at: i).distance(to: target) < tolerance
         }
+        return holds(in: bmp, mask: &mask)
+    }
 
+    /// The hold shaped things in a mask. A wall, a mat or a floor is one
+    /// enormous blob and fails the size filter, which is why no color has to be
+    /// excluded by name.
+    static func holds(in bmp: Bitmap, mask: inout [Bool]) -> [Hold] {
         let total = Double(bmp.width * bmp.height)
         let minPixels = Int(total * minAreaFraction)
         let maxPixels = Int(total * maxAreaFraction)
 
-        var holds: [Hold] = []
+        var found: [Hold] = []
         for component in components(mask: &mask, width: bmp.width, height: bmp.height,
                                     minPixels: max(minPixels, 8), maxPixels: maxPixels) {
             let w = Double(component.maxX - component.minX + 1)
@@ -74,7 +103,7 @@ enum RouteScanner {
             let aspect = max(w / h, h / w)
             guard fill > 0.32, aspect < 5.5 else { continue }
 
-            holds.append(Hold(
+            found.append(Hold(
                 rect: CGRect(x: Double(component.minX) / Double(bmp.width),
                              y: Double(component.minY) / Double(bmp.height),
                              width: w / Double(bmp.width),
@@ -83,7 +112,186 @@ enum RouteScanner {
             ))
         }
         // Biggest first, so the review list leads with the holds that matter.
-        return (holds.sorted { $0.area > $1.area }, hex)
+        return found.sorted { $0.area > $1.area }
+    }
+
+    // MARK: Reading the wall's colors
+
+    /// One color on the wall, and the route it picks out.
+    struct Swatch: Identifiable, Equatable {
+        var id = UUID()
+        /// For drawing the chip.
+        var hex: String
+        /// The color itself, for finding these holds again at full resolution.
+        var lab: Lab
+        var holds: [Hold]
+        /// How much this color looks like a route rather than like scenery.
+        var score: Double
+        /// How far from this color still counts as this color.
+        var reach: Double
+
+        static func == (a: Swatch, b: Swatch) -> Bool { a.id == b.id }
+    }
+
+    /// Analysis resolution for reading the whole wall at once. Coarser than a
+    /// single color's pass, because this one reads every color there is.
+    static let paletteWidth = 240
+    /// Fewer blobs than this is not a route, it is three holds that happen to
+    /// match, or a logo on the mat.
+    static let minimumHolds = 3
+
+    /// Every route color Trace can see on this wall, best first.
+    ///
+    /// This is the way round that matches how a gym works. Routes are set in a
+    /// color, the colors are the first thing you see standing at the bottom of
+    /// the wall, and asking somebody to tap one hold precisely enough to sample
+    /// it, then work a tolerance slider when the tap landed on a shadow, is
+    /// asking them to do the computer's job. Trace reads the colors itself and
+    /// offers them.
+    ///
+    /// The wall does not have to be excluded by hand. Wall, mats and floor are
+    /// the most common colors in any photograph of a wall, and they come out as
+    /// single enormous blobs, which the size filter throws away: a color that
+    /// leaves nothing hold shaped behind leaves no swatch.
+    static func palette(in image: CGImage, tolerance: Double = 30,
+                        limit: Int = 6) -> [Swatch] {
+        guard let bmp = Bitmap(image, targetWidth: paletteWidth) else { return [] }
+
+        let candidates = commonColors(in: bmp, apart: tolerance * 0.6)
+        var labels = segment(bmp, colors: candidates.map(\.lab), tolerance: tolerance)
+        var swatches: [Swatch] = []
+        for (i, candidate) in candidates.enumerated() {
+            let found = holds(in: bmp, labels: &labels, index: i)
+            guard found.count >= minimumHolds else { continue }
+            swatches.append(Swatch(hex: candidate.hex, lab: candidate.lab,
+                                   holds: found, score: score(found),
+                                   reach: tolerance))
+        }
+
+        // Each color is also given a reach: how far from it still counts as it.
+        // Nothing on this pass needs it, because a pixel here goes to whichever
+        // color is nearest and so no two colors can claim it. The full
+        // resolution pass on one color has no such arbitration, and this is
+        // what stops it reaching into the route next door.
+        var kept = Array(swatches.sorted { $0.score > $1.score }.prefix(limit))
+        for i in kept.indices {
+            let others = kept.enumerated().filter { $0.offset != i }
+                .map { kept[i].lab.distance(to: $0.element.lab) }
+            kept[i].reach = min(tolerance, (others.min() ?? .infinity) * 0.5)
+        }
+        return kept
+    }
+
+    /// Every blob of one color, where a pixel belongs to whichever of the
+    /// wall's colors is nearest to it.
+    ///
+    /// A plain distance mask cannot separate a red route from an orange one:
+    /// widen it enough to find the shaded side of a red hold and it has taken
+    /// in the orange route too. Letting every pixel go to its nearest color
+    /// instead means the two routes divide the wall between them, which is what
+    /// the eye does standing in front of it.
+    static func holds(in bmp: Bitmap, colors: [Lab], index: Int,
+                      tolerance: Double) -> [Hold] {
+        guard colors.indices.contains(index) else { return [] }
+        var labels = segment(bmp, colors: colors, tolerance: tolerance)
+        return holds(in: bmp, labels: &labels, index: index)
+    }
+
+    /// Which of the wall's colors each pixel belongs to, or -1 for none of them.
+    ///
+    /// Done once for the whole palette rather than once per color. The naive
+    /// version rebuilt this for every candidate, which is the same work
+    /// fourteen times over and turns reading a wall from a moment into a wait.
+    static func segment(_ bmp: Bitmap, colors: [Lab], tolerance: Double) -> [Int8] {
+        var labels = [Int8](repeating: -1, count: bmp.width * bmp.height)
+        guard !colors.isEmpty, colors.count < 127 else { return labels }
+        for i in 0..<(bmp.width * bmp.height) {
+            let lab = bmp.lab(at: i)
+            var nearest: Int8 = -1
+            var best = tolerance
+            for (j, color) in colors.enumerated() {
+                let d = lab.distance(to: color)
+                if d < best { best = d; nearest = Int8(j) }
+            }
+            labels[i] = nearest
+        }
+        return labels
+    }
+
+    static func holds(in bmp: Bitmap, labels: inout [Int8], index: Int) -> [Hold] {
+        var mask = [Bool](repeating: false, count: labels.count)
+        for i in labels.indices { mask[i] = labels[i] == Int8(index) }
+        return holds(in: bmp, mask: &mask)
+    }
+
+    /// How much a set of blobs looks like a route.
+    ///
+    /// A route is several holds spread up the wall. Six holds from the floor to
+    /// the top beats twenty scattered across one corner, which is a bank of
+    /// volumes or a pattern in the flooring.
+    static func score(_ holds: [Hold]) -> Double {
+        guard !holds.isEmpty else { return 0 }
+        let ys = holds.map { Double($0.rect.midY) }
+        let spread = (ys.max() ?? 0) - (ys.min() ?? 0)
+        return Double(min(holds.count, 25)) * (0.35 + spread)
+    }
+
+    struct Candidate {
+        var lab: Lab
+        var hex: String
+        var count: Int
+    }
+
+    /// The colors a photograph is actually made of, coarsely.
+    ///
+    /// A histogram in Lab rather than clustering: k-means on a quarter of a
+    /// million pixels is slower and no better at this, because the question is
+    /// only "which colors are there enough of to be worth a mask".
+    static func commonColors(in bmp: Bitmap, step: Double = 12,
+                             keep: Int = 14, apart: Double = 18) -> [Candidate] {
+        struct Bin { var l = 0.0, a = 0.0, b = 0.0, r = 0.0, g = 0.0, bl = 0.0, n = 0.0 }
+        var bins: [Int: Bin] = [:]
+
+        for i in 0..<(bmp.width * bmp.height) {
+            let lab = bmp.lab(at: i)
+            let key = (Int(lab.l / step) &* 73856093)
+                ^ (Int((lab.a + 128) / step) &* 19349663)
+                ^ (Int((lab.b + 128) / step) &* 83492791)
+            var bin = bins[key] ?? Bin()
+            let rgb = bmp.rgb(at: i)
+            bin.l += lab.l; bin.a += lab.a; bin.b += lab.b
+            bin.r += Double(rgb.0); bin.g += Double(rgb.1); bin.bl += Double(rgb.2)
+            bin.n += 1
+            bins[key] = bin
+        }
+
+        // Bins are a grid laid over a continuous space, so one hold color
+        // usually straddles several of them. Merged, largest first: a bin that
+        // is not far enough from a color already accepted joins it rather than
+        // becoming a rival for its own pixels.
+        var merged: [Bin] = []
+        for bin in bins.values.filter({ $0.n >= 12 }).sorted(by: { $0.n > $1.n }) {
+            let lab = Lab(l: bin.l / bin.n, a: bin.a / bin.n, b: bin.b / bin.n)
+            let near = merged.firstIndex {
+                Lab(l: $0.l / $0.n, a: $0.a / $0.n, b: $0.b / $0.n).distance(to: lab) < apart
+            }
+            if let near {
+                merged[near].l += bin.l; merged[near].a += bin.a; merged[near].b += bin.b
+                merged[near].r += bin.r; merged[near].g += bin.g; merged[near].bl += bin.bl
+                merged[near].n += bin.n
+            } else if merged.count < keep {
+                merged.append(bin)
+            }
+        }
+
+        return merged.map { bin in
+            Candidate(lab: Lab(l: bin.l / bin.n, a: bin.a / bin.n, b: bin.b / bin.n),
+                      hex: String(format: "#%02X%02X%02X",
+                                  Int((bin.r / bin.n).rounded()),
+                                  Int((bin.g / bin.n).rounded()),
+                                  Int((bin.bl / bin.n).rounded())),
+                      count: Int(bin.n))
+        }
     }
 
     // MARK: Connected components
@@ -201,6 +409,12 @@ struct Bitmap {
     }
 
     func lab(at index: Int) -> Lab { labs[index] }
+
+    func rgb(at index: Int) -> (UInt8, UInt8, UInt8) {
+        let i = index * 4
+        guard i + 2 < pixels.count else { return (136, 136, 136) }
+        return (pixels[i], pixels[i + 1], pixels[i + 2])
+    }
 
     func averageLab(around p: (Int, Int), radius: Int) -> Lab {
         var l = 0.0, a = 0.0, b = 0.0, n = 0.0
