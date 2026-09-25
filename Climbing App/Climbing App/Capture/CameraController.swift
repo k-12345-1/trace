@@ -123,6 +123,12 @@ struct CameraPreview: UIViewRepresentable {
         let view = PreviewView()
         view.videoPreviewLayer.session = session
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
+        // It shows the camera and does nothing else. A UIView is interactive by
+        // default, and this one is full screen inside a presented cover, which
+        // is enough for it to take the taps meant for the controls drawn over
+        // it: on the device both Cancel and the record button were dead while
+        // the screen looked perfectly normal.
+        view.isUserInteractionEnabled = false
         return view
     }
     func updateUIView(_ uiView: PreviewView, context: Context) {}

@@ -18,12 +18,13 @@ struct CaptureScreen: View {
             } else {
                 unavailable
             }
-
-            VStack {
-                topBar
-                Spacer()
-                if camera.isAvailable { controls }
-            }
+        }
+        // Insets rather than a stack of siblings. The controls are then always
+        // above the preview and always inside the safe area, neither of which
+        // is left to the order things happen to be written in.
+        .safeAreaInset(edge: .top, spacing: 0) { topBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if camera.isAvailable { controls }
         }
         .task { await camera.prepare() }
         .onDisappear { camera.teardown() }
@@ -87,29 +88,26 @@ struct CaptureScreen: View {
         }
         .padding(.horizontal, 18)
         .padding(.top, 10)
+        .padding(.bottom, 10)
     }
 
     private var controls: some View {
-        VStack(spacing: 16) {
-            RecordButton(isRecording: camera.isRecording) {
-                if camera.isRecording {
-                    camera.stop()
-                } else {
-                    camera.start { url in
-                        camera.teardown()
-                        onFinish(url)
-                        dismiss()
-                    }
+        RecordButton(isRecording: camera.isRecording) {
+            if camera.isRecording {
+                camera.stop()
+            } else {
+                camera.start { url in
+                    camera.teardown()
+                    onFinish(url)
+                    dismiss()
                 }
             }
-            .padding(.bottom, 26)
         }
-        .padding(.bottom, 10)
-        .background(
-            LinearGradient(colors: [.clear, .black.opacity(0.75)],
-                           startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-        )
+        // No gradient behind it. It was a black box the width of the button,
+        // because once the guidance text above it went the column had nothing
+        // left to make it full width.
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 18)
     }
 
     // MARK: No camera
