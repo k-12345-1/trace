@@ -128,6 +128,10 @@ struct ResultsScreen: View {
                     scrubber
                     telemetry
                     header
+                    // Above the measurements, and outside the check on them.
+                    // A clip Trace could not track is exactly the climb whose
+                    // only record is what the climber says about it.
+                    NotesCard(climb: climb)
                     if climb.metrics.isTrustworthy {
                         efficiency
                         ending

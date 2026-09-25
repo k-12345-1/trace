@@ -203,6 +203,10 @@ struct ClimbCardScreen: View {
                                 .font(Theme.ui(13))
                                 .foregroundStyle(Theme.ink3)
                         }
+                        // What the climber said about this attempt, in a line.
+                        // It is the only thing here that distinguishes two
+                        // attempts that measured the same.
+                        if let notes = climb.notes { NotesLine(notes: notes) }
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")

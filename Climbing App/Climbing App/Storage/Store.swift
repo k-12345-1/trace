@@ -136,6 +136,14 @@ final class Store: ObservableObject {
         try? data.write(to: Self.focusURL, options: .atomic)
     }
 
+    /// What the climber said about one attempt. Cleared rather than stored when
+    /// they empty it, so a note taken back leaves nothing behind.
+    func setNotes(_ notes: ClimbNotes, for climb: Climb) {
+        guard let i = climbs.firstIndex(where: { $0.id == climb.id }) else { return }
+        climbs[i].notes = notes.isEmpty ? nil : notes
+        persist()
+    }
+
     func rename(_ climb: Climb, to label: String) {
         guard let i = climbs.firstIndex(where: { $0.id == climb.id }) else { return }
         climbs[i].label = label

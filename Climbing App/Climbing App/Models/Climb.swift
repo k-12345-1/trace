@@ -221,6 +221,10 @@ struct Climb: Codable, Identifiable {
     /// genuinely can be unknown: every climb recorded before this existed has no
     /// answer, and a climb filmed outdoors never will.
     var gymID: UUID?
+    /// What the climber said about it, which is the half the camera cannot see.
+    /// Nil until they say something, so silence is not stored as a set of
+    /// middling scores.
+    var notes: ClimbNotes?
 
     var isSent: Bool { sent == true }
 
