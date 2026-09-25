@@ -73,7 +73,7 @@ struct ProfileScreen: View {
                 }
                 HStack(spacing: 22) {
                     stat("\(store.climbs.count)", "Climbs")
-                    stat("\(store.library().count)", "Routes")
+                    stat("\(store.gyms.count)", "Gyms")
                 }
             }
             Spacer(minLength: 0)

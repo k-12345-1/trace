@@ -214,11 +214,6 @@ struct ClimbCardScreen: View {
                             hint: "while hanging on")
                 }
                 .padding(.horizontal, Theme.gutter)
-
-                Text("From your \(ordinalBest) attempt, the cleanest one Trace could track.")
-                    .font(Theme.ui(13))
-                    .foregroundStyle(Theme.ink3)
-                    .padding(.horizontal, Theme.gutter)
             } else {
                 Text("Trace could not track any attempt on this route well enough to measure it. Film side on, with the whole boulder in frame.")
                     .font(Theme.body(14))
@@ -236,33 +231,27 @@ struct ClimbCardScreen: View {
         live.measured.min { $0.metrics.entropy < $1.metrics.entropy }
     }
 
-    private var ordinalBest: String {
-        guard let best = bestMeasured else { return "last" }
-        let order = live.attempts.sorted { $0.recordedAt < $1.recordedAt }
-        guard let i = order.firstIndex(where: { $0.id == best.id }) else { return "last" }
-        let n = i + 1
-        switch n {
-        case 1: return "first"
-        case 2: return "second"
-        case 3: return "third"
-        default: return "\(n)th"
-        }
-    }
 
-    // MARK: The physics
+    // MARK: What the movement showed
 
+    /// The observations, each with the mechanics that make it worth acting on.
+    ///
+    /// This used to be headed "The physics", which put the lecture in front of
+    /// the finding. The physics has not gone anywhere and nothing has been
+    /// softened: it sits inside each observation, where it is the reason the
+    /// observation costs you something rather than a topic of its own.
     private var physics: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                SectionTitle("The physics")
-                Text("What each of these is standing on")
+                SectionTitle("What the movement showed")
+                Text("Each one with the mechanics behind it")
                     .font(Theme.ui(14))
                     .foregroundStyle(Theme.ink3)
             }
             .padding(.horizontal, Theme.gutter)
 
             if notes.isEmpty {
-                Text("Nothing was flagged on this route, so there is nothing to explain. The numbers above are defined under Entropy and Smoothness on any attempt Trace could track.")
+                Text("Nothing on this route crossed the threshold worth mentioning. The measurements above still stand; there is just no leak to explain.")
                     .font(Theme.body(13.5))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -270,7 +259,7 @@ struct ClimbCardScreen: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(notes, id: \.0) { title, note in
-                        PhysicsCard(
+                        ObservationCard(
                             title: title,
                             note: note,
                             open: expanded.contains(title),
@@ -328,7 +317,14 @@ struct ClimbCardScreen: View {
 /// Collapsed to its concept, because a wall of mechanics is not what you want
 /// while you are still looking at the photo. The law is always visible: it is
 /// one line and it is the part worth remembering.
-private struct PhysicsCard: View {
+/// One thing Trace saw, and the mechanics that make it worth changing.
+///
+/// The observation is the headline. Closed, the card says what happened and
+/// names the idea it rests on. Opened, it gives the mechanics, the relationship
+/// they come from, and what was actually measured to say any of it. The
+/// formula used to sit on the front of the card, which made every finding look
+/// like a physics lesson with a climb attached.
+private struct ObservationCard: View {
     let title: String
     let note: PhysicsNote
     let open: Bool
@@ -357,20 +353,25 @@ private struct PhysicsCard: View {
             }
             .buttonStyle(.plain)
 
-            Text(note.law)
-                .font(Theme.mono(11.5))
-                .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.blueWash)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
-
             if open {
                 Text(note.why)
                     .font(Theme.ui(14.5))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("The relationship")
+                        .font(Theme.ui(13, .semibold))
+                        .foregroundStyle(Theme.ink2)
+                    Text(note.law)
+                        .font(Theme.mono(11.5))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.blueWash)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("What Trace measured")

@@ -713,11 +713,21 @@ struct ResultsScreen: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 156)
+            .padding(.bottom, bottomClearance)
         } else {
-            Color.clear.frame(height: 156)
+            Color.clear.frame(height: bottomClearance)
         }
     }
+
+    /// Room under the last thing on the page.
+    ///
+    /// The floating tab bar needs about a hundred and fifty points of clearance,
+    /// but only when there is a tab bar. This screen is pushed inside a tab when
+    /// you open an attempt from its route, and presented as a cover straight
+    /// after an analysis, and `onClose` is how it can tell: the cover supplies
+    /// one, the push does not. Spending the clearance in the cover left a blank
+    /// half screen under the measurements.
+    private var bottomClearance: CGFloat { onClose == nil ? 156 : 44 }
 
     private func letter(_ i: Int) -> String {
         String(UnicodeScalar(65 + min(i, 25))!)
@@ -775,6 +785,6 @@ struct ResultsScreen: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 24)
-        .padding(.bottom, 156)
+        .padding(.bottom, bottomClearance)
     }
 }
