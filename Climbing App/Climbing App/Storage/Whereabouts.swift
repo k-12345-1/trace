@@ -24,8 +24,12 @@ final class Whereabouts: NSObject, ObservableObject {
     }
 
     @Published private(set) var state: State = .unasked
+    /// "Boulder, CO", once a fix has been turned into a name. Nil until then,
+    /// and nil if the lookup fails, which is not worth telling anyone about.
+    @Published private(set) var placeName: String?
 
     private let manager = CLLocationManager()
+    private let namer = CLGeocoder()
 
     override init() {
         super.init()
@@ -47,6 +51,20 @@ final class Whereabouts: NSObject, ObservableObject {
         default:
             state = .asking
             manager.requestLocation()
+        }
+    }
+
+    /// The city the fix is in, for showing rather than for sorting. The sort
+    /// uses the coordinate directly and never needs this.
+    private func name(_ fix: CLLocation) async {
+        guard let mark = try? await namer.reverseGeocodeLocation(fix).first else { return }
+        let city = mark.locality ?? mark.subAdministrativeArea
+        let region = mark.administrativeArea
+        switch (city, region) {
+        case let (c?, r?): placeName = "\(c), \(r)"
+        case let (c?, nil): placeName = c
+        case let (nil, r?): placeName = r
+        default: placeName = nil
         }
     }
 
@@ -78,7 +96,10 @@ extension Whereabouts: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager,
                                      didUpdateLocations locations: [CLLocation]) {
         guard let fix = locations.last else { return }
-        Task { @MainActor in self.state = .located(fix) }
+        Task { @MainActor in
+            self.state = .located(fix)
+            await self.name(fix)
+        }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager,

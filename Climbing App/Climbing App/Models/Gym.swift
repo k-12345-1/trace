@@ -1,13 +1,17 @@
 import Foundation
 import CoreGraphics
 
-/// A gym you climb at. Created by you, on the spot, with no directory to join
-/// and nobody to ask. Trace has no idea which gyms exist in the world and does
-/// not need to.
+/// A gym you climb at. Still created by you, on the spot: you can type a name
+/// that is in no directory anywhere and Trace will take it.
 struct Gym: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String
     var createdAt: Date = Date()
+    /// Set when this gym was added by tapping it in Explore, so that screen can
+    /// recognize it later without guessing from the name. Nil for a gym you
+    /// typed, and nil for every gym saved before Explore could add them, which
+    /// decodes cleanly because it is optional.
+    var venueID: String? = nil
 }
 
 /// A route scanned off a wall.

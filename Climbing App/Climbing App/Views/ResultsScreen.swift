@@ -8,6 +8,12 @@ final class PlaybackModel: ObservableObject {
     @Published var time: Double = 0
     @Published var duration: Double = 0
     @Published var isPlaying = false
+    /// How fast it plays. A deadpoint is over in tens of milliseconds and a
+    /// foot placement is barely longer, so full speed is the wrong speed for
+    /// most of what this screen is pointing at.
+    @Published private(set) var rate: Float = 1
+
+    static let rates: [Float] = [1, 0.5, 0.25]
 
     let player: AVPlayer
     private var observer: Any?
@@ -32,9 +38,25 @@ final class PlaybackModel: ObservableObject {
     func toggle() {
         if isPlaying { player.pause() } else {
             if time >= duration - 0.05 { seek(to: 0) }
-            player.play()
+            // Setting rate is what starts it. `play()` would run at 1 and then
+            // jump to the chosen speed on the next frame.
+            player.rate = rate
         }
         isPlaying.toggle()
+    }
+
+    /// Round the speeds, staying wherever the video already is.
+    func cycleRate() {
+        let i = Self.rates.firstIndex(of: rate) ?? 0
+        rate = Self.rates[(i + 1) % Self.rates.count]
+        if isPlaying { player.rate = rate }
+    }
+
+    /// One frame at a time, for the moment a slow speed still goes past.
+    func step(_ frames: Int) {
+        if isPlaying { player.pause(); isPlaying = false }
+        player.currentItem?.step(byCount: frames)
+        if let t = player.currentItem?.currentTime().seconds { time = t }
     }
 
     func seek(to t: Double) {
@@ -103,6 +125,7 @@ struct ResultsScreen: View {
                     scrubber
                     Hairline()
                     if climb.metrics.isTrustworthy {
+                        ending
                         headline
                         Hairline()
                         readouts
@@ -297,24 +320,73 @@ struct ResultsScreen: View {
             }
             .frame(height: 22)
 
-            HStack {
+            HStack(spacing: 14) {
                 Text(timecode(playback.time))
                     .font(Theme.ui(12.5)).monospacedDigit()
                     .foregroundStyle(Theme.ink3)
-                Spacer()
-                Button(playback.isPlaying ? "Pause" : "Play") { playback.toggle() }
-                    .font(Theme.ui(14, .semibold))
-                    .foregroundStyle(Theme.accentText)
-                    .buttonStyle(.plain)
-                Spacer()
-                Text(timecode(playback.duration))
-                    .font(Theme.ui(12.5)).monospacedDigit()
-                    .foregroundStyle(Theme.ink3)
+
+                Spacer(minLength: 4)
+
+                // One frame back, play, one frame forward. At a quarter speed a
+                // deadpoint is still four or five frames, so the steps are what
+                // actually let you sit on the moment rather than pass over it.
+                Button { playback.step(-1) } label: {
+                    Image(systemName: "backward.frame.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.ink2)
+                        .frame(width: 34, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back one frame")
+
+                Button { playback.toggle() } label: {
+                    Text(playback.isPlaying ? "Pause" : "Play")
+                        .font(Theme.ui(14, .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .frame(minWidth: 46, minHeight: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Button { playback.step(1) } label: {
+                    Image(systemName: "forward.frame.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.ink2)
+                        .frame(width: 34, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Forward one frame")
+
+                Spacer(minLength: 4)
+
+                Button { playback.cycleRate() } label: {
+                    Text(speedLabel)
+                        .font(Theme.ui(12.5, .semibold)).monospacedDigit()
+                        .foregroundStyle(playback.rate == 1 ? Theme.ink3 : .white)
+                        .padding(.horizontal, 10)
+                        .frame(height: 26)
+                        .background(playback.rate == 1 ? Theme.surface2 : Theme.accent,
+                                    in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Playback speed")
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)
         .padding(.bottom, 18)
+    }
+
+    /// "1x", "0.5x", "0.25x", with the duration no longer shown beside it.
+    /// The timeline already says how long the clip is, and the speed is the
+    /// control people will reach for here.
+    private var speedLabel: String {
+        let r = playback.rate
+        if r == 1 { return "1x" }
+        return r == 0.5 ? "0.5x" : "0.25x"
     }
 
     private func progressWidth(_ total: CGFloat) -> CGFloat {
@@ -328,6 +400,91 @@ struct ResultsScreen: View {
     }
 
     // MARK: One thing at a time
+
+    /// How the attempt ended, and if it ended on the mat, what was already
+    /// going wrong when it did.
+    ///
+    /// The cause is not a new judgement invented for the fall. It is whichever
+    /// finding was still open in the seconds before it, because Trace has never
+    /// seen the route and is not entitled to an opinion about the move itself.
+    @ViewBuilder
+    private var ending: some View {
+        let outcome = OutcomeEngine.outcome(frames: climb.frames)
+        switch outcome {
+        case .topped(let at):
+            VStack(alignment: .leading, spacing: 8) {
+                SectionTitle("You topped it")
+                Text("You reached your high point at \(timecode(at)) and held it. Trace has marked this a send. It works that out from where your body went, not from the route, so Mark unsent takes it back.")
+                    .font(Theme.body(14))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .card()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.bottom, 20)
+            .onTapGesture { playback.seek(to: max(0, at - 1)) }
+
+        case .fell(let at, let rise):
+            VStack(alignment: .leading, spacing: 10) {
+                SectionTitle("You came off at \(timecode(at))")
+                Text(fallSummary(rise: rise))
+                    .font(Theme.body(14))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let cause = OutcomeEngine.cause(of: outcome, findings: climb.findings) {
+                    Hairline().padding(.vertical, 2)
+                    Text("What was already going wrong")
+                        .font(Theme.ui(12.5, .semibold))
+                        .foregroundStyle(Theme.ink3)
+                    Text("\(cause.kind.title.lowercased().prefix(1).uppercased() + cause.kind.title.lowercased().dropFirst()), from \(cause.timecode). \(cause.message)")
+                        .font(Theme.body(14))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(cause.kind.drill)
+                        .font(Theme.body(13.5))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+                } else {
+                    Hairline().padding(.vertical, 2)
+                    Text("Nothing Trace measures was going wrong in the seconds before it. That happens: a hold can simply be too small, or the move too long. Play the last two seconds back at a quarter speed and look at where your weight was.")
+                        .font(Theme.body(13.5))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Button {
+                    playback.seek(to: max(0, at - OutcomeEngine.lookBack))
+                } label: {
+                    Text("Play the two seconds before it")
+                        .font(Theme.ui(14, .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .card()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.bottom, 20)
+
+        case .unclear:
+            EmptyView()
+        }
+    }
+
+    /// How far up it got, in the only unit available. Trace does not know the
+    /// wall's height, so it cannot say how close to the top that was.
+    private func fallSummary(rise: Double) -> String {
+        let body = String(format: "%.1f", rise / 2.0)
+        return "Your center of mass had climbed about \(body) body lengths by then. Trace has not seen the route, so it cannot tell you how close to the finish that was, only what your body was doing on the way."
+    }
 
     private var headline: some View {
         VStack(alignment: .leading, spacing: 14) {

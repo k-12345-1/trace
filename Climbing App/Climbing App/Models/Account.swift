@@ -13,6 +13,12 @@ struct Account: Codable, Equatable {
     var email: String
     var name: String
     var createdAt: Date = Date()
+    /// Where you climb, as a city and state. Typed, or filled in once from the
+    /// phone's location and then left alone: it is a label, not a live position,
+    /// and nothing tracks it. Empty for everyone who has not set it, including
+    /// every account saved before the field existed, which decodes cleanly
+    /// because the default is here.
+    var place: String = ""
 
     /// True for a name typed on this phone with no server behind it.
     var isLocalOnly: Bool { email.isEmpty }

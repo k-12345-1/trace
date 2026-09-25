@@ -33,13 +33,27 @@ final class ClimbAnalyzer: ObservableObject {
             let findings = FindingEngine.findings(from: metrics, frames: frames,
                                                   priorJerk: priorJerk)
 
+            // Topping out marks the send, so the person does not have to tell
+            // the app something it just watched them do. It is only ever a
+            // reading of where the body went, never a claim about the route,
+            // and Mark unsent takes it back.
+            let outcome = OutcomeEngine.outcome(frames: frames)
+            let topped: Bool? = {
+                switch outcome {
+                case .topped: return true
+                case .fell:   return false
+                case .unclear: return nil   // leave it to the climber
+                }
+            }()
+
             let climb = Climb(
                 recordedAt: Date(),
                 videoFilename: filename,
                 label: label,
                 metrics: metrics,
                 findings: findings,
-                frames: frames
+                frames: frames,
+                sent: topped
             )
             Store.shared.save(climb)
             state = .done(climb)

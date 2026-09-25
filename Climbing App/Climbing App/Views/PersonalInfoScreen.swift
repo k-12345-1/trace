@@ -14,9 +14,12 @@ struct PersonalInfoScreen: View {
     @State private var heightCM: Double?
     @State private var spanCM: Double?
     @State private var massKG: Double?
+    @State private var name = ""
+    @State private var place = ""
+    @StateObject private var whereabouts = Whereabouts()
     @FocusState private var focus: Field?
 
-    enum Field: Hashable { case height, span, mass }
+    enum Field: Hashable { case name, place, height, span, mass }
 
     private var draft: BodyProfile {
         BodyProfile(heightCM: heightCM, spanCM: spanCM, massKG: massKG,
@@ -41,6 +44,8 @@ struct PersonalInfoScreen: View {
                 VStack(alignment: .leading, spacing: 0) {
                     NavHeader(title: nil) { dismiss() }
                     header
+                    you
+                    Hairline().padding(.horizontal, 20)
                     units
                     measurement(
                         label: "Height",
@@ -77,6 +82,14 @@ struct PersonalInfoScreen: View {
             heightCM = store.body.heightCM
             spanCM = store.body.spanCM
             massKG = store.body.massKG
+            name = store.account?.name ?? ""
+            place = store.account?.place ?? ""
+        }
+        .onChange(of: whereabouts.placeName) { _, found in
+            // Filled in once, then yours to edit. It does not keep correcting
+            // itself, because the answer to "where do you climb" is not
+            // wherever the phone happens to be sitting.
+            if let found, place.isEmpty { place = found }
         }
     }
 
@@ -87,13 +100,89 @@ struct PersonalInfoScreen: View {
             Text("Personal info")
                 .font(Theme.heading(22))
                 .foregroundStyle(Theme.ink)
-            Text("All three are optional and Trace works without them.")
+            Text("Everything here is optional and Trace works without it.")
                 .font(Theme.body(13.5))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
         }
         .padding(.horizontal, Theme.gutter).padding(.top, 12).padding(.bottom, 22)
+    }
+
+    // MARK: Who you are
+
+    /// Name and where you climb. Neither feeds the analysis: the name is what
+    /// the app calls you, and the place is a label on your profile. They live
+    /// here because this is the screen you open to change what Trace knows
+    /// about you, and having to hunt for your own name elsewhere is worse than
+    /// having two unrelated things on one page.
+    private var you: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionTitle("Name")
+                TextField("", text: $name, prompt: Text("Name").foregroundStyle(Theme.ink3))
+                    .font(Theme.ui(17, .medium))
+                    .foregroundStyle(Theme.ink)
+                    .textContentType(.name)
+                    .focused($focus, equals: .name)
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .background(Theme.surface,
+                                in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+                        .stroke(focus == .name ? Theme.accent : .clear, lineWidth: 1.5))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                SectionTitle("Where you climb")
+                HStack(spacing: 10) {
+                    TextField("", text: $place,
+                              prompt: Text("City, state").foregroundStyle(Theme.ink3))
+                        .font(Theme.ui(17, .medium))
+                        .foregroundStyle(Theme.ink)
+                        .focused($focus, equals: .place)
+                        .padding(.horizontal, 16).padding(.vertical, 14)
+                        .background(Theme.surface,
+                                    in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+                            .stroke(focus == .place ? Theme.accent : .clear, lineWidth: 1.5))
+
+                    Button { whereabouts.find() } label: {
+                        Group {
+                            if case .asking = whereabouts.state {
+                                ProgressView().controlSize(.small).tint(.white)
+                            } else {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .frame(width: 50, height: 50)
+                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                        .contentShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Use my location")
+                }
+
+                Text(locationHelp)
+                    .font(Theme.ui(12.5))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, Theme.gutter)
+        .padding(.bottom, 20)
+    }
+
+    private var locationHelp: String {
+        switch whereabouts.state {
+        case .denied:
+            return "Location is off for Trace, so type it instead. You can turn it on in Settings."
+        case .failed:
+            return "Could not work out where you are. Type it instead."
+        default:
+            return "Tap the arrow to fill this in from your phone, or type it. It is a label on your profile: Trace does not track where you are."
+        }
     }
 
     // MARK: Units
@@ -153,18 +242,16 @@ struct PersonalInfoScreen: View {
     /// These used to be a list at the bottom of the screen, which meant reading
     /// about height four fields after typing it. A thing is best explained where
     /// it is asked for.
+    /// What filling this in buys you. The line reads as live or not by its
+    /// weight and color; it used to carry a checkbox as well, which made three
+    /// short sentences look like a form to be completed.
     private func buys(on: Bool, text: String) -> some View {
-        HStack(alignment: .top, spacing: 9) {
-            Image(systemName: on ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 13))
-                .foregroundStyle(on ? Theme.accent : Theme.ink3.opacity(0.6))
-                .padding(.top, 1)
-            Text(text)
-                .font(Theme.ui(12.5))
-                .foregroundStyle(on ? Theme.ink2 : Theme.ink3)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.top, 2)
+        Text(text)
+            .font(Theme.ui(12.5, on ? .medium : .regular))
+            .foregroundStyle(on ? Theme.ink2 : Theme.ink3)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 3)
     }
 
     // MARK: Weight
@@ -231,6 +318,7 @@ struct PersonalInfoScreen: View {
         VStack(spacing: 10) {
             FlatButton(title: "Save", filled: true) {
                 store.updateBody(draft)
+                store.updateAccount(name: name, place: place)
                 focus = nil
                 dismiss()
             }
@@ -242,7 +330,7 @@ struct PersonalInfoScreen: View {
                     heightCM = nil; spanCM = nil; massKG = nil
                     store.updateBody(BodyProfile(usesImperial: imperial))
                 } label: {
-                    Text("Clear all three")
+                    Text("Clear the measurements")
                         .font(Theme.ui(14, .semibold))
                         .foregroundStyle(Theme.ink3)
                         .frame(maxWidth: .infinity)

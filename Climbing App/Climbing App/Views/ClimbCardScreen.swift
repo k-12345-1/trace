@@ -40,6 +40,10 @@ struct ClimbCardScreen: View {
                 .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
+            // Without this the photo stops at the safe area and the clock and
+            // battery sit on a white strip above it. The back control is already
+            // padded down to clear them.
+            .ignoresSafeArea(edges: .top)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)

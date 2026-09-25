@@ -146,10 +146,15 @@ struct MainTabs: View {
         .fullScreenCover(isPresented: $showCapture) {
             CaptureScreen { url in
                 showCapture = false
-                if let url { pendingURL = url; showAnalyzer = true }
+                if let url {
+                    pendingURL = url
+                    showAnalyzer = true
+                } else {
+                    reopen()
+                }
             }
         }
-        .fullScreenCover(isPresented: $showScan) { ScanScreen() }
+        .fullScreenCover(isPresented: $showScan, onDismiss: reopen) { ScanScreen() }
         .fullScreenCover(isPresented: $showPaywall) {
             NavigationStack {
                 PaywallScreen { showScan = true }
@@ -187,6 +192,19 @@ struct MainTabs: View {
 
     private func close() {
         withAnimation(.easeOut(duration: 0.18)) { entryOpen = false }
+    }
+
+    /// Back to the panel you started from.
+    ///
+    /// Backing out of the camera or the scanner used to drop you on whichever
+    /// page happened to be behind the panel, which is not where you were: you
+    /// were in the middle of adding something, and the thing you most likely
+    /// want next is the other way of adding it. The same turn-of-the-run-loop
+    /// rule as `leave` applies, because this runs while a cover is dismissing.
+    private func reopen() {
+        DispatchQueue.main.async {
+            withAnimation(.easeOut(duration: 0.18)) { entryOpen = true }
+        }
     }
 
     /// Closes the panel, then presents whatever it was that the panel started.
@@ -254,7 +272,7 @@ private struct TabBar: View {
                 Capsule()
                     .fill(Theme.blueLight)
                     .frame(width: active ? 14 : 0, height: 2)
-                    .offset(y: 13)
+                    .offset(y: 10)
             }
             .frame(width: target, height: target)
             .frame(maxWidth: .infinity)
@@ -283,7 +301,7 @@ private struct TabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(entryOpen ? "Close" : "Add to Trace")
+        .accessibilityLabel(entryOpen ? "Close" : "Trace a Climb")
     }
 }
 
@@ -302,27 +320,29 @@ private struct AddPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            ScrollView {
-                VStack(spacing: 10) {
-                    row(icon: "record.circle", title: "Record a climb",
-                        detail: "Phone on the floor, square to the wall, whole boulder in frame.",
-                        action: onRecord)
+            // Three rows sharing the height rather than stacked at the top of
+            // it. The panel is nearly full screen, so a fixed height row leaves
+            // most of it empty and the sheet reads as having failed to load.
+            // No scroll view: three is all there is, and a scroll view that
+            // never scrolls is only a way to hide that something was cut off.
+            VStack(spacing: 12) {
+                row(icon: "record.circle", title: "Record a climb",
+                    detail: "Phone on the floor, square to the wall, whole boulder in frame.",
+                    action: onRecord)
 
-                    PhotosPicker(selection: $pickerItem, matching: .videos,
-                                 photoLibrary: .shared()) {
-                        rowBody(icon: "photo.on.rectangle", title: "Import a clip",
-                                detail: "Use something you already filmed.")
-                    }
-                    .buttonStyle(.plain)
-
-                    row(icon: "viewfinder", title: "Scan a route",
-                        detail: "Photograph a wall and tap one hold. Trace picks out the rest by color and saves it to your gym.",
-                        action: onScan)
+                PhotosPicker(selection: $pickerItem, matching: .videos,
+                             photoLibrary: .shared()) {
+                    rowBody(icon: "photo.on.rectangle", title: "Import a clip",
+                            detail: "Use something you already filmed.")
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 18)
+                .buttonStyle(.plain)
+
+                row(icon: "viewfinder", title: "Scan a route",
+                    detail: "Photograph a wall and tap one hold. Trace picks out the rest by color and saves it to your gym.",
+                    action: onScan)
             }
-            .scrollIndicators(.hidden)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.blue)
@@ -332,7 +352,7 @@ private struct AddPanel: View {
 
     private var header: some View {
         ZStack {
-            Text("Add to Trace")
+            Text("Trace a Climb")
                 .font(Theme.serif(19, .semibold))
                 .foregroundStyle(.white)
 
@@ -361,29 +381,31 @@ private struct AddPanel: View {
     }
 
     private func rowBody(icon: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             Image(systemName: icon)
-                .font(.system(size: 19, weight: .regular))
+                .font(.system(size: 23, weight: .regular))
                 .foregroundStyle(Theme.blue)
-                .frame(width: 44, height: 44)
+                .frame(width: 52, height: 52)
                 .background(Circle().fill(Theme.blueLight))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(Theme.ui(16, .semibold))
-                    .foregroundStyle(.white)
-                Text(detail)
-                    .font(Theme.ui(13))
-                    .foregroundStyle(.white.opacity(0.62))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .multilineTextAlignment(.leading)
-            }
-            Spacer(minLength: 0)
+            Spacer(minLength: 14)
+
+            Text(title)
+                .font(Theme.serif(21, .semibold))
+                .foregroundStyle(.white)
+            Text(detail)
+                .font(Theme.ui(13.5))
+                .foregroundStyle(.white.opacity(0.62))
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+                .padding(.top, 5)
         }
-        .padding(15)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.white.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
             .stroke(.white.opacity(0.10), lineWidth: 1))
         .contentShape(Rectangle())

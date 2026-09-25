@@ -65,9 +65,10 @@ struct AnalyzingScreen: View {
                     .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 13)
-                    .background(Theme.surface)
-                    .overlay(RoundedRectangle(cornerRadius: Theme.r)
-                        .stroke(Theme.lineStrong, lineWidth: 1))
+                    // Clipped to the same shape as the border. Unclipped, the
+                    // fill is a square sitting behind a rounded outline and its
+                    // four corners show through as a halo.
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                     .submitLabel(.done)
 
                 if !Store.shared.attempts(matching: label).isEmpty {

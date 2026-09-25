@@ -7,15 +7,23 @@ import CoreLocation
 /// other screen is built out of what you have recorded; this one exists so that
 /// a new phone with nothing on it still has something to say.
 ///
-/// Two honesties are carried on the face of the screen rather than buried. The
-/// coordinates behind the distances are city centers, so a distance is to the
-/// city and not to the door. And the list is a hand-built starter set rather
-/// than a survey, so it is certainly missing gyms.
+/// Tapping a gym adds it to your gyms, which is the whole point of the screen:
+/// it is the one place in Trace where a gym can arrive without you typing its
+/// name. Adding is the only thing a tap does. Removing lives on the Gyms screen,
+/// where it belongs, because deleting a gym deletes the routes scanned at it and
+/// that is not a thing to put one stray tap away. The exception is a gym you
+/// have just added and not yet used: with no routes to lose, a second tap takes
+/// it back off, which is the undo for tapping the wrong row.
+///
+/// The list is OpenStreetMap, credited at the bottom as its license requires.
 struct ExploreScreen: View {
     @ObservedObject private var store = Store.shared
     @StateObject private var whereabouts = Whereabouts()
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
+    /// The row that just changed, so the change is confirmed where the thumb is
+    /// rather than somewhere else on the screen.
+    @State private var justChanged: String?
 
     private var venues: [Venue] {
         let all = GymDirectory.sorted(by: whereabouts.state.location)
@@ -24,6 +32,7 @@ struct ExploreScreen: View {
         return all.filter {
             $0.name.localizedCaseInsensitiveContains(trimmed)
             || $0.place.localizedCaseInsensitiveContains(trimmed)
+            || ($0.street?.localizedCaseInsensitiveContains(trimmed) ?? false)
         }
     }
 
@@ -168,7 +177,8 @@ struct ExploreScreen: View {
         } else {
             LazyVStack(spacing: 8) {
                 ForEach(venues) { venue in
-                    row(venue)
+                    Button { tap(venue) } label: { row(venue) }
+                        .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, Theme.gutter)
@@ -176,7 +186,9 @@ struct ExploreScreen: View {
     }
 
     private func row(_ venue: Venue) -> some View {
-        HStack(spacing: 14) {
+        let gym = mine(venue)
+        let routes = gym.map { store.routes(in: $0).count } ?? 0
+        return HStack(spacing: 14) {
             // The colors you have scanned there, when you have. A gym you have
             // been to should not look identical to one you have not.
             face(for: venue)
@@ -186,33 +198,71 @@ struct ExploreScreen: View {
                     .font(Theme.serif(17, .semibold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(2)
-                Text(venue.place)
+                Text(venue.street.map { "\($0), \(venue.place)" } ?? venue.place)
                     .font(Theme.ui(13))
                     .foregroundStyle(Theme.ink3)
-                if let miles = distance(to: venue) {
-                    Text(miles)
-                        .font(Theme.ui(12.5, .medium)).monospacedDigit()
-                        .foregroundStyle(Theme.accentText)
+                    .lineLimit(2)
+
+                HStack(spacing: 8) {
+                    if let miles = distance(to: venue) {
+                        Text(miles)
+                            .font(Theme.ui(12.5, .medium)).monospacedDigit()
+                            .foregroundStyle(Theme.accentText)
+                    }
+                    if gym != nil {
+                        Text(justChanged == venue.id
+                             ? "Added to your gyms"
+                             : (routes == 0
+                                ? "In your gyms. Tap to remove"
+                                : "In your gyms. \(routes) route\(routes == 1 ? "" : "s")"))
+                            .font(Theme.ui(12.5, .medium))
+                            .foregroundStyle(Theme.blue)
+                    }
                 }
             }
             Spacer(minLength: 8)
-            if scanned(venue) != nil {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 24, height: 24)
-                    .background(Circle().fill(Theme.blue))
-            }
+
+            // Plus or check, so the row says what the tap will do before it is
+            // tapped rather than only after.
+            Image(systemName: gym == nil ? "plus" : "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(gym == nil ? Theme.ink2 : .white)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(gym == nil ? Theme.surface2 : Theme.blue))
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
         .card()
+        .contentShape(Rectangle())
+    }
+
+    /// Add, or take back an add that has cost nothing yet.
+    private func tap(_ venue: Venue) {
+        if let gym = mine(venue) {
+            // Only ever a gym with nothing in it. A gym with routes is left
+            // alone here; the Gyms screen deletes, and it asks first.
+            guard store.routes(in: gym).isEmpty else { return }
+            store.deleteGym(gym)
+            justChanged = nil
+        } else {
+            store.addGym(named: venue.name, venueID: venue.id)
+            justChanged = venue.id
+            // The confirmation is for the moment after the tap, not forever.
+            // Left up, it would still be saying "added" on a row you added last
+            // week. The row keeps saying it is yours either way.
+            let id = venue.id
+            Task {
+                try? await Task.sleep(for: .seconds(2.5))
+                if justChanged == id { withAnimation { justChanged = nil } }
+            }
+        }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func face(for venue: Venue) -> some View {
         ZStack {
             Theme.surface2
-            if let gym = scanned(venue), !store.routes(in: gym).isEmpty {
+            if let gym = mine(venue), !store.routes(in: gym).isEmpty {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 2),
                           spacing: 2) {
                     ForEach(Array(store.routes(in: gym).prefix(4).enumerated()), id: \.offset) { _, r in
@@ -233,19 +283,32 @@ struct ExploreScreen: View {
         .allowsHitTesting(false)
     }
 
-    /// The gym in your own list that is this venue, if you have scanned there.
+    /// The gym in your own list that is this venue, if you have it.
     ///
-    /// Matched on the words rather than the whole string. You typed your gym's
-    /// name yourself, so "Central Rock Watertown" and "Central Rock Gym
-    /// Watertown" are the same place and an exact compare says they are not.
-    /// Filler words are dropped so they cannot carry a match on their own.
-    private func scanned(_ venue: Venue) -> Gym? {
+    /// Three tests, in descending order of how much they can be trusted.
+    ///
+    /// The id, for anything added from this screen, which is exact. Then the
+    /// whole name, for a gym typed with the directory's spelling. Then a word
+    /// match, because gyms typed by hand before this screen existed say things
+    /// like "Central Rock Watertown" for "Central Rock Gym Watertown" and an
+    /// exact compare calls those different places.
+    ///
+    /// The word match needs two significant words on both sides. A gym someone
+    /// typed as just "Movement" is a subset of every Movement in the country,
+    /// and at eight hundred venues that one loose match would light up rows all
+    /// over the list.
+    private func mine(_ venue: Venue) -> Gym? {
+        if let byID = store.gyms.first(where: { $0.venueID == venue.id }) { return byID }
+        if let byName = store.gyms.first(where: {
+            $0.name.caseInsensitiveCompare(venue.name) == .orderedSame
+        }) { return byName }
+
         let wanted = Self.words(venue.name)
-        guard !wanted.isEmpty else { return nil }
+        guard wanted.count >= 2 else { return nil }
         return store.gyms.first { gym in
+            guard gym.venueID == nil else { return false }   // already spoken for
             let mine = Self.words(gym.name)
-            guard !mine.isEmpty else { return false }
-            // Every word of the shorter name appears in the longer one.
+            guard mine.count >= 2 else { return false }
             return mine.isSubset(of: wanted) || wanted.isSubset(of: mine)
         }
     }
@@ -272,15 +335,17 @@ struct ExploreScreen: View {
         return letters.isEmpty ? "G" : String(letters).uppercased()
     }
 
-    /// Said once, at the bottom, rather than implied nowhere.
+    /// Said once, at the bottom, rather than implied nowhere. The credit is not
+    /// optional: the data is under the Open Database License, which requires it.
     private var footnote: some View {
-        Text(whereabouts.state.location == nil
-             ? "A starter list rather than a survey. It covers the larger metros and the chains, and it is certainly missing gyms."
-             : "Distances are to the middle of each gym's city, not to its door. A starter list rather than a survey, so it is certainly missing gyms.")
-            .font(Theme.ui(12))
-            .foregroundStyle(Theme.ink3)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, Theme.gutter)
-            .padding(.top, 4)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Gym data from OpenStreetMap contributors, under the Open Database License. Cities and states from the US Census Bureau. Taken \(GymDirectory.captured).")
+            Text("OpenStreetMap is mapped by volunteers, so a gym nobody has added is not here and one that has closed may still be. Tell us what is missing and we will add it upstream.")
+        }
+        .font(Theme.ui(12))
+        .foregroundStyle(Theme.ink3)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 4)
     }
 }

@@ -180,9 +180,12 @@ struct RoutesScreen: View {
     let gym: Gym
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var scanning = false
+    @State private var confirmingDelete = false
 
     var body: some View {
         let counts = store.routeCount(in: gym)
+        let routes = store.routes(in: gym)
         ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
@@ -199,22 +202,28 @@ struct RoutesScreen: View {
                     .padding(.horizontal, Theme.gutter)
                     .padding(.top, 12)
 
-                    LazyVStack(spacing: 10) {
-                        ForEach(store.routes(in: gym)) { route in
-                            NavigationLink { RouteDetailScreen(route: route) } label: { row(route) }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button { store.toggleSent(route) } label: {
-                                        Label(route.sent ? "Mark unsent" : "Mark sent",
-                                              systemImage: route.sent ? "arrow.uturn.backward" : "checkmark")
+                    if routes.isEmpty {
+                        EmptyGym(gym: gym) { scanning = true }
+                    } else {
+                        LazyVStack(spacing: 10) {
+                            ForEach(routes) { route in
+                                NavigationLink { RouteDetailScreen(route: route) } label: { row(route) }
+                                    .buttonStyle(.plain)
+                                    .contextMenu {
+                                        Button { store.toggleSent(route) } label: {
+                                            Label(route.sent ? "Mark unsent" : "Mark sent",
+                                                  systemImage: route.sent ? "arrow.uturn.backward" : "checkmark")
+                                        }
+                                        Button(role: .destructive) { store.deleteRoute(route) } label: {
+                                            Label("Delete route", systemImage: "trash")
+                                        }
                                     }
-                                    Button(role: .destructive) { store.deleteRoute(route) } label: {
-                                        Label("Delete route", systemImage: "trash")
-                                    }
-                                }
+                            }
                         }
+                        .padding(.horizontal, Theme.gutter)
                     }
-                    .padding(.horizontal, Theme.gutter)
+
+                    removeGym
                 }
                 .padding(.bottom, 156)
             }
@@ -222,6 +231,33 @@ struct RoutesScreen: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
+        .fullScreenCover(isPresented: $scanning) { ScanScreen(gym: gym) }
+        .alert("Remove \(gym.name)?", isPresented: $confirmingDelete) {
+            Button("Remove", role: .destructive) { store.deleteGym(gym); dismiss() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(counts.total == 0
+                 ? "Nothing has been scanned here, so nothing else goes with it."
+                 : "The \(counts.total) route\(counts.total == 1 ? "" : "s") scanned here, and their photos, go with it. Your climbs and their analysis stay.")
+        }
+    }
+
+    /// Removing the gym lives on the gym, where you can see what is in it.
+    /// It was only ever a long press on the list before this, which is a gesture
+    /// with nothing on screen to suggest it exists.
+    private var removeGym: some View {
+        Button { confirmingDelete = true } label: {
+            Text("Remove this gym")
+                .font(Theme.ui(15, .semibold))
+                .foregroundStyle(Theme.ink2)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Theme.surface, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 10)
     }
 
     private func row(_ route: Route) -> some View {
@@ -412,5 +448,130 @@ extension Color {
     init(hexString: String) {
         let cleaned = hexString.hasPrefix("#") ? String(hexString.dropFirst()) : hexString
         self.init(hex: UInt32(cleaned, radix: 16) ?? 0x888888)
+    }
+}
+
+
+// MARK: - A gym with nothing in it yet
+
+/// What to show on a gym you have just added.
+///
+/// The screen used to be the gym's name over white space, which says the app is
+/// broken rather than that the gym is new. Everything here is either an action
+/// or a number taken from your own climbing; there are no invented routes and no
+/// claims about what this gym has on its walls, because Trace has never seen it.
+private struct EmptyGym: View {
+    let gym: Gym
+    let onScan: () -> Void
+    @ObservedObject private var store = Store.shared
+
+    init(gym: Gym, onScan: @escaping () -> Void) {
+        self.gym = gym
+        self.onScan = onScan
+    }
+
+    /// The hardest thing you have sent anywhere, on whichever scale you wrote it
+    /// in. Only grades on one scale are ever compared, so this picks the scale
+    /// you use most and answers within it.
+    private var bestSent: String? {
+        let graded = store.routes.filter { $0.sent }
+            .compactMap { r -> (String, Grade)? in
+                Grade.parse(r.grade).map { (r.grade, $0) }
+            }
+        guard !graded.isEmpty else { return nil }
+        let commonest = Dictionary(grouping: graded, by: { $0.1.scale })
+            .max { $0.value.count < $1.value.count }?.value ?? graded
+        return commonest.max { $0.1.index < $1.1.index }?.0
+    }
+
+    /// Routes you have scanned at your other gyms. Not a suggestion about this
+    /// gym, and labeled as what it is.
+    private var elsewhere: [Route] {
+        store.routes.filter { $0.gymID != gym.id && !$0.sent }
+            .sorted { $0.scannedAt > $1.scannedAt }
+            .prefix(4)
+            .map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionTitle("Nothing scanned here yet")
+                Text("Photograph a wall and tap one hold. Trace picks out every hold that color and saves the route to \(gym.name).")
+                    .font(Theme.ui(14.5))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(action: onScan) {
+                    Text("Scan a route here")
+                        .font(Theme.ui(16, .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Theme.accent, in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .card()
+
+            if let best = bestSent {
+                VStack(alignment: .leading, spacing: 7) {
+                    SectionTitle("Where to start")
+                    Text("The hardest thing you have sent is \(best). Scan something at that grade and one above it, so there is a route here you can finish and one you cannot yet.")
+                        .font(Theme.ui(14))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+                .card()
+            }
+
+            if !elsewhere.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionTitle("Still open at your other gyms")
+                    Text("Not here, and not a suggestion about this wall. Trace has never seen \(gym.name).")
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    ForEach(elsewhere) { route in
+                        NavigationLink { RouteDetailScreen(route: route) } label: {
+                            HStack(spacing: 11) {
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(Color(hexString: route.colorHex))
+                                    .frame(width: 6, height: 30)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(route.displayName)
+                                        .font(Theme.ui(15, .semibold))
+                                        .foregroundStyle(Theme.ink)
+                                        .lineLimit(1)
+                                    Text(store.gyms.first { $0.id == route.gymID }?.name ?? "")
+                                        .font(Theme.ui(12.5))
+                                        .foregroundStyle(Theme.ink3)
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: 6)
+                                if !route.grade.isEmpty {
+                                    Text(route.grade)
+                                        .font(Theme.ui(13, .semibold))
+                                        .foregroundStyle(Theme.accentText)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+                .card()
+            }
+        }
+        .padding(.horizontal, Theme.gutter)
     }
 }

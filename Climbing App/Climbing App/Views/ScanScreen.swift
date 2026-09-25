@@ -8,6 +8,10 @@ import UIKit
 /// everything else that color. No route database, no hold model, no gym
 /// partnership: it works on the first photo you take anywhere.
 struct ScanScreen: View {
+    /// Set when the scan was started from a gym's own screen, so the route is
+    /// filed there without being asked which gym you are standing in.
+    var gym: Gym? = nil
+
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
 
@@ -22,6 +26,9 @@ struct ScanScreen: View {
 
     @State private var pickerItem: PhotosPickerItem?
     @State private var showCamera = false
+    /// Once only. Without this, coming back from the library reopens the camera
+    /// over the photo you just chose.
+    @State private var hasOpenedCamera = false
 
     @State private var routeName = ""
     @State private var grade = ""
@@ -56,11 +63,23 @@ struct ScanScreen: View {
             Task { await load(item) }
         }
         .fullScreenCover(isPresented: $showCamera) {
-            CameraStillPicker { picked in
+            WallCaptureScreen(pickerItem: $pickerItem) { picked in
                 showCamera = false
                 if let picked { adopt(picked) }
             }
-            .ignoresSafeArea()
+        }
+        // Straight to the camera, the way recording goes straight to the camera.
+        // The step that used to sit here was a page offering a choice between
+        // two things, when one of them is what all but a few people want.
+        .task {
+            if let gym {
+                selectedGym = gym
+                gymName = gym.name
+            }
+            if image == nil && !hasOpenedCamera {
+                hasOpenedCamera = true
+                showCamera = true
+            }
         }
     }
 
@@ -89,7 +108,7 @@ struct ScanScreen: View {
 
     private var sourcePicker: some View {
         VStack(alignment: .leading, spacing: 12) {
-            FlatButton(title: "Take a photo", filled: true) { showCamera = true }
+            FlatButton(title: "Photograph the wall", filled: true) { showCamera = true }
 
             PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
                 Text("CHOOSE FROM LIBRARY")
@@ -367,26 +386,3 @@ struct ScanScreen: View {
 //
 // The video capture path is built for climbs. Scanning wants one photograph.
 
-struct CameraStillPicker: UIViewControllerRepresentable {
-    let onPicked: (UIImage?) -> Void
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let c = UIImagePickerController()
-        c.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
-        c.delegate = context.coordinator
-        return c
-    }
-    func updateUIViewController(_ c: UIImagePickerController, context: Context) {}
-    func makeCoordinator() -> Coordinator { Coordinator(onPicked: onPicked) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onPicked: (UIImage?) -> Void
-        init(onPicked: @escaping (UIImage?) -> Void) { self.onPicked = onPicked }
-
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            onPicked(info[.originalImage] as? UIImage)
-        }
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { onPicked(nil) }
-    }
-}

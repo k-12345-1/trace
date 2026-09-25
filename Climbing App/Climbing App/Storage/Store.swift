@@ -245,15 +245,35 @@ final class Store: ObservableObject {
         try? data.write(to: Self.accountURL, options: .atomic)
     }
 
+    /// Editing who you are, rather than signing in as someone else.
+    func updateAccount(name: String, place: String) {
+        guard var acc = account else { return }
+        acc.name = name.trimmingCharacters(in: .whitespaces)
+        acc.place = place.trimmingCharacters(in: .whitespaces)
+        account = acc
+        persistAccount()
+    }
+
     // MARK: Gyms and routes
 
     @discardableResult
-    func addGym(named name: String) -> Gym {
+    func addGym(named name: String, venueID: String? = nil) -> Gym {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         if let existing = gyms.first(where: {
             $0.name.caseInsensitiveCompare(trimmed) == .orderedSame
-        }) { return existing }
-        let gym = Gym(name: trimmed)
+        }) {
+            // Adding from Explore a gym that was typed by hand earlier. Keep the
+            // one that has the climbs in it and give it the id, so the directory
+            // recognizes it from now on.
+            if existing.venueID == nil, let venueID,
+               let i = gyms.firstIndex(where: { $0.id == existing.id }) {
+                gyms[i].venueID = venueID
+                persistGyms()
+                return gyms[i]
+            }
+            return existing
+        }
+        let gym = Gym(name: trimmed, venueID: venueID)
         gyms.append(gym)
         persistGyms()
         return gym
