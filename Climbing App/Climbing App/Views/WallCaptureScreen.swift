@@ -11,8 +11,10 @@ import PhotosUI
 /// job sitting where the recording screen puts its own.
 struct WallCaptureScreen: View {
     @StateObject private var camera = StillCamera()
-    @Environment(\.dismiss) private var dismiss
     @Binding var pickerItem: PhotosPickerItem?
+    /// Nil means the person backed out. What that means is the caller's
+    /// business: this view no longer dismisses anything, because it is no longer
+    /// presented over anything.
     let onCaptured: (UIImage?) -> Void
 
     var body: some View {
@@ -61,7 +63,6 @@ struct WallCaptureScreen: View {
             Button {
                 camera.teardown()
                 onCaptured(nil)
-                dismiss()
             } label: {
                 HStack(spacing: 7) {
                     Image(systemName: "xmark")
@@ -108,7 +109,6 @@ struct WallCaptureScreen: View {
                         guard let image else { return }
                         camera.teardown()
                         onCaptured(image)
-                        dismiss()
                     }
                 }
 
@@ -132,6 +132,7 @@ struct WallCaptureScreen: View {
                     .buttonStyle(.plain)
                 }
                 .padding(.trailing, 26)
+                .padding(.bottom, 26)
             }
 
             if let problem = camera.errorMessage {
@@ -181,7 +182,6 @@ struct WallCaptureScreen: View {
 
             Button {
                 onCaptured(nil)
-                dismiss()
             } label: {
                 Text("Back")
                     .font(Theme.ui(15, .semibold))

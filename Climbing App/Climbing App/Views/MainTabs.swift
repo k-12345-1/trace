@@ -54,9 +54,19 @@ struct MainTabs: View {
     @State private var showCapture = false
     @State private var showScan = false
     @State private var showPaywall = false
-    @State private var showAnalyzer = false
     @State private var pickerItem: PhotosPickerItem?
-    @State private var pendingURL: URL?
+    /// The clip waiting to be analyzed.
+    ///
+    /// An item rather than a flag beside an optional. A cover driven by
+    /// `isPresented` whose body is `if let url = pendingURL` can be raised with
+    /// nothing in it, and what that draws is a white screen: exactly what you
+    /// got after pressing stop.
+    @State private var pending: PendingClip?
+
+    struct PendingClip: Identifiable {
+        let url: URL
+        var id: String { url.path }
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -126,7 +136,6 @@ struct MainTabs: View {
                     pickerItem: $pickerItem
                 )
                 .padding(.horizontal, 12)
-                .padding(.top, 8)
                 .padding(.bottom, 92)
                 .transition(.opacity)
             }
@@ -147,8 +156,11 @@ struct MainTabs: View {
             CaptureScreen { url in
                 showCapture = false
                 if let url {
-                    pendingURL = url
-                    showAnalyzer = true
+                    // The next turn of the run loop, for the same reason the
+                    // panel hands off that way: raising a cover inside the
+                    // transaction that dismisses another gives UIKit two
+                    // presentations to settle at once.
+                    next { pending = PendingClip(url: url) }
                 } else {
                     reopen()
                 }
@@ -160,10 +172,8 @@ struct MainTabs: View {
                 PaywallScreen { showScan = true }
             }
         }
-        .fullScreenCover(isPresented: $showAnalyzer) {
-            if let url = pendingURL {
-                AnalyzingScreen(sourceURL: url) { showAnalyzer = false; pendingURL = nil }
-            }
+        .fullScreenCover(item: $pending) { clip in
+            AnalyzingScreen(sourceURL: clip.url) { pending = nil }
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
@@ -202,9 +212,7 @@ struct MainTabs: View {
     /// want next is the other way of adding it. The same turn-of-the-run-loop
     /// rule as `leave` applies, because this runs while a cover is dismissing.
     private func reopen() {
-        DispatchQueue.main.async {
-            withAnimation(.easeOut(duration: 0.18)) { entryOpen = true }
-        }
+        next { withAnimation(.easeOut(duration: 0.18)) { entryOpen = true } }
     }
 
     /// Closes the panel, then presents whatever it was that the panel started.
@@ -223,15 +231,20 @@ struct MainTabs: View {
     /// buttons.
     private func leave(_ present: @escaping () -> Void) {
         close()
-        DispatchQueue.main.async(execute: present)
+        next(present)
+    }
+
+    /// One turn of the run loop later. Every handoff between two covers goes
+    /// through here.
+    private func next(_ work: @escaping () -> Void) {
+        DispatchQueue.main.async(execute: work)
     }
 
     private func loadPicked(_ item: PhotosPickerItem) async {
         guard let movie = try? await item.loadTransferable(type: PickedMovie.self) else { return }
-        pendingURL = movie.url
         pickerItem = nil
         close()
-        showAnalyzer = true
+        next { pending = PendingClip(url: movie.url) }
     }
 }
 
@@ -342,9 +355,15 @@ private struct AddPanel: View {
                     action: onScan)
             }
             .padding(.horizontal, 14)
-            .padding(.bottom, 16)
+            .padding(.bottom, 18)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // As tall as what is in it, not as tall as the screen.
+        //
+        // Stretched to fill, three rows of two lines each became cards over four
+        // hundred points high with the text floating in the middle of them. The
+        // rows carry a generous minimum instead, so the panel is substantial
+        // because its contents are, and there is no dead space anywhere in it.
+        .frame(maxWidth: .infinity)
         .background(Theme.blue)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
@@ -381,28 +400,32 @@ private struct AddPanel: View {
     }
 
     private func rowBody(icon: String, title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        // The card fills its share of the sheet; the content sits in the middle
+        // of it. Stacking the icon at the top and the text at the bottom of a
+        // tall card, which is what this did, opens a gap down the middle that
+        // reads as something having failed to load.
+        HStack(alignment: .center, spacing: 15) {
             Image(systemName: icon)
                 .font(.system(size: 23, weight: .regular))
                 .foregroundStyle(Theme.blue)
                 .frame(width: 52, height: 52)
                 .background(Circle().fill(Theme.blueLight))
 
-            Spacer(minLength: 14)
-
-            Text(title)
-                .font(Theme.serif(21, .semibold))
-                .foregroundStyle(.white)
-            Text(detail)
-                .font(Theme.ui(13.5))
-                .foregroundStyle(.white.opacity(0.62))
-                .fixedSize(horizontal: false, vertical: true)
-                .multilineTextAlignment(.leading)
-                .padding(.top, 5)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(Theme.serif(19, .semibold))
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(detail)
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(.white.opacity(0.62))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(18)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
         .background(.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))

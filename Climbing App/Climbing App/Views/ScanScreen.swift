@@ -25,10 +25,7 @@ struct ScanScreen: View {
     @State private var scanning = false
 
     @State private var pickerItem: PhotosPickerItem?
-    @State private var showCamera = false
-    /// Once only. Without this, coming back from the library reopens the camera
-    /// over the photo you just chose.
-    @State private var hasOpenedCamera = false
+
 
     @State private var routeName = ""
     @State private var grade = ""
@@ -38,48 +35,52 @@ struct ScanScreen: View {
     private var kept: [RouteScanner.Hold] { holds.filter { !dropped.contains($0.id) } }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.ground.ignoresSafeArea()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        header
-                        Hairline()
-                        if let image {
-                            stage(image)
-                            controls
-                            if !kept.isEmpty { Hairline(); details }
-                        } else {
-                            sourcePicker
-                        }
-                    }
+        Group {
+            if let image {
+                wall(image)
+            } else {
+                // The camera IS this screen until there is a photo to work on.
+                //
+                // It used to be a cover raised over a page, and that page was
+                // drawn first: a white flash, every time, before the camera came
+                // up over it. There is nothing to put on that page anyway, since
+                // the whole screen is about a photograph nobody has taken yet.
+                WallCaptureScreen(pickerItem: $pickerItem) { picked in
+                    if let picked { adopt(picked) } else { dismiss() }
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.light)
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task { await load(item) }
         }
-        .fullScreenCover(isPresented: $showCamera) {
-            WallCaptureScreen(pickerItem: $pickerItem) { picked in
-                showCamera = false
-                if let picked { adopt(picked) }
-            }
-        }
-        // Straight to the camera, the way recording goes straight to the camera.
-        // The step that used to sit here was a page offering a choice between
-        // two things, when one of them is what all but a few people want.
         .task {
             if let gym {
                 selectedGym = gym
                 gymName = gym.name
             }
-            if image == nil && !hasOpenedCamera {
-                hasOpenedCamera = true
-                showCamera = true
+        }
+    }
+
+    /// The photograph, and everything you do to it.
+    private var wallBackground: some View { Theme.ground.ignoresSafeArea() }
+
+    private func wall(_ image: UIImage) -> some View {
+        NavigationStack {
+            ZStack {
+                wallBackground
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        header
+                        Hairline()
+                        stage(image)
+                        controls
+                        if !kept.isEmpty { Hairline(); details }
+                    }
+                }
             }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
@@ -102,31 +103,6 @@ struct ScanScreen: View {
         .padding(.horizontal, 20)
         .padding(.top, 18)
         .padding(.bottom, 16)
-    }
-
-    // MARK: Choosing a photo
-
-    private var sourcePicker: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FlatButton(title: "Photograph the wall", filled: true) { showCamera = true }
-
-            PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
-                Text("CHOOSE FROM LIBRARY")
-                    .font(Theme.mono(11, weight: .medium))
-                    .tracking(1.3)
-                    .foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .overlay(RoundedRectangle(cornerRadius: Theme.r)
-                        .stroke(Theme.lineStrong, lineWidth: 1))
-            }
-
-            Text("Stand back far enough to get the whole route in one frame. Even light helps: Trace separates holds by color, so a photo half in shadow will split one color into two.")
-                .font(Theme.body(13))
-                .foregroundStyle(Theme.ink3)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(20)
     }
 
     // MARK: The wall
