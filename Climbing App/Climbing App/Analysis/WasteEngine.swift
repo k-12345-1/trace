@@ -135,9 +135,33 @@ enum WasteEngine {
             }
         }
 
-        return Reading(excursions: out,
-                       wasted: out.reduce(0) { $0 + $1.travel },
+        let merged = merge(out)
+        return Reading(excursions: merged,
+                       wasted: merged.reduce(0) { $0 + $1.travel },
                        total: cumulative.last ?? 0)
+    }
+
+    /// Two trips this close together are one trip, reported twice.
+    ///
+    /// The walk restarts from wherever the last excursion got back to, so a
+    /// body that leaves again immediately produces a second entry a fraction of
+    /// a second after the first. On screen that is the same timecode listed
+    /// twice, which reads as a bug whatever the arithmetic says.
+    static let mergeGap = 0.75
+
+    static func merge(_ trips: [Excursion]) -> [Excursion] {
+        guard !trips.isEmpty else { return [] }
+        var out: [Excursion] = [trips[0]]
+        for trip in trips.dropFirst() {
+            let last = out[out.count - 1]
+            if trip.start - last.end <= mergeGap {
+                out[out.count - 1] = Excursion(start: last.start, end: trip.end,
+                                               travel: last.travel + trip.travel)
+            } else {
+                out.append(trip)
+            }
+        }
+        return out
     }
 
     /// The reading in one sentence, or nil when there is nothing worth saying.

@@ -279,7 +279,32 @@ final class Store: ObservableObject {
         return gym
     }
 
+    nonisolated static var gymImagesDirectory: URL {
+        let dir = documents.appendingPathComponent("GymImages", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// Puts a picture on a gym, replacing any it already had.
+    func setImage(_ data: Data, for gym: Gym) {
+        guard let i = gyms.firstIndex(where: { $0.id == gym.id }) else { return }
+        if let old = gyms[i].imageURL { try? FileManager.default.removeItem(at: old) }
+        let name = "\(gym.id.uuidString).jpg"
+        let url = Self.gymImagesDirectory.appendingPathComponent(name)
+        guard (try? data.write(to: url, options: .atomic)) != nil else { return }
+        gyms[i].imageFilename = name
+        persistGyms()
+    }
+
+    func clearImage(for gym: Gym) {
+        guard let i = gyms.firstIndex(where: { $0.id == gym.id }) else { return }
+        if let old = gyms[i].imageURL { try? FileManager.default.removeItem(at: old) }
+        gyms[i].imageFilename = nil
+        persistGyms()
+    }
+
     func deleteGym(_ gym: Gym) {
+        if let image = gym.imageURL { try? FileManager.default.removeItem(at: image) }
         routes.filter { $0.gymID == gym.id }.forEach { deleteRoute($0) }
         gyms.removeAll { $0.id == gym.id }
         persistGyms()

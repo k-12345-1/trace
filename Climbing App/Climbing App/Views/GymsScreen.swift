@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Every gym you have scanned something at, and what is on the wall there.
 ///
@@ -182,6 +183,7 @@ struct RoutesScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var scanning = false
     @State private var confirmingDelete = false
+    @State private var pickingImage: PhotosPickerItem?
 
     var body: some View {
         let counts = store.routeCount(in: gym)
@@ -199,13 +201,18 @@ struct RoutesScreen: View {
                         Spacer(minLength: 0)
                         removeGym
                     }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(gym.name)
-                            .font(Theme.title(30))
-                            .foregroundStyle(Theme.ink)
-                        Text(subtitle(counts: counts, climbed: climbed.count))
-                            .font(Theme.ui(14))
-                            .foregroundStyle(Theme.ink3)
+                    HStack(alignment: .center, spacing: 14) {
+                        picture
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(gym.name)
+                                .font(Theme.title(26))
+                                .foregroundStyle(Theme.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(subtitle(counts: counts, climbed: climbed.count))
+                                .font(Theme.ui(14))
+                                .foregroundStyle(Theme.ink3)
+                        }
+                        Spacer(minLength: 0)
                     }
                     .padding(.horizontal, Theme.gutter)
                     .padding(.top, 12)
@@ -257,6 +264,55 @@ struct RoutesScreen: View {
                  : "The \(counts.total) route\(counts.total == 1 ? "" : "s") scanned here, and their photos, go with it. Your climbs and their analysis stay.")
         }
     }
+
+    /// The gym's picture, or a prompt to add one.
+    ///
+    /// Trace ships no gym logos, for reasons that are about trademarks rather
+    /// than about effort. What it can do is hold the one you put there: a
+    /// photograph of the place, or their sign, or anything you like. It stays
+    /// on the phone with everything else.
+    private var picture: some View {
+        PhotosPicker(selection: $pickingImage, matching: .images) {
+            Group {
+                if let url = live?.imageURL,
+                   let data = try? Data(contentsOf: url),
+                   let ui = UIImage(data: data) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    ZStack {
+                        Theme.surface
+                        VStack(spacing: 3) {
+                            Image(systemName: "camera")
+                                .font(.system(size: 15, weight: .regular))
+                            Text("Add")
+                                .font(Theme.ui(10.5, .medium))
+                        }
+                        .foregroundStyle(Theme.ink3)
+                    }
+                }
+            }
+            .frame(width: 66, height: 66)
+            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(Theme.lineStrong, lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onChange(of: pickingImage) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    store.setImage(data, for: gym)
+                }
+                pickingImage = nil
+            }
+        }
+    }
+
+    /// Read back out of the store so a new picture shows at once.
+    private var live: Gym? { store.gyms.first { $0.id == gym.id } }
 
     private func subtitle(counts: (total: Int, sent: Int), climbed: Int) -> String {
         var parts: [String] = []

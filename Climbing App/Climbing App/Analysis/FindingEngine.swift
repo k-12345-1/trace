@@ -30,7 +30,7 @@ enum FindingEngine {
                 severity: severity,
                 start: worst.start,
                 end: worst.end,
-                message: "You held your arms at about \(Int(m.staticElbowAngle.rounded())) degrees while you were not moving. Straight arms would hand that load to your skeleton instead of your biceps."
+                message: "Your arms sat at about \(Int(m.staticElbowAngle.rounded())) degrees while you were not moving."
             ))
         }
 
@@ -48,7 +48,7 @@ enum FindingEngine {
                 kind: .weightOnArms,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Over the stretches where you were barely moving, your center of mass sat about \(percent) percent of a torso length out from over your feet. That load is going through your fingers instead of your legs."
+                message: "Resting, your weight sat about \(percent) percent of a torso length to the side of your feet."
             ))
         }
 
@@ -60,16 +60,16 @@ enum FindingEngine {
             let late = m.deadpointBias > 40
             let early = m.deadpointBias < -40
             let direction = late
-                ? " You were mostly arriving late, catching on the way back down, which means pulling your own weight back up."
+                ? " Mostly late, catching on the way back down."
                 : early
-                    ? " You were mostly arriving early, still driving upward into the hold."
+                    ? " Mostly early, still driving upward into the hold."
                     : ""
             let w = worstDeadpointWindow(frames: frames) ?? whole
             out.append(Finding(
                 kind: .mistimedDynamics,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "On dynamic moves your hand arrived about \(ms) milliseconds away from the top of your arc.\(direction)"
+                message: "Your hand arrived about \(ms) milliseconds off the top of your arc.\(direction)"
             ))
         }
 
@@ -87,7 +87,7 @@ enum FindingEngine {
                 kind: .wandering,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Your hips traveled \(extra) percent further than the straight line up this climb. Some of that is the sequence, and some of it is drift you can take out on the next go."
+                message: "Your hips traveled \(extra) percent further than the straight line up this climb."
             ))
         }
 
@@ -107,7 +107,7 @@ enum FindingEngine {
                 kind: .lurchy,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "This attempt was more start-stop than your usual on this kind of climb. Every acceleration and deceleration is paid for by your forearms."
+                message: "This attempt was more start-stop than your usual."
             ))
         }
 
@@ -119,7 +119,7 @@ enum FindingEngine {
                 kind: .hesitation,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "You spent \(Int(m.pauseTotal.rounded())) of \(Int(m.duration.rounded())) seconds not moving, across \(m.pauseCount) stops. That is route reading done while hanging on the wall rather than from the ground."
+                message: "You spent \(Int(m.pauseTotal.rounded())) of \(Int(m.duration.rounded())) seconds not moving, across \(m.pauseCount) stops."
             ))
         }
 
@@ -140,7 +140,7 @@ enum FindingEngine {
                 kind: .unopposed,
                 severity: severity,
                 start: worst?.start ?? whole.start, end: worst?.end ?? whole.end,
-                message: "For \(seconds) second\(seconds == 1 ? "" : "s") your weight hung outside your hands and feet rather than between them. With nothing on the other side to pull against, the sideways part of the load has nothing to cancel it and turns into a swing your arms then pay for."
+                message: "For \(seconds) second\(seconds == 1 ? "" : "s") your weight hung outside your hands and feet rather than between them."
             ))
         }
 
@@ -153,7 +153,7 @@ enum FindingEngine {
                 kind: .impreciseFeet,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "You repositioned a foot after placing it \(m.footAdjustments) times. Placing once means looking at the foot until it lands."
+                message: "You repositioned a foot after placing it \(m.footAdjustments) times."
             ))
         }
 

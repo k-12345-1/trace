@@ -64,47 +64,89 @@ struct ReadoutGrid<Content: View>: View {
 
 // MARK: - Finding
 
+/// One finding: the moment it happened, what it was, and the frame it happened
+/// in.
+///
+/// The frame does most of the work. A sentence about bent arms is an assertion
+/// and the picture of them bent is evidence, so the picture leads and the prose
+/// gets shorter. The drill folds away, because you want it when you are
+/// deciding what to do next and not while you are reading what happened.
 struct FindingCard: View {
     let finding: Finding
     var showDrill: Bool = true
+    /// The climb it came from, for pulling the frame. Optional so the card
+    /// still works anywhere the clip is not to hand.
+    var climb: Climb? = nil
+
+    @State private var still: UIImage?
+    @State private var drillOpen = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Text("\(finding.timecode)\(finding.duration > 0.5 ? " · \(String(format: "%.1f", finding.duration))s" : "")")
-                    .font(Theme.ui(12.5, .medium)).monospacedDigit()
-                    .foregroundStyle(Theme.accentText)
-                Spacer(minLength: 0)
-                SeverityChip(severity: finding.severity)
+        VStack(alignment: .leading, spacing: 0) {
+            if let still {
+                Image(uiImage: still)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 148)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
             }
 
-            Text(finding.kind.title)
-                .font(Theme.serif(18, .semibold))
-                .foregroundStyle(Theme.ink)
-
-            Text(finding.message)
-                .font(Theme.body(14.5))
-                .foregroundStyle(Theme.ink2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if showDrill {
-                VStack(alignment: .leading, spacing: 5) {
-                    MicroLabel(text: "Drill", color: Theme.accentText)
-                    Text(finding.kind.drill)
-                        .font(Theme.body(13.5))
-                        .foregroundStyle(Theme.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    Text("\(finding.timecode)\(finding.duration > 0.5 ? " · \(String(format: "%.1f", finding.duration))s" : "")")
+                        .font(Theme.ui(12.5, .medium)).monospacedDigit()
+                        .foregroundStyle(Theme.accentText)
+                    Spacer(minLength: 0)
+                    SeverityChip(severity: finding.severity)
                 }
-                .padding(.top, 2)
+
+                Text(finding.kind.title)
+                    .font(Theme.serif(18, .semibold))
+                    .foregroundStyle(Theme.ink)
+
+                Text(finding.message)
+                    .font(Theme.body(14))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if showDrill {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { drillOpen.toggle() }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(drillOpen ? "Hide the drill" : "What to do about it")
+                                .font(Theme.ui(13, .semibold))
+                            Image(systemName: drillOpen ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 9, weight: .semibold))
+                        }
+                        .foregroundStyle(Theme.accentText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 2)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if drillOpen {
+                        Text(finding.kind.drill)
+                            .font(Theme.body(13.5))
+                            .foregroundStyle(Theme.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
+            .padding(.horizontal, 17)
+            .padding(.vertical, 15)
         }
-        .padding(.horizontal, 17)
-        .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
-        .overlay(alignment: .leading) {
-            Capsule().fill(Theme.accent).frame(width: 3, height: 34).padding(.leading, 6)
+        .task {
+            guard let climb, still == nil else { return }
+            // The middle of the window, which is where the thing being
+            // described is most likely to be visible.
+            let at = finding.start + min(finding.duration / 2, 0.6)
+            still = await Thumbnails.frame(of: climb, at: at)
         }
     }
 }

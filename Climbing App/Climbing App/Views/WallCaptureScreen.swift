@@ -22,8 +22,11 @@ struct WallCaptureScreen: View {
             Color.black.ignoresSafeArea()
 
             if camera.isAvailable {
+                // No framing overlay. Thirds and a dashed box are a viewfinder
+                // pretending to be a tool: they tell you nothing the picture
+                // does not, and they sit between you and the wall you are
+                // trying to look at.
                 CameraPreview(session: camera.session).ignoresSafeArea()
-                framingGuide
             } else {
                 unavailable
             }
@@ -38,25 +41,6 @@ struct WallCaptureScreen: View {
 
     // MARK: Framing
 
-    private var framingGuide: some View {
-        GeometryReader { geo in
-            ZStack {
-                Path { p in
-                    p.move(to: CGPoint(x: geo.size.width / 3, y: 0))
-                    p.addLine(to: CGPoint(x: geo.size.width / 3, y: geo.size.height))
-                    p.move(to: CGPoint(x: geo.size.width * 2 / 3, y: 0))
-                    p.addLine(to: CGPoint(x: geo.size.width * 2 / 3, y: geo.size.height))
-                }
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-
-                Rectangle()
-                    .stroke(Theme.accent.opacity(0.55), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
-                    .padding(.horizontal, 26)
-                    .padding(.vertical, 90)
-            }
-            .allowsHitTesting(false)
-        }
-    }
 
     private var topBar: some View {
         HStack {

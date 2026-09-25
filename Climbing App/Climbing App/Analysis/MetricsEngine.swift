@@ -21,9 +21,62 @@ enum MetricsEngine {
 
     /// Net displacement below which a path ratio says nothing, in image units.
     /// Roughly a third of a tracked body length at typical framing.
-    static let minimumTravel = 0.12
+    /// Net displacement, in torso lengths, below which the path ratio means
+    /// nothing. In torso lengths rather than image units, so it does not depend
+    /// on how far away the phone was, and set where it is because a climb that
+    /// ends two and a half body lengths from where it started is the shortest
+    /// one where "further than the straight line" is a fair question.
+    static let minimumTravel = 2.5
 
-    static func compute(frames: [PoseFrame]) -> Metrics {
+    /// Everything up to the high point of the climb.
+    ///
+    /// The clip is not the climb. It keeps running while you top out and sit
+    /// there, while you downclimb, and while you drop off and walk away, and
+    /// none of that is climbing. Measured over the whole clip a boulder that
+    /// finishes near where it started has almost no net displacement, so the
+    /// path ratio divides by nearly nothing and reports that the hips traveled
+    /// five hundred percent further than the straight line. The descent also
+    /// contributes pauses you did not take, foot placements you did not make,
+    /// and a round trip the size of the route.
+    ///
+    /// So the analysis runs on the ascent, and it ends at the high point.
+    ///
+    /// No tail. Every frame past the top is the body on its way down, and on a
+    /// dead straight climb even a third of a second of that puts thirty percent
+    /// on the path ratio, which is the number this trim exists to protect.
+    ///
+    /// Where the top is, and when the body first got there, are both decided
+    /// against noise rather than against one sample.
+    ///
+    /// The lowest single y is whichever frame the tracker misplaced furthest
+    /// upward, so the top is taken as a low percentile instead: a handful of
+    /// spiked frames cannot move it. The cut is then the first frame within a
+    /// tenth of a torso length of that, because anything that close has got
+    /// there and the rest is settling.
+    static let ascentTop = 0.10
+    static let topPercentile = 0.02
+
+    static func ascent(_ frames: [PoseFrame]) -> [PoseFrame] {
+        let usable = frames.filter { $0.com != nil }
+        guard usable.count >= 4,
+              let torso = medianTorso(usable), torso > 0.01
+        else { return frames }
+
+        let heights = usable.map { $0.com!.y }.sorted()
+        let peak = heights[min(heights.count - 1,
+                               Int(Double(heights.count) * topPercentile))]
+
+        var kept: [PoseFrame] = []
+        for f in frames {
+            kept.append(f)
+            if let com = f.com, (com.y - peak) / torso <= ascentTop { break }
+        }
+        // Never trim away so much that there is nothing left to read.
+        return kept.count >= 4 ? kept : frames
+    }
+
+    static func compute(frames all: [PoseFrame]) -> Metrics {
+        let frames = ascent(all)
         let tracked = frames.filter { $0.meanConfidence > 0 && $0.com != nil }
         let confidence = frames.isEmpty ? 0 : Double(tracked.count) / Double(frames.count)
         let duration = (frames.last?.time ?? 0) - (frames.first?.time ?? 0)
@@ -39,12 +92,11 @@ enum MetricsEngine {
         return Metrics(
             entropy: geometricEntropy(path: path, length: length),
             logJerk: logDimensionlessJerk(path: path, times: times, length: length),
-            // A traverse ends near where it started, so the straight line is almost
-            // nothing and the ratio runs away: the first real clip through this
-            // produced 12.85, which the copy turned into "1185 percent further".
-            // Below a body length of net travel the number is not about wandering,
-            // it is about the climb not going anywhere, so it is not reported.
-            pathRatio: straight >= minimumTravel ? length / straight : 0,
+            // A traverse ends near where it started, so the straight line is
+            // almost nothing and the ratio runs away. Below a few body lengths
+            // of net travel the number is not about wandering, it is about the
+            // climb not going anywhere, so it is not reported at all.
+            pathRatio: netTravel(path, frames: tracked) >= minimumTravel ? length / straight : 0,
             staticElbowAngle: staticElbow(frames: tracked, times: times),
             pauseCount: stops.count,
             pauseTotal: stops.reduce(0) { $0 + ($1.end - $1.start) },
@@ -507,6 +559,13 @@ enum MetricsEngine {
 
     /// The body scale, taken once for the whole clip. A median rather than a
     /// mean so one badly tracked frame cannot set the ruler.
+    /// Straight line start to finish, in torso lengths.
+    static func netTravel(_ path: [CGPoint], frames: [PoseFrame]) -> Double {
+        guard let a = path.first, let b = path.last,
+              let torso = medianTorso(frames), torso > 0.01 else { return 0 }
+        return distance(a, b) / torso
+    }
+
     static func medianTorso(_ frames: [PoseFrame]) -> Double? {
         let lengths = frames.compactMap { torsoLength($0) }.sorted()
         guard !lengths.isEmpty else { return nil }

@@ -24,13 +24,17 @@ final class ClimbAnalyzer: ObservableObject {
                 Task { @MainActor in self.state = .working(p) }
             }
 
+            // Findings read the ascent, for the same reason the metrics do: the
+            // descent is not climbing, and counting it produces stops you did
+            // not take and a wandering line you did not wander.
+            let climbing = MetricsEngine.ascent(frames)
             let metrics = MetricsEngine.compute(frames: frames)
             // Smoothness is judged against this climber's own earlier tracked
             // attempts, so the history has to come in with the frames.
             let priorJerk = Store.shared.climbs
                 .filter { $0.metrics.isTrustworthy }
                 .map(\.metrics.logJerk)
-            let findings = FindingEngine.findings(from: metrics, frames: frames,
+            let findings = FindingEngine.findings(from: metrics, frames: climbing,
                                                   priorJerk: priorJerk)
 
             // Topping out marks the send, so the person does not have to tell

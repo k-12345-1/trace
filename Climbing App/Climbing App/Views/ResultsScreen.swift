@@ -413,7 +413,7 @@ struct ResultsScreen: View {
     /// which is the difference between a number and something you can work on.
     @ViewBuilder
     private var wasted: some View {
-        if let reading = WasteEngine.read(frames: climb.frames),
+        if let reading = WasteEngine.read(frames: MetricsEngine.ascent(climb.frames)),
            let summary = WasteEngine.summary(reading) {
             VStack(alignment: .leading, spacing: 10) {
                 SectionTitle("Movement that went nowhere")
@@ -559,7 +559,7 @@ struct ResultsScreen: View {
         VStack(alignment: .leading, spacing: 14) {
             if let top = climb.findings.first {
                 SectionTitle("Work on this")
-                FindingCard(finding: top)
+                FindingCard(finding: top, climb: climb)
                     .onTapGesture { playback.seek(to: top.start) }
 
                 if climb.findings.count > 1 {
@@ -580,7 +580,7 @@ struct ResultsScreen: View {
                     if showAllFindings {
                         VStack(spacing: 10) {
                             ForEach(climb.findings.dropFirst()) { f in
-                                FindingCard(finding: f, showDrill: false)
+                                FindingCard(finding: f, showDrill: false, climb: climb)
                                     .onTapGesture { playback.seek(to: f.start) }
                             }
                         }

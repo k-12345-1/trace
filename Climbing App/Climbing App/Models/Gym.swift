@@ -12,6 +12,18 @@ struct Gym: Codable, Identifiable, Hashable {
     /// typed, and nil for every gym saved before Explore could add them, which
     /// decodes cleanly because it is optional.
     var venueID: String? = nil
+    /// A picture for this gym, stored on the phone.
+    ///
+    /// Yours, not ours. Trace ships no gym logos: they are trademarks, there is
+    /// no licensed source for six hundred of them, and fetching each from its
+    /// own website would tell six hundred servers that someone opened this app.
+    /// What it can do is let you put one there, which is a photograph of the
+    /// place or their sign or whatever you like, and it never leaves the phone.
+    var imageFilename: String? = nil
+
+    var imageURL: URL? {
+        imageFilename.map { Store.gymImagesDirectory.appendingPathComponent($0) }
+    }
 }
 
 /// A route scanned off a wall.

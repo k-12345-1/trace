@@ -47,6 +47,29 @@ enum Thumbnails {
         return image
     }
 
+    /// One frame at a given moment, uncached.
+    ///
+    /// For showing a finding the thing it is describing. A sentence about bent
+    /// arms is an assertion; the frame where they were bent is evidence, and
+    /// evidence is shorter than prose.
+    static func frame(of climb: Climb, at seconds: Double,
+                      maxWidth: CGFloat = 600) async -> UIImage? {
+        let source = climb.videoURL
+        guard FileManager.default.fileExists(atPath: source.path) else { return nil }
+        let asset = AVURLAsset(url: source)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: maxWidth, height: maxWidth)
+        generator.requestedTimeToleranceBefore = CMTime(seconds: 0.1, preferredTimescale: 600)
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 0.1, preferredTimescale: 600)
+
+        let duration = (try? await asset.load(.duration).seconds) ?? 0
+        let at = CMTime(seconds: min(max(0, seconds), max(0, duration - 0.05)),
+                        preferredTimescale: 600)
+        guard let cg = try? await generator.image(at: at).image else { return nil }
+        return UIImage(cgImage: cg)
+    }
+
     static func remove(for climb: Climb) {
         try? FileManager.default.removeItem(at: url(for: climb))
     }
