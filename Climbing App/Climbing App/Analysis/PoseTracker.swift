@@ -60,26 +60,48 @@ enum PoseTracker {
 
         var frames: [PoseFrame] = []
         let request = VNDetectHumanBodyPoseRequest()
+        var lastReported = -1.0
 
         while let sample = output.copyNextSampleBuffer() {
-            guard let buffer = CMSampleBufferGetImageBuffer(sample) else { continue }
-            let time = CMSampleBufferGetPresentationTimeStamp(sample).seconds
+            // One pool per frame.
+            //
+            // This loop is synchronous and holds a 1080p buffer every time
+            // round, so anything autoreleased inside it would have nothing
+            // draining it until the whole clip had been read. Measured, it does
+            // not: four hundred frames move the footprint by nothing, which is
+            // what the memory test asserts. The pool is what keeps that true
+            // when somebody adds a line to this loop, not a fix for a leak that
+            // was there.
+            autoreleasepool {
+                guard let buffer = CMSampleBufferGetImageBuffer(sample) else { return }
+                let time = CMSampleBufferGetPresentationTimeStamp(sample).seconds
 
-            let handler = VNImageRequestHandler(cvPixelBuffer: buffer, orientation: orientation)
-            try? handler.perform([request])
+                let handler = VNImageRequestHandler(cvPixelBuffer: buffer, orientation: orientation)
+                try? handler.perform([request])
 
-            // Crowded gyms put several people in frame. Take the largest, which
-            // is reliably the climber when the phone is placed at the base of the wall.
-            let observation = (request.results ?? [])
-                .max(by: { boundingHeight($0) < boundingHeight($1) })
+                // Crowded gyms put several people in frame. Take the largest, which
+                // is reliably the climber when the phone is placed at the base of the wall.
+                let observation = (request.results ?? [])
+                    .max(by: { boundingHeight($0) < boundingHeight($1) })
 
-            if let observation {
-                frames.append(makeFrame(from: observation, time: time))
-            } else {
-                frames.append(PoseFrame(time: time, joints: [:], com: nil, meanConfidence: 0))
+                if let observation {
+                    frames.append(makeFrame(from: observation, time: time))
+                } else {
+                    frames.append(PoseFrame(time: time, joints: [:], com: nil, meanConfidence: 0))
+                }
+
+                // Reported in fiftieths, not per frame. Every call to this hops
+                // to the main actor to move a progress bar; at sixty a second
+                // that is a queue of work the main thread cannot clear, on top
+                // of the tracking itself, and the screen that is meant to show
+                // progress stops responding instead.
+                guard duration > 0 else { return }
+                let done = min(1, time / duration)
+                if done - lastReported >= 0.02 || done >= 1 {
+                    lastReported = done
+                    progress(done)
+                }
             }
-
-            if duration > 0 { progress(min(1, time / duration)) }
         }
 
         if reader.status == .failed {

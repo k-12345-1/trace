@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import SwiftUI
+import UIKit
 
 /// Capture is deliberately constrained: phone on the floor, square to the wall,
 /// whole boulder in frame. Every posture metric depends on a known viewing angle,
@@ -13,6 +14,9 @@ final class CameraController: NSObject, ObservableObject {
     @Published var isAvailable = false
     @Published var elapsed: Double = 0
     @Published var errorMessage: String?
+    /// True while something else has the camera: a call, Control Center, the
+    /// screen locking. The screen says so rather than going quiet.
+    @Published var isInterrupted = false
 
     let session = AVCaptureSession()
     private let output = AVCaptureMovieFileOutput()
@@ -27,7 +31,43 @@ final class CameraController: NSObject, ObservableObject {
         default: isAuthorized = false
         }
         guard isAuthorized else { return }
+        watchTheSession()
         configure()
+    }
+
+    /// What the session does when it is not being asked.
+    ///
+    /// A capture session is interrupted by things that have nothing to do with
+    /// this app: a phone call, Control Center, the screen locking with the
+    /// phone on the floor. Without this the app finds out only when the
+    /// recording ends in an error, which is the worst moment and the least
+    /// informative place to learn it.
+    private func watchTheSession() {
+        let center = NotificationCenter.default
+        center.addObserver(forName: AVCaptureSession.wasInterruptedNotification,
+                           object: session, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.isInterrupted = true }
+        }
+        center.addObserver(forName: AVCaptureSession.interruptionEndedNotification,
+                           object: session, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.isInterrupted = false }
+        }
+        // Media services reset takes the session down with it. Starting it
+        // again is the documented recovery, and without it the preview is a
+        // black rectangle that never comes back.
+        center.addObserver(forName: AVCaptureSession.runtimeErrorNotification,
+                           object: session, queue: .main) { [weak self] note in
+            let error = note.userInfo?[AVCaptureSessionErrorKey] as? AVError
+            Task { @MainActor in
+                guard let self else { return }
+                if error?.code == .mediaServicesWereReset {
+                    let session = self.session
+                    Task.detached { if !session.isRunning { session.startRunning() } }
+                } else {
+                    self.errorMessage = "The camera stopped. Tap record to try again."
+                }
+            }
+        }
     }
 
     private func configure() {
@@ -61,8 +101,16 @@ final class CameraController: NSObject, ObservableObject {
         // device has no such format, no override happens at all and the
         // session's own 1080p preset stands. Thirty good frames beat sixty
         // grainy ones.
-        if let format = best60Format(on: device) {
-            try? device.lockForConfiguration()
+        // The lock has to succeed before anything is set, and the unlock has to
+        // be the one that matches it.
+        //
+        // `try?` and then unlocking regardless is a crash waiting for the one
+        // moment the device is busy: setting the format without the lock, and
+        // unlocking a lock never taken, both raise, and a raised exception here
+        // closes the app on the screen it opened. When the lock cannot be had,
+        // the session's own 1080p preset stands, which is what happens on every
+        // phone with no unbinned sixty anyway.
+        if let format = best60Format(on: device), (try? device.lockForConfiguration()) != nil {
             device.activeFormat = format
             device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 60)
             device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 60)
@@ -78,6 +126,11 @@ final class CameraController: NSObject, ObservableObject {
         session.commitConfiguration()
 
         isAvailable = true
+        // The phone is on the floor and nobody is touching it, which is exactly
+        // the state iOS locks the screen for. Locking interrupts the session,
+        // and the recording of the climb you are in the middle of ends there.
+        // This is the whole reason a capture screen turns auto lock off.
+        UIApplication.shared.isIdleTimerDisabled = true
         Task.detached { [session] in session.startRunning() }
     }
 
@@ -139,8 +192,40 @@ final class CameraController: NSObject, ObservableObject {
 
     func teardown() {
         timer?.invalidate()
+        UIApplication.shared.isIdleTimerDisabled = false
+        NotificationCenter.default.removeObserver(self)
         let session = self.session
         Task.detached { if session.isRunning { session.stopRunning() } }
+    }
+}
+
+// MARK: - What an error at the end of a recording means
+
+extension CameraController {
+
+    /// What to do with a recording that ended in an error.
+    ///
+    /// Most of them are not what they look like. When a call arrives, or the
+    /// screen locks, or Control Center comes down, iOS stops the recording and
+    /// reports an error, but it has already finished writing a perfectly good
+    /// file and says so in the error itself. Treating every error as a loss
+    /// threw away the climb somebody had just done, and closed the screen while
+    /// doing it.
+    enum Ending: Equatable {
+        /// Use the clip. Possibly cut short, but a climb.
+        case keep(URL)
+        /// Nothing usable was written, and this is why.
+        case lost(String)
+    }
+
+    nonisolated static func ending(for url: URL, error: Error?) -> Ending {
+        guard let error = error as NSError? else { return .keep(url) }
+        // The key AVFoundation sets when it stopped the recording itself and
+        // the file on disk is complete.
+        if error.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool == true {
+            return .keep(url)
+        }
+        return .lost(error.localizedDescription)
     }
 }
 
@@ -149,13 +234,15 @@ extension CameraController: AVCaptureFileOutputRecordingDelegate {
                                 didFinishRecordingTo outputFileURL: URL,
                                 from connections: [AVCaptureConnection],
                                 error: Error?) {
+        let ending = Self.ending(for: outputFileURL, error: error)
         Task { @MainActor in
             self.isRecording = false
-            if let error {
-                self.errorMessage = error.localizedDescription
+            switch ending {
+            case .keep(let url):
+                self.completion?(url)
+            case .lost(let why):
+                self.errorMessage = "\(why) Nothing was saved. Tap record to go again."
                 self.completion?(nil)
-            } else {
-                self.completion?(outputFileURL)
             }
             self.completion = nil
         }

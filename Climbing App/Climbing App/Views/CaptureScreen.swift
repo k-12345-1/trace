@@ -63,7 +63,9 @@ struct CaptureScreen: View {
 
             Spacer()
 
-            if camera.isRecording {
+            if camera.isInterrupted {
+                StatusChip(text: "Camera in use elsewhere", dot: Theme.ember.last ?? Theme.accent)
+            } else if camera.isRecording {
                 StatusChip(text: String(format: "REC  %.1f s", camera.elapsed), dot: Theme.accent)
             } else if camera.isAvailable {
                 StatusChip(text: "Whole boulder in frame", dot: Theme.ok)
@@ -81,6 +83,11 @@ struct CaptureScreen: View {
                     camera.stop()
                 } else {
                     camera.start { url in
+                        // Nothing usable means stay here. Closing the screen on
+                        // a failed recording is how a climb turns into a person
+                        // standing at the bottom of the wall looking at the
+                        // home screen, with nothing said about why.
+                        guard let url else { return }
                         camera.teardown()
                         onFinish(url)
                         dismiss()
