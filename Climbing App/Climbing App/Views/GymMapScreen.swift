@@ -148,7 +148,7 @@ struct GymMapScreen: View {
             if let picture = GymPicture.image(for: gym) {
                 GymPictureSquare(image: picture, size: 46)
             } else if let logo = logos.logo(for: venue) {
-                GymPictureSquare(image: logo, size: 46, inset: 0)
+                GymPictureSquare(image: logo, size: 46, inset: 0, ground: .white)
             } else {
                 GymMark(name: venue.name, seed: venue.id, size: 46)
             }

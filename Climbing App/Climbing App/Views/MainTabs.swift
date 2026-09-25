@@ -461,19 +461,21 @@ private struct AddPanel: View {
 
             HStack {
                 Spacer()
+                // The app's own ring, not a filled disc. Every other way out of
+                // a screen in Trace is a dashed ring, and a circle that almost
+                // matches one reads as a different app's control.
                 Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background(Circle().fill(.white.opacity(0.12)))
-                        .overlay(Circle().stroke(.white.opacity(0.16), lineWidth: 1))
+                    CloseRing(color: .white, size: 36)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Close")
             }
         }
-        .padding(.horizontal, 18)
+        // Ten, not eighteen: the ring sits four points inside its tap target,
+        // so this is what puts its edge on the same line as the cards below.
+        .padding(.horizontal, 10)
         // Lower than it was, so the room above the title matches the room
         // between the title and the first card rather than being half of it.
         .padding(.top, 32)

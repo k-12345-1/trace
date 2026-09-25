@@ -14,7 +14,7 @@ enum FocusEngine {
     static func value(for kind: LeakKind, in m: Metrics) -> Double {
         switch kind {
         case .bentArms:      return m.staticElbowAngle
-        case .wandering:     return m.pathRatio
+        case .wandering:     return m.moveWaste ?? 0
         case .lurchy:        return m.logJerk
         case .hesitation:    return m.duration > 0 ? m.pauseTotal / m.duration : 0
         case .impreciseFeet: return Double(m.footAdjustments)
@@ -56,7 +56,7 @@ enum FocusEngine {
     static func meaning(for kind: LeakKind) -> String {
         switch kind {
         case .bentArms:      return "Mean elbow angle while you are not moving. Higher is straighter."
-        case .wandering:     return "How much further your hips traveled than the straight line. Lower is tidier."
+        case .wandering:     return "The share of your travel that was not toward the next position. Lower is tidier."
         case .lurchy:        return "Smoothness of your center of mass. Lower is more continuous."
         case .hesitation:    return "Share of each climb spent not moving. Lower means more reading from the ground."
         case .impreciseFeet: return "Foot placements you had to correct, per climb. Lower is more precise."

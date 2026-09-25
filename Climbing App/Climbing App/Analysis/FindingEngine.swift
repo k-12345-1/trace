@@ -73,21 +73,27 @@ enum FindingEngine {
             ))
         }
 
-        // Wandering line. Path ratio is the most intuitive version of entropy.
+        // The long way between moves.
         //
-        // Zero means MetricsEngine declined to compute it, because the climb ended
-        // near where it started. On a traverse or a circuit the straight line is
-        // meaningless and so is anything divided by it.
-        if m.pathRatio > 1.35 {
-            let severity: Severity = m.pathRatio > 2.2 ? .costly
-                                   : m.pathRatio > 1.7 ? .moderate : .minor
-            let extra = Int(((m.pathRatio - 1) * 100).rounded())
+        // Against the shortest path from each position to the next, not against
+        // a straight line up the wall. A boulder does not offer one of those:
+        // the holds are where the setter put them, and a climber who followed a
+        // diagonal problem perfectly used to be told they travelled twice as
+        // far as they needed to, which was a measurement of the route reported
+        // as a fact about the climbing.
+        //
+        // Nil means there were not enough moves in the clip to read, which is
+        // not the same as a climb with no detours in it.
+        if let waste = m.moveWaste, waste > 0.18 {
+            let severity: Severity = waste > 0.40 ? .costly
+                                   : waste > 0.28 ? .moderate : .minor
+            let share = Int((waste * 100).rounded())
             let w = worstDriftWindow(frames: frames) ?? whole
             out.append(Finding(
                 kind: .wandering,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Your hips traveled \(extra) percent further than the straight line up this climb."
+                message: "\(share) percent of your hips' travel was not toward the next position."
             ))
         }
 

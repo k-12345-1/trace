@@ -211,7 +211,8 @@ struct FindingTests {
     @Test("Every leak the app can measure is reachable")
     func allLeaksReachable() {
         var m = Fixture.metrics(entropy: 1.6, elbow: 118, jerk: 13, ratio: 2.4, feet: 9,
-                                offset: 0.75, deadpoints: [0.31, 0.28, 0.35])
+                                offset: 0.75, deadpoints: [0.31, 0.28, 0.35],
+                                moveWaste: 0.45)
         m.pauseTotal = 15
         m.pauseCount = 4
         // Smoothness is judged against the climber's own history, so lurchy is

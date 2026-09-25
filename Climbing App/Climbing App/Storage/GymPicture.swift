@@ -53,9 +53,15 @@ struct GymPictureSquare: View {
     /// of cream around one makes it look like a sticker of a logo rather than
     /// the logo.
     var inset: Double = 0.10
+    /// What sits behind it.
+    ///
+    /// A logo is not ours to restyle. Most are drawn for a white page and many
+    /// are transparent, so the app's cream shows through and tints somebody
+    /// else's mark a colour they did not choose. White leaves it as it is.
+    var ground: Color = Theme.surface
 
     var body: some View {
-        Theme.surface
+        ground
             .overlay {
                 Image(uiImage: image)
                     .resizable()

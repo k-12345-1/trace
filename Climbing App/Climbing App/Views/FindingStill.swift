@@ -332,16 +332,34 @@ struct FindingStill: View {
               offset: CGSize(width: 0, height: -16), color: Ink.instead)
     }
 
-    /// The line actually travelled, against the straight one.
+    /// The line actually travelled, against the shortest way between each
+    /// position and the next.
+    ///
+    /// Not against a straight line up the wall. That line does not exist on a
+    /// boulder, and drawing it told a climber who followed a diagonal problem
+    /// perfectly that they had gone badly wrong. Each white segment here runs
+    /// between two places they actually were, so it is a line they could have
+    /// taken, and the blue is what they took instead.
     private func drawLine(_ ctx: inout GraphicsContext, _ at: (CGPoint) -> CGPoint) {
-        guard let path = climb?.metrics.comPath, path.count >= 3,
-              let first = path.first, let last = path.last else { return }
-        stroke(&ctx, [at(first), at(last)], color: Ink.instead, width: 3, dash: [7, 6])
-        stroke(&ctx, path.map(at), color: Ink.now, width: 3)
+        guard let path = climb?.metrics.comPath, path.count >= 3 else { return }
+
+        if let moves = climb.flatMap({ MoveEngine.read(frames: $0.frames) })?.moves,
+           !moves.isEmpty {
+            for move in moves {
+                stroke(&ctx, [at(move.from), at(move.to)],
+                       color: Ink.instead, width: 2.5, dash: [6, 5])
+            }
+            stroke(&ctx, path.map(at), color: Ink.now, width: 3)
+            if let worst = moves.max(by: { $0.waste < $1.waste }) {
+                label(&ctx, "hold to hold", at: mid(at(worst.from), at(worst.to)),
+                      offset: CGSize(width: 0, height: 18), color: Ink.instead)
+            }
+        } else {
+            stroke(&ctx, path.map(at), color: Ink.now, width: 3)
+        }
+
         label(&ctx, "the line you took", at: at(path[path.count / 2]),
               offset: CGSize(width: 0, height: -18), color: Ink.now)
-        label(&ctx, "straight up", at: mid(at(first), at(last)),
-              offset: CGSize(width: 0, height: 18), color: Ink.instead)
     }
 
     // MARK: Drawing

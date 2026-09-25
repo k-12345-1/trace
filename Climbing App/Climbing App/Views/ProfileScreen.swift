@@ -2,14 +2,16 @@ import SwiftUI
 
 /// Who you are, what you can change, and how to leave.
 ///
-/// The same five rows the Lineage Health settings screen has, in the same
-/// shape: a large avatar tile beside a name set over two lines, a pair of small
-/// stats, a full-width member pill, then one card of rows made of a round icon
-/// well, a bold label, a line of detail and a chevron.
+/// Built out of the same pieces as the rest of the app rather than out of
+/// another app's settings screen, which is what it was: a hundred-and-eight
+/// point avatar tile, a full width navy pill, bold sans labels, and round icon
+/// wells, none of which appear anywhere else in Trace.
 ///
-/// That app marks its two leaving rows in red. This palette has no red, so they
-/// invert their wells instead: a white mark on the dark blue rather than a dark
-/// mark on a pale one.
+/// So it is a page like the others now. A serif title, a strip of counts
+/// exactly as a route shows its counts, one card of rows split by hairlines,
+/// and the two ways out set as underlined text at the foot of the page, the
+/// way deleting a route is set on the route's own screen. Everything that was
+/// on it is still on it.
 struct ProfileScreen: View {
     @ObservedObject private var store = Store.shared
     @ObservedObject private var billing = Subscription.shared
@@ -22,12 +24,13 @@ struct ProfileScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                    memberPill
+                    counts
                     SectionTitle("Profile")
                         .padding(.horizontal, Theme.gutter)
-                        .padding(.top, 26)
-                        .padding(.bottom, 10)
+                        .padding(.top, 30)
+                        .padding(.bottom, 12)
                     rows
+                    leaving
                 }
                 .padding(.bottom, 156)
             }
@@ -52,34 +55,49 @@ struct ProfileScreen: View {
 
     // MARK: Header
 
+    /// A square of their initials, the name, and when they joined. The square
+    /// is the size a gym's square is, because it is the same idea: a small
+    /// picture of who or what a row is about.
     private var header: some View {
-        HStack(alignment: .top, spacing: 26) {
+        HStack(alignment: .center, spacing: 16) {
             Text(store.account?.initials ?? "C")
-                .font(Theme.serif(38, .semibold))
+                .font(Theme.serif(24, .semibold))
                 .foregroundStyle(Theme.blue)
-                .frame(width: 108, height: 108)
+                .frame(width: 62, height: 62)
                 .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.rTile * 0.62,
+                                            style: .continuous))
 
-            VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(nameLines.enumerated()), id: \.offset) { _, line in
-                        Text(line)
-                            .font(Theme.serif(30, .semibold))
-                            .foregroundStyle(Theme.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                    }
-                }
-                HStack(spacing: 22) {
-                    stat("\(store.climbs.count)", "Climbs")
-                    stat("\(store.gyms.count)", "Gyms")
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(nameLines.joined(separator: " "))
+                    .font(Theme.title(30))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(memberText)
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink3)
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Theme.gutter)
-        .padding(.top, 10)
+        .padding(.top, 16)
+    }
+
+    /// The same strip a route uses for its own counts, rather than two stats in
+    /// a shape that appears nowhere else.
+    private var counts: some View {
+        MetricStrip(items: [
+            .init(value: "\(store.climbs.count)",
+                  label: store.climbs.count == 1 ? "Climb" : "Climbs"),
+            .init(value: "\(store.gyms.count)",
+                  label: store.gyms.count == 1 ? "Gym" : "Gyms"),
+            .init(value: "\(store.routes.count)",
+                  label: store.routes.count == 1 ? "Route" : "Routes")
+        ])
+        .padding(.horizontal, Theme.gutter)
+        .padding(.top, 26)
     }
 
     /// The name over two lines, the way the reference sets a first and last.
@@ -90,30 +108,6 @@ struct ProfileScreen: View {
         return parts.isEmpty ? ["Climber"] : parts
     }
 
-    private func stat(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(value)
-                .font(Theme.ui(14, .medium)).monospacedDigit()
-                .foregroundStyle(Theme.ink)
-            Text(label.uppercased())
-                .font(Theme.ui(10, .semibold))
-                .tracking(0.8)
-                .foregroundStyle(Theme.ink3)
-        }
-    }
-
-    private var memberPill: some View {
-        Text(memberText)
-            .font(Theme.ui(13, .medium))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 13)
-            .background(Theme.blue)
-            .clipShape(Capsule())
-            .padding(.horizontal, Theme.gutter)
-            .padding(.top, 20)
-    }
-
     private var memberText: String {
         guard let created = store.account?.createdAt else { return "Member" }
         return "Member since \(created.formatted(date: .abbreviated, time: .omitted))"
@@ -122,20 +116,24 @@ struct ProfileScreen: View {
     // MARK: Rows
 
     private var rows: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             NavigationLink { PersonalInfoScreen() } label: {
-                row(icon: AnyView(StrokeIcon(shape: Ic.User(), size: 22, color: Theme.blue)),
+                row(icon: AnyView(StrokeIcon(shape: Ic.User(), size: 21, color: Theme.blue)),
                     label: "Personal info", detail: bodyDetail)
             }
             .buttonStyle(.plain)
 
+            Hairline()
+
             NavigationLink { SubscriptionScreen() } label: {
                 row(icon: AnyView(Image(systemName: "creditcard")
-                        .font(.system(size: 18, weight: .light))
+                        .font(.system(size: 17, weight: .light))
                         .foregroundStyle(Theme.blue)),
                     label: "Manage subscription", detail: subscriptionDetail)
             }
             .buttonStyle(.plain)
+
+            Hairline()
 
             // The one switch in the app, because it is the one thing Trace
             // does over the network that is not your account or your
@@ -143,51 +141,67 @@ struct ProfileScreen: View {
             // with a toggle beside it.
             logoSwitch
 
+            Hairline()
+
             NavigationLink { LegalScreen.privacy() } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
-                        .font(.system(size: 18, weight: .light))
+                        .font(.system(size: 17, weight: .light))
                         .foregroundStyle(Theme.blue)),
                     label: "Privacy & AI", detail: "On-device analysis · Policy")
             }
             .buttonStyle(.plain)
-
-            Button { confirmingSignOut = true } label: {
-                row(icon: AnyView(Image(systemName: "xmark")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)),
-                    label: "Sign out", detail: "End your session", leaving: true)
-            }
-            .buttonStyle(.plain)
-
-            Button { confirmingDelete = true } label: {
-                row(icon: AnyView(Image(systemName: "xmark")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)),
-                    label: "Delete account", detail: "Permanently remove your data",
-                    leaving: true)
-            }
-            .buttonStyle(.plain)
         }
-        .padding(12)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .card()
         .padding(.horizontal, Theme.gutter)
+    }
+
+    /// The two ways out, set the way deleting a route is set on the route's own
+    /// screen: underlined text at the foot of the page, not a row with an icon
+    /// that looks like somewhere to go.
+    private var leaving: some View {
+        VStack(spacing: 22) {
+            way("Sign out", "End your session") { confirmingSignOut = true }
+            way("Delete account", "Permanently remove your data") { confirmingDelete = true }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 34)
+    }
+
+    private func way(_ label: String, _ detail: String,
+                     _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text(label)
+                    .font(Theme.ui(15, .semibold))
+                    .foregroundStyle(Theme.ink2)
+                    .underline()
+                Text(detail)
+                    .font(Theme.ui(12.5))
+                    .foregroundStyle(Theme.ink3)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var logoSwitch: some View {
         HStack(spacing: 14) {
             Image(systemName: "building.2")
-                .font(.system(size: 18, weight: .light))
+                .font(.system(size: 17, weight: .light))
                 .foregroundStyle(Theme.blue)
-                .frame(width: 50, height: 50)
+                .frame(width: 44, height: 44)
                 .background(Theme.surface2)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("Gym logos")
-                    .font(Theme.ui(16, .medium))
+                    .font(Theme.serif(17.5, .semibold))
                     .foregroundStyle(Theme.ink)
-                Text("Trace asks a gym's own website for its logo the first time you see that gym, and keeps it on this phone. Nothing about you goes with the request. Off means initials instead.")
+                Text("Fetched once from each gym's own site and kept here. Nothing about you goes with the request; off means initials.")
                     .font(Theme.ui(12.5))
                     .foregroundStyle(Theme.ink3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -200,21 +214,22 @@ struct ProfileScreen: View {
                 .labelsHidden()
                 .tint(Theme.button)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 4)
+        .padding(.vertical, 12)
     }
 
-    private func row(icon: AnyView, label: String, detail: String,
-                     leaving: Bool = false) -> some View {
+    /// A square well, a serif label, a line of detail, a chevron. The square is
+    /// the shape everything else in the app puts a picture in; the round wells
+    /// this used belonged to a different app.
+    private func row(icon: AnyView, label: String, detail: String) -> some View {
         HStack(spacing: 14) {
             icon
-                .frame(width: 50, height: 50)
-                .background(leaving ? Theme.blue : Theme.accentWash)
-                .clipShape(Circle())
+                .frame(width: 44, height: 44)
+                .background(Theme.surface2)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(label)
-                    .font(Theme.ui(18, .bold))
+                    .font(Theme.serif(17.5, .semibold))
                     .foregroundStyle(Theme.ink)
                 Text(detail)
                     .font(Theme.ui(12.5))
@@ -223,11 +238,10 @@ struct ProfileScreen: View {
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Theme.ink3.opacity(0.7))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.ink3)
         }
-        .frame(minHeight: 68)
-        .padding(.horizontal, 2)
+        .frame(minHeight: 62)
         .contentShape(Rectangle())
     }
 

@@ -190,7 +190,11 @@ struct HomeScreen: View {
             sent: counts.sent > 0
         ) {
             ZStack {
-                Theme.surface
+                // White behind a logo, because a logo is not ours to restyle:
+                // most are drawn for a white page and many are transparent, so
+                // the app's cream would tint somebody else's mark.
+                logos.logo(for: gym) != nil && GymPicture.image(for: gym) == nil
+                    ? Color.white : Theme.surface
                 if let photo = GymPicture.image(for: gym) {
                     // Fitted, because a picture cropped to a square loses the
                     // ends of it.

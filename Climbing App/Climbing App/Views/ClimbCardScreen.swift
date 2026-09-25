@@ -234,7 +234,7 @@ struct ClimbCardScreen: View {
             if let best = bestMeasured {
                 ReadoutGrid {
                     Readout(label: "Entropy", value: String(format: "%.2f", best.metrics.entropy),
-                            unit: "H", hint: "lower is straighter")
+                            unit: "H", hint: "lower is tidier")
                     Readout(label: "Smoothness", value: String(format: "%.1f", best.metrics.logJerk),
                             unit: "log jerk", hint: "lower is smoother")
                     Readout(label: "Static elbows",

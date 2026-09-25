@@ -61,9 +61,12 @@ enum PatternEngine {
         Dimension(kind: .weightOnArms, higherIsBetter: false,
                   strong: 0.22, flag: 0.35, weak: 0.70,
                   unit: { String(format: "%.2f torsos", $0) }),
+        // A share of travel now, not a multiple of a straight line, so the
+        // thresholds move with the measure rather than being read in the old
+        // units and quietly meaning something else.
         Dimension(kind: .wandering, higherIsBetter: false,
-                  strong: 1.15, flag: 1.35, weak: 1.70,
-                  unit: { String(format: "%.2f×", $0) }),
+                  strong: 0.12, flag: 0.18, weak: 0.32,
+                  unit: { "\(Int(($0 * 100).rounded()))%" }),
         Dimension(kind: .impreciseFeet, higherIsBetter: false,
                   strong: 1, flag: 3, weak: 5,
                   unit: { String(format: "%.1f resets", $0) }),

@@ -30,6 +30,11 @@ enum Layout {
         let bounds: CGSize
         let content: CGSize
 
+        /// True when there is more content than fits vertically, which is what
+        /// a page does. A row of gym tiles has content wider than the phone on
+        /// purpose and no height to speak of; a page does not.
+        var isAPage: Bool { content.height > bounds.height + 1 }
+
         /// How far past the phone this scroll view reaches, whichever way it
         /// got there.
         ///
@@ -39,7 +44,14 @@ enum Layout {
         /// scroll view does not clip an oversized child, it scrolls to it. When
         /// nothing boxes it in, the scroll view simply grows instead, and the
         /// content matches it again. Measuring against the phone catches both.
-        var overhang: CGFloat { max(0, max(content.width, bounds.width) - page) }
+        ///
+        /// A row that only scrolls sideways is exempt, because sideways is what
+        /// it is for. That exemption is why `isAPage` exists rather than the
+        /// test simply skipping anything wide.
+        var overhang: CGFloat {
+            guard isAPage else { return 0 }
+            return max(0, max(content.width, bounds.width) - page)
+        }
     }
 
     /// Lay a view out in a phone-sized window and measure every scroll view in it.
@@ -135,12 +147,12 @@ struct LayoutTests {
         }
     }
 
-    /// The measurement has to be able to fail, or the two tests under it say
-    /// nothing. A view deliberately wider than the phone must be caught.
+    /// The measurement has to be able to fail, or the tests under it say
+    /// nothing. A page deliberately wider than the phone must be caught.
     @Test("The measurement catches something too wide")
     func theMeasurementWorks() {
         let tooWide = ScrollView {
-            VStack { Color.red.frame(width: 700, height: 100) }
+            VStack { Color.red.frame(width: 700, height: 4000) }
         }
         let measured = Layout.scrollers(tooWide)
         #expect(measured.first?.overhang ?? 0 > 200,
@@ -170,6 +182,18 @@ struct LayoutTests {
     /// Every screen that can be built without a store behind it. Empty, these
     /// are mostly their empty states, which is a weak test of each one and a
     /// cheap sweep across all of them.
+    /// A row that scrolls sideways is not a page and is not a defect. Without
+    /// this the exemption above could be doing nothing, or everything.
+    @Test("A row that scrolls sideways is left alone")
+    func sidewaysRowsArePermitted() {
+        let row = ScrollView(.horizontal) {
+            HStack { ForEach(0..<8, id: \.self) { _ in Color.blue.frame(width: 120, height: 90) } }
+        }
+        let measured = Layout.scrollers(row, size: CGSize(width: 320, height: 200))
+        #expect(measured.allSatisfy { $0.overhang == 0 },
+                "measured \(measured.map(\.content))")
+    }
+
     @Test("No screen is wider than the phone")
     func theOtherScreensFitThePhone() {
         check("home", NavigationStack { HomeScreen() })

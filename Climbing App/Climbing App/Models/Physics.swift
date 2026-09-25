@@ -80,11 +80,11 @@ extension LeakKind {
 
         case .wandering:
             return PhysicsNote(
-                plain: "Going up costs the same however you get there. Sideways does not: every meter across is work you do and then undo.",
-                concept: "Geometric entropy",
-                law: "H = ln(2L / C), where L is the path your center of mass traveled and C is the perimeter of its convex hull",
-                why: "Raising your mass by a given height costs the same work whatever route you take to get there. Horizontal excursions are different: every sideways meter is work you do and then undo, and none of it moves you up. Geometric entropy is the established measure of this in climbing research. A dead straight line scores zero and the number climbs as the path meanders.",
-                measured: "The entropy of the path your center of mass traced through the climb."
+                plain: "Between any two positions there is a shortest way. Travel beyond it is work you do and then undo.",
+                concept: "Directness between positions",
+                law: "Waste = (what you travelled, minus the straight line from each position to the next) over what you travelled",
+                why: "This is not measured against a straight line up the wall, because a boulder does not offer one: the holds are where the setter put them, and a climber who followed a diagonal problem perfectly would score badly against a vertical. It is measured against the straight line from each position you were in to the next one, and unlike a line up the middle of the wall that one is reachable, because both of its ends are places you actually were. Going further than it is a detour you took rather than a shape the route forced on you: a reach that set off and corrected, a swing hauled back in, a drift past a hold. Every one of those raises your mass and then lowers it again, or moves it sideways and back, and none of it gets you up the route.",
+                measured: "The climb split into moves at the moments you were slowest, then, for each one, how far your center of mass travelled against the straight line between its two ends."
             )
 
         case .mistimedDynamics:
@@ -113,7 +113,7 @@ extension LeakKind {
 /// Notes for the numbers the card shows whether or not anything was flagged.
 enum MetricNote {
     static let entropy = PhysicsNote(
-        plain: "How much you wandered on the way up. A straight line scores zero; every detour you had to undo pushes it higher.",
+        plain: "How much your path doubled back on itself, against the ground it actually covered.",
         concept: "Geometric entropy",
         law: "H = ln(2L / C)",
         why: "How much your center of mass wandered relative to the ground it actually covered. Zero is a straight line. It rises with every excursion that has to be undone.",

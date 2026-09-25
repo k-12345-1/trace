@@ -13,33 +13,12 @@ struct BackRing: View {
     /// Drawn over footage rather than paper: the ring gets a disc behind it.
     var onPhoto: Bool = false
 
-    private static let radius: CGFloat = 16.5
-    private static let dash: CGFloat = 2.0735
-    private static let gap: CGFloat = 3.1102
-    private static let phase: CGFloat = 2.59185
-
     var body: some View {
-        let k = size / 36
-
-        ZStack {
-            if onPhoto {
-                Circle().fill(.black.opacity(0.32))
-            }
-
-            Circle()
-                .stroke(color.opacity(onPhoto ? 0.9 : 0.55),
-                        style: StrokeStyle(lineWidth: 1 * k,
-                                           dash: [Self.dash * k, Self.gap * k],
-                                           dashPhase: Self.phase * k))
-                .frame(width: Self.radius * 2 * k, height: Self.radius * 2 * k)
-                .rotationEffect(.degrees(-90))
-
+        DashedRing(color: color, size: size, onPhoto: onPhoto) { k in
             Arrow()
                 .stroke(color, style: StrokeStyle(lineWidth: 1.6 * k,
                                                   lineCap: .round, lineJoin: .round))
-                .frame(width: size, height: size)
         }
-        .frame(width: size, height: size)
     }
 
     /// The shaft and the chevron, placed the way the reference places them:
@@ -54,6 +33,71 @@ struct BackRing: View {
             var path = Path()
             path.move(to: p(19, 12)); path.addLine(to: p(5, 12))
             path.move(to: p(11, 6)); path.addLine(to: p(5, 12)); path.addLine(to: p(11, 18))
+            return path
+        }
+    }
+}
+
+/// The ring itself, with whatever goes inside it.
+///
+/// Pulled out of `BackRing` so that the one other control shaped like this, the
+/// close on the add panel, is the same object rather than a filled circle that
+/// almost matches. The dash pattern is the part worth keeping in one place.
+struct DashedRing<Glyph: View>: View {
+    var color: Color = Theme.ink
+    var size: CGFloat = 36
+    var onPhoto: Bool = false
+    /// Handed the scale factor, so a glyph drawn for a 36 point ring can be
+    /// drawn at any size without each caller redoing the arithmetic.
+    @ViewBuilder var glyph: (CGFloat) -> Glyph
+
+    private static var radius: CGFloat { 16.5 }
+    private static var dash: CGFloat { 2.0735 }
+    private static var gap: CGFloat { 3.1102 }
+    private static var phase: CGFloat { 2.59185 }
+
+    var body: some View {
+        let k = size / 36
+        ZStack {
+            if onPhoto { Circle().fill(.black.opacity(0.32)) }
+
+            Circle()
+                .stroke(color.opacity(onPhoto ? 0.9 : 0.55),
+                        style: StrokeStyle(lineWidth: 1 * k,
+                                           dash: [Self.dash * k, Self.gap * k],
+                                           dashPhase: Self.phase * k))
+                .frame(width: Self.radius * 2 * k, height: Self.radius * 2 * k)
+                .rotationEffect(.degrees(-90))
+
+            glyph(k).frame(width: size, height: size)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+/// The same ring with a cross in it. The way out of the add panel.
+struct CloseRing: View {
+    var color: Color = Theme.ink
+    var size: CGFloat = 36
+    var onPhoto: Bool = false
+
+    var body: some View {
+        DashedRing(color: color, size: size, onPhoto: onPhoto) { k in
+            Cross()
+                .stroke(color, style: StrokeStyle(lineWidth: 1.6 * k, lineCap: .round))
+        }
+    }
+
+    private struct Cross: Shape {
+        func path(in rect: CGRect) -> Path {
+            let k = min(rect.width, rect.height) / 36
+            let c = CGPoint(x: rect.midX, y: rect.midY)
+            let a = 5.0 * k
+            var path = Path()
+            path.move(to: CGPoint(x: c.x - a, y: c.y - a))
+            path.addLine(to: CGPoint(x: c.x + a, y: c.y + a))
+            path.move(to: CGPoint(x: c.x + a, y: c.y - a))
+            path.addLine(to: CGPoint(x: c.x - a, y: c.y + a))
             return path
         }
     }

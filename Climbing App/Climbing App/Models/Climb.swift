@@ -28,7 +28,7 @@ enum LeakKind: String, Codable {
         case .lurchy:           return "Start-stop movement"
         case .impreciseFeet:    return "Imprecise feet"
         case .hesitation:       return "Reading the route while hanging on it"
-        case .wandering:        return "Wandering line"
+        case .wandering:        return "The long way between moves"
         case .mistimedDynamics: return "Catching outside the deadpoint"
         case .unopposed:        return "Hanging outside your contacts"
         }
@@ -53,7 +53,7 @@ enum LeakKind: String, Codable {
         case .hesitation:
             return "Read the next two moves from a rest, not while hanging on."
         case .wandering:
-            return "Take your hips more directly up the wall."
+            return "Go straight to the next hold instead of setting off and correcting."
         case .mistimedDynamics:
             return "Catch the hold at the top of the arc, not on the way up to it."
         case .unopposed:
@@ -75,7 +75,7 @@ enum LeakKind: String, Codable {
         case .hesitation:
             return "Read the whole sequence from the ground, then climb it without stopping."
         case .wandering:
-            return "Climb it again and try to keep your hips traveling in one line."
+            return "Climb it again and get from each position to the next in one movement, rather than setting off and correcting."
         case .mistimedDynamics:
             return "Deadpoint isolation. Pick one dynamic move and repeat it, catching the hold at the exact top of the arc rather than on the way up or the way down."
         case .unopposed:
@@ -126,6 +126,14 @@ struct Metrics: Codable {
     /// Seconds held outside the contacts, long enough to be a position rather
     /// than a moment in transit.
     var swingTotal: Double = 0
+    /// Share of everything travelled that was not toward the next position.
+    ///
+    /// This replaced the path ratio as the measure of a wandering line, because
+    /// the path ratio compared a boulder against a straight line up the wall
+    /// and no boulder offers one. Optional rather than zero, because a climb
+    /// with too few moves to read and a climb with no detours in it are
+    /// different answers and only one of them is good news.
+    var moveWaste: Double?
 
     /// Below this we do not draw and we do not coach. Confidently wrong feedback
     /// is the failure mode that kills the product.
@@ -167,6 +175,9 @@ struct Metrics: Codable {
         bracketedFraction  = try c.decodeIfPresent(Double.self, forKey: .bracketedFraction) ?? 0
         compressionFraction = try c.decodeIfPresent(Double.self, forKey: .compressionFraction) ?? 0
         swingTotal         = try c.decodeIfPresent(Double.self, forKey: .swingTotal) ?? 0
+        // Nil rather than zero when it is missing. A climb analyzed before this
+        // existed has no reading, and zero would mean a perfect one.
+        moveWaste          = try c.decodeIfPresent(Double.self, forKey: .moveWaste)
     }
 
     init(entropy: Double, logJerk: Double, pathRatio: Double, staticElbowAngle: Double,
@@ -174,10 +185,11 @@ struct Metrics: Codable {
          comOffsetFromFeet: Double = 0, deadpointOffsets: [Double] = [],
          comPath: [CGPoint], duration: Double, trackingConfidence: Double,
          bracketedFraction: Double = 0, compressionFraction: Double = 0,
-         swingTotal: Double = 0) {
+         swingTotal: Double = 0, moveWaste: Double? = nil) {
         self.bracketedFraction = bracketedFraction
         self.compressionFraction = compressionFraction
         self.swingTotal = swingTotal
+        self.moveWaste = moveWaste
         self.entropy = entropy
         self.logJerk = logJerk
         self.pathRatio = pathRatio

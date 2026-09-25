@@ -285,10 +285,11 @@ struct RoutesScreen: View {
                         .scaledToFit()
                         .padding(7)
                 } else if let logo = logos.logo(for: gym) {
-                    // Edge to edge, the way a site icon is drawn.
-                    Image(uiImage: logo)
-                        .resizable()
-                        .scaledToFit()
+                    // Edge to edge on white, the way a site icon is drawn.
+                    ZStack {
+                        Color.white
+                        Image(uiImage: logo).resizable().scaledToFit()
+                    }
                 } else {
                     ZStack {
                         Theme.surface

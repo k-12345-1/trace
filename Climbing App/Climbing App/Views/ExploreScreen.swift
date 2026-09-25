@@ -281,7 +281,7 @@ struct ExploreScreen: View {
             if let picture = GymPicture.image(for: mine(venue)) {
                 GymPictureSquare(image: picture)
             } else if let logo = logos.logo(for: venue) {
-                GymPictureSquare(image: logo, inset: 0)
+                GymPictureSquare(image: logo, inset: 0, ground: .white)
             } else if let gym = mine(venue), !store.routes(in: gym).isEmpty {
                 ZStack {
                     Theme.surface2

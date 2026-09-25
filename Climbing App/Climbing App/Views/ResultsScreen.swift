@@ -615,10 +615,13 @@ struct ResultsScreen: View {
                 // it started, so there is no straight line to compare against.
                 // Printing "0.00" would read as a measurement rather than as a
                 // refusal to make one.
-                Readout(label: "Path ratio",
-                        value: climb.metrics.pathRatio > 0
-                            ? String(format: "%.2f", climb.metrics.pathRatio) : "—",
-                        unit: climb.metrics.pathRatio > 0 ? "×" : "went nowhere net")
+                // Not the path ratio, which compared this against a straight
+                // line up the wall that no boulder offers.
+                Readout(label: "Between moves",
+                        value: climb.metrics.moveWaste
+                            .map { "\(Int(($0 * 100).rounded()))" } ?? "—",
+                        unit: climb.metrics.moveWaste == nil ? "too few moves" : "% off the line",
+                        hint: "travel not toward the next position")
                 Readout(label: "Static elbow",
                         value: "\(Int(climb.metrics.staticElbowAngle.rounded()))", unit: "°")
                 Readout(label: "Stops", value: "\(climb.metrics.pauseCount)",

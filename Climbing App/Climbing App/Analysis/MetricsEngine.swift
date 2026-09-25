@@ -108,7 +108,8 @@ enum MetricsEngine {
             trackingConfidence: confidence,
             bracketedFraction: ForceEngine.bracketedFraction(frames: tracked),
             compressionFraction: ForceEngine.compressionFraction(frames: tracked),
-            swingTotal: ForceEngine.swingTotal(frames: tracked)
+            swingTotal: ForceEngine.swingTotal(frames: tracked),
+            moveWaste: MoveEngine.read(frames: tracked)?.waste
         )
     }
 

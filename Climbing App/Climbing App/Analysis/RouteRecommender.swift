@@ -84,7 +84,7 @@ enum RouteRecommender {
         case .hesitation:
             return "Few enough holds to read the whole thing from the ground before you leave it."
         case .wandering:
-            return "A narrow line straight up, so it is obvious the moment you drift off it."
+            return "Holds far enough apart that each move is its own commitment, so a reach that sets off and corrects shows."
         case .mistimedDynamics:
             return "One move much longer than the rest. It has to be thrown, so the timing is the move."
         case .unopposed:

@@ -21,16 +21,21 @@ import CoreGraphics
 /// - **Re-lifting** is height gained, lost and gained again. Lifting your own
 ///   mass is the one cost on a climb you cannot avoid, and paying it twice is
 ///   the one you can.
-/// - **Wander** is lateral travel beyond the line. Going up costs the same
-///   whatever route you take; going sideways is work you do and then undo.
+/// - **Between moves** is travel beyond the shortest path from each position to
+///   the next one. Not beyond a straight line up the wall: a boulder does not
+///   offer one, and a climber who followed a diagonal problem perfectly would
+///   score badly against a vertical. Both ends of each of these lines are
+///   places the climber actually was, so going further than one of them is a
+///   detour they took rather than a shape the route forced on them.
 /// - **Bent arms** while still is load held by muscle that a straight arm hands
 ///   to bone. It is not distance, it is the rate you burn while not moving.
 /// - **Hanging about** is time under tension with nothing to show for it.
 ///
 /// A component that cannot be read on this climb is dropped and the rest are
-/// reweighted. A traverse has no meaningful wander, a climb with no still
-/// moments has no elbow angle worth quoting, and averaging a zero in for either
-/// would read as a climber doing well at something they never did.
+/// reweighted. A climb too short to have moves in it has nothing to say about
+/// the travel between them, one with no still moments has no elbow angle worth
+/// quoting, and averaging a zero in for either would read as a climber doing
+/// well at something they never did.
 enum EfficiencyEngine {
 
     enum Grade: Int, Comparable, CaseIterable {
@@ -81,7 +86,7 @@ enum EfficiencyEngine {
 
     static let wasteCeiling   = 0.35     // share of travel that was a round trip
     static let liftCeiling    = 0.60     // extra height re-lifted, as a fraction
-    static let wanderCeiling  = 1.00     // path length over the straight line, minus one
+    static let wanderCeiling  = 0.45     // share of travel that was not toward the next position
     static let elbowFloor     = 170.0    // degrees; at or above this costs nothing
     static let elbowCeiling   = 115.0    // and at or below this costs everything
     static let pauseCeiling   = 0.50     // share of the climb spent not moving
@@ -120,13 +125,13 @@ enum EfficiencyEngine {
                 detail: "\(Int(((lift.ratio - 1) * 100).rounded()))% of your height was gained twice"))
         }
 
-        // Zero means MetricsEngine declined to answer, not a perfect line.
-        if m.pathRatio > 0 {
+        // Nil means there were not enough moves to read, not a perfect line.
+        if let waste = m.moveWaste {
             parts.append(Component(
-                name: "Wander",
-                cost: clamp((m.pathRatio - 1) / wanderCeiling),
+                name: "Between moves",
+                cost: clamp(waste / wanderCeiling),
                 weight: wanderWeight,
-                detail: String(format: "%.2f× the straight line", m.pathRatio)))
+                detail: "\(Int((waste * 100).rounded()))% of your travel was not toward the next hold"))
         }
 
         if m.staticElbowAngle > 0 {
