@@ -284,22 +284,18 @@ struct NeighbourTests {
         }
     }
 
-    /// The chip says a number. Pressing it has to produce that number.
-    @Test("A swatch counts the holds you get when you choose it")
+    /// The chip says a number, and pressing it shows those holds. They are the
+    /// same object now: reading the wall finds the route, and choosing a colour
+    /// draws what was found. This test is what stops a second pass being added
+    /// back in at a different resolution, which is how the chip came to say
+    /// twelve over five boxes.
+    @Test("A swatch carries the holds you get when you choose it")
     func theCountOnTheChipIsTheCountYouGet() throws {
         let image = Wall.image(Self.twoTones)
         let best = try #require(RouteScanner.palette(in: image).first)
-        let again = RouteScanner.detectHolds(in: image, color: best.lab, tolerance: best.reach)
-        #expect(abs(again.count - best.holds.count) <= 1,
-                "the chip said \(best.holds.count) and choosing it gave \(again.count)")
-    }
-
-    /// With nothing else nearby a color keeps the full default reach, which is
-    /// what finds the shadowed side of a hold.
-    @Test("A color on its own keeps its full reach")
-    func aLonelyColorStaysGenerous() throws {
-        let best = try #require(RouteScanner.palette(in: Wall.image()).first)
-        #expect(best.reach > 20, "a color with no neighbour was pulled in to \(best.reach)")
+        #expect(best.holds.count >= RouteScanner.minimumHolds)
+        let again = try #require(RouteScanner.palette(in: image).first)
+        #expect(again.holds.count == best.holds.count, "reading the same wall twice disagreed")
     }
 }
 

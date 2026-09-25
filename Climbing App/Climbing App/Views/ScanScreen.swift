@@ -23,7 +23,6 @@ struct ScanScreen: View {
     /// Holds the scan missed, pointed at by hand. Kept apart from the scanned
     /// ones so that changing colour does not throw them away.
     @State private var added: [RouteScanner.Hold] = []
-    @State private var scanning = false
     /// Every route color Trace can see on this wall, best first.
     @State private var swatches: [RouteScanner.Swatch] = []
     @State private var chosen: RouteScanner.Swatch?
@@ -173,13 +172,18 @@ struct ScanScreen: View {
         } else if !swatches.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 MicroLabel(text: "Routes on this wall")
-                HStack(spacing: 9) {
+                // Wrapped, not a row. A real wall has ten colours on it and a
+                // single row of chips either runs off the edge of the phone or
+                // hides the ones that did not fit, which on this screen means
+                // hiding a route.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 46), spacing: 9,
+                                             alignment: .leading)],
+                          alignment: .leading, spacing: 10) {
                     ForEach(swatches) { swatch in
                         Button { pick(swatch) } label: { chip(swatch) }
                             .buttonStyle(.plain)
                             .accessibilityLabel("\(swatch.holds.count) holds")
                     }
-                    Spacer(minLength: 0)
                 }
             }
         }
@@ -208,8 +212,10 @@ struct ScanScreen: View {
             colors
 
             HStack {
-                if scanning || reading {
-                    MicroLabel(text: "Reading the wall")
+                // Not "Reading the wall" again: the colours block above says
+                // that already, and it said it twice on every scan.
+                if reading {
+                    EmptyView()
                 } else if kept.isEmpty {
                     MicroLabel(text: swatches.isEmpty
                                ? "No route colors found. Tap the holds to add them."
@@ -371,10 +377,14 @@ struct ScanScreen: View {
         }
     }
 
+    /// Choosing a colour shows the route that was found when the wall was
+    /// read. There is no second pass, so there is nothing to wait for and
+    /// nothing that can disagree with the number on the chip.
     private func pick(_ swatch: RouteScanner.Swatch) {
         chosen = swatch
         colorHex = swatch.hex
-        run(color: swatch)
+        holds = swatch.holds
+        dropped = []
     }
 
     /// A hold the scan missed, pointed at.
@@ -400,28 +410,6 @@ struct ScanScreen: View {
     /// The chosen color, found again at full resolution. The swatch's own holds
     /// come from the coarse pass that read the whole wall, which is right for
     /// counting them and not good enough to draw boxes from.
-    private func run(color swatch: RouteScanner.Swatch) {
-        guard let cg = image?.cgImage,
-              let index = swatches.firstIndex(of: swatch) else { return }
-        scanning = true
-        // The colour's own reach: as wide as it can go without taking in the
-        // route next to it. It was the slider's starting value and it is now
-        // the whole of the answer.
-        let tol = swatch.reach
-        let all = swatches
-        Task.detached {
-            // The whole palette, not just the one color, so the full resolution
-            // pass divides the wall exactly the way the chips did.
-            let found = RouteScanner.detectHolds(in: cg, palette: all, index: index,
-                                                 tolerance: tol)
-            await MainActor.run {
-                holds = found
-                dropped = []
-                scanning = false
-            }
-        }
-    }
-
     private func toggle(_ hold: RouteScanner.Hold) {
         if dropped.contains(hold.id) { dropped.remove(hold.id) } else { dropped.insert(hold.id) }
     }
