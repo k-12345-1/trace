@@ -371,6 +371,7 @@ struct RouteDetailScreen: View {
     let route: Route
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var showLine = true
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
 
@@ -425,6 +426,8 @@ struct RouteDetailScreen: View {
                     .card()
                     .padding(.horizontal, Theme.gutter)
 
+                    suggestedLine
+
                     VStack(alignment: .leading, spacing: 14) {
                         Button { store.toggleSent(live) } label: {
                             Text(live.sent ? "Mark unsent" : "Mark sent")
@@ -462,14 +465,45 @@ struct RouteDetailScreen: View {
         if let data = try? Data(contentsOf: live.photoURL), let ui = UIImage(data: data) {
             GeometryReader { geo in
                 let r = fitted(image: ui.size, in: geo.size)
+                let line = showLine ? LineEngine.read(holds: live.holds) : nil
                 ZStack {
                     Color.black
                     Image(uiImage: ui).resizable().aspectRatio(contentMode: .fit)
+
+                    // The line, drawn through the holds in the order they are
+                    // met. Under the boxes, so it never hides a hold.
+                    if let line {
+                        Path { p in
+                            let points = line.holds.map {
+                                CGPoint(x: r.minX + $0.midX * r.width,
+                                        y: r.minY + $0.midY * r.height)
+                            }
+                            guard let first = points.first else { return }
+                            p.move(to: first)
+                            for pt in points.dropFirst() { p.addLine(to: pt) }
+                        }
+                        .stroke(Theme.chalk.opacity(0.9),
+                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round,
+                                                   lineJoin: .round))
+                    }
+
                     ForEach(Array(live.holds.enumerated()), id: \.offset) { _, hold in
                         RoundedRectangle(cornerRadius: 4, style: .continuous)
                             .stroke(Theme.blueLight, lineWidth: 2)
                             .frame(width: hold.width * r.width + 8, height: hold.height * r.height + 8)
                             .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
+                    }
+
+                    if let line {
+                        ForEach(Array(line.holds.enumerated()), id: \.offset) { i, hold in
+                            Text("\(i + 1)")
+                                .font(Theme.mono(10, weight: .bold))
+                                .foregroundStyle(Theme.blue)
+                                .frame(width: 18, height: 18)
+                                .background(Circle().fill(Theme.chalk))
+                                .position(x: r.minX + hold.midX * r.width,
+                                          y: r.minY + hold.midY * r.height)
+                        }
                     }
                 }
             }
@@ -477,6 +511,62 @@ struct RouteDetailScreen: View {
             .clipped()
         } else {
             missingPhoto
+        }
+    }
+
+    // MARK: The line
+
+    /// What the shape of the holds says about the way up.
+    ///
+    /// Deliberately called the line and not the beta. Trace has a photograph of
+    /// colored blobs: it cannot see which way a hold faces, how good it is, or
+    /// how steep the wall is, so it can say what order the holds go in and
+    /// which gaps are long, and it cannot say which hand to use.
+    @ViewBuilder
+    private var suggestedLine: some View {
+        if let line = LineEngine.read(holds: live.holds) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    SectionTitle("The line")
+                    Spacer()
+                    Button { withAnimation(.easeInOut(duration: 0.2)) { showLine.toggle() } } label: {
+                        Text(showLine ? "Hide on photo" : "Show on photo")
+                            .font(Theme.ui(13.5, .semibold))
+                            .foregroundStyle(Theme.accentText)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if let summary = LineEngine.summary(line) {
+                    Text(summary)
+                        .font(Theme.body(14.5))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                let notes = line.moves.compactMap { LineEngine.note(for: $0) }
+                if !notes.isEmpty {
+                    VStack(alignment: .leading, spacing: 9) {
+                        ForEach(Array(notes.enumerated()), id: \.offset) { _, note in
+                            Text(note)
+                                .font(Theme.body(13.5))
+                                .foregroundStyle(Theme.ink2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+
+                Text(LineEngine.caveat)
+                    .font(Theme.ui(12))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .card()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 20)
         }
     }
 

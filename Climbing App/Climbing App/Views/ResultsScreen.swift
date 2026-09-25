@@ -461,6 +461,35 @@ struct ResultsScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
+                let advice = FallAdvice.suggestions(frames: climb.frames, fellAt: at)
+                if !advice.isEmpty {
+                    Hairline().padding(.vertical, 2)
+                    Text("What to try instead")
+                        .font(Theme.ui(12.5, .semibold))
+                        .foregroundStyle(Theme.ink3)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(advice) { s in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(s.move)
+                                    .font(Theme.ui(14.5, .semibold))
+                                    .foregroundStyle(Theme.ink)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Text(s.because)
+                                    .font(Theme.body(13.5))
+                                    .foregroundStyle(Theme.ink3)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+
+                    Text(FallAdvice.caveat)
+                        .font(Theme.ui(12))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+                }
+
                 Button {
                     playback.seek(to: max(0, at - OutcomeEngine.lookBack))
                 } label: {

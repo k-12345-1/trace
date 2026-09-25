@@ -379,26 +379,47 @@ private struct ObservationCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Button(action: toggle) {
                 HStack(alignment: .top, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(title)
                             .font(Theme.serif(17.5, .semibold))
                             .foregroundStyle(Theme.ink)
                             .multilineTextAlignment(.leading)
-                        Text(note.concept)
-                            .font(Theme.ui(13, .medium))
-                            .foregroundStyle(Theme.blueLight)
+                        // Plain words, always visible, no term of art and no
+                        // formula. Nobody has to open anything to know what to
+                        // do about this.
+                        Text(note.plain)
+                            .font(Theme.ui(14.5))
+                            .foregroundStyle(Theme.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
                     }
                     Spacer(minLength: 0)
-                    Image(systemName: open ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Theme.ink3)
-                        .padding(.top, 2)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
+            // The rigor is still all here. It is one tap down instead of first,
+            // so the finding is readable without it and provable with it.
+            Button(action: toggle) {
+                HStack(spacing: 6) {
+                    Text(open ? "Hide the mechanics" : "Why this is true")
+                        .font(Theme.ui(13.5, .semibold))
+                    Image(systemName: open ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(Theme.accentText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
             if open {
+                Text(note.concept)
+                    .font(Theme.ui(13, .medium))
+                    .foregroundStyle(Theme.blueLight)
+
                 Text(note.why)
                     .font(Theme.ui(14.5))
                     .foregroundStyle(Theme.ink2)

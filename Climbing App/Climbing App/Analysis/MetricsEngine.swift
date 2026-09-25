@@ -330,6 +330,26 @@ enum MetricsEngine {
     // would hold for free. Only counted while the COM is near-still, because a bent
     // arm mid-pull is just pulling.
 
+    /// Mean elbow angle across the frames given, with no stillness gate.
+    ///
+    /// `staticElbow` only looks at frames where the center of mass was near
+    /// still, which is right for the leak but wrong for a window around a fall:
+    /// during a fall nobody is still, and gating on it would return the default
+    /// of 180 and read as perfectly straight arms.
+    static func meanElbow(frames: [PoseFrame]) -> Double? {
+        var angles: [Double] = []
+        for frame in frames {
+            for side in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
+                         (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
+                guard let sh = frame.pt(side.0), let e = frame.pt(side.1), let w = frame.pt(side.2)
+                else { continue }
+                angles.append(angle(at: e, from: sh, to: w))
+            }
+        }
+        guard !angles.isEmpty else { return nil }
+        return angles.reduce(0, +) / Double(angles.count)
+    }
+
     static func staticElbow(frames: [PoseFrame], times: [Double]) -> Double {
         let speeds = speedSeries(path: frames.compactMap { $0.com }, times: times)
         var angles: [Double] = []
