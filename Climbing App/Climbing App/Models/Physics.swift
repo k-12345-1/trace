@@ -12,9 +12,12 @@ import Foundation
 /// forces, not about what your beta should have been.
 struct PhysicsNote {
     /// The thing itself, in words anyone can read, with no term of art and no
-    /// formula. This is what leads on the screen. The rest is underneath it for
-    /// anyone who wants to know why it is true, and nobody has to read it to
-    /// act on the finding.
+    /// formula. This is what leads on the screen.
+    ///
+    /// Two sentences at most, and short ones. It used to run to five or six,
+    /// which made a page of findings a page of essays: everything that is not
+    /// the first two sentences is underneath, behind a control that says what
+    /// it holds, and nobody has to read any of it to act on the finding.
     let plain: String
     /// The named idea.
     let concept: String
@@ -32,7 +35,7 @@ extension LeakKind {
 
         case .bentArms:
             return PhysicsNote(
-                plain: "A bent arm is your bicep holding you up. A straight one hangs off your skeleton, and bone does not get tired. Straightening your arms whenever you are not actually moving is the cheapest thing you can change about your climbing.",
+                plain: "A bent arm is your bicep holding you up. A straight one hangs off bone, and bone does not get tired.",
                 concept: "Muscular against skeletal support",
                 law: "Elbow torque = load × distance from the joint to the line of the load",
                 why: "A bent arm holds you up with your biceps. A straight one passes the load down the bone into your shoulder, and the torque your muscles have to supply falls towards zero as the elbow opens. Holding a bent arm is also isometric: above roughly half your maximum contraction, blood flow through the muscle is largely cut off, so a bent arm is on a clock in a way a straight one is not.",
@@ -41,7 +44,7 @@ extension LeakKind {
 
         case .weightOnArms:
             return PhysicsNote(
-                plain: "Your feet are the hinge you swing around. The further your hips drift to one side of them, the harder your fingers have to pull just to stop you rotating off. Turning a hip into the wall brings your weight back over your feet, and your hands get an easier job.",
+                plain: "Your hips sat to one side of your feet. The further out they are, the harder your fingers pull just to stop you rotating off.",
                 concept: "Moment about the base of support",
                 law: "Torque pulling you off the wall = your weight × how far your center of mass sits sideways of your feet",
                 why: "Your feet are the pivot. The further your hips hang off to one side of them, the larger the turning moment trying to swing you off the wall, and your fingers are what resist it. The relationship is linear, so halving that sideways distance halves what your hands are holding. This is the whole mechanical content of turning a hip in.",
@@ -50,7 +53,7 @@ extension LeakKind {
 
         case .lurchy:
             return PhysicsNote(
-                plain: "Starting and stopping spikes the force on a hold far above your own bodyweight for a moment. That spike is what pops you off a small edge. Moving at one steady speed asks the hold for much less, even though you get there just as fast.",
+                plain: "Starting and stopping spikes the force on a hold well above your bodyweight. That spike is what pops you off.",
                 concept: "Jerk, the rate of change of acceleration",
                 law: "Jerk is the third derivative of position. Smooth movement keeps it small",
                 why: "Force on a hold follows your acceleration. If acceleration changes abruptly, force spikes well above your bodyweight for an instant, and that spike is what tears you off a small edge or rips a foot. A move made at constant acceleration asks the hold for far less at its worst moment than the same move made in a lurch, even though both cover the same distance in the same time.",
@@ -59,7 +62,7 @@ extension LeakKind {
 
         case .impreciseFeet:
             return PhysicsNote(
-                plain: "A foot only grips while you are pressing on it. Every time you pick it up to fix it, all that weight goes back to your arms until it lands again. Looking at the foot until it touches, and then leaving it, is the whole skill.",
+                plain: "A foot only grips while you press on it. Every time you lift one to fix it, that weight goes back to your arms.",
                 concept: "Friction and the normal force",
                 law: "Friction available at a foothold is at most μ × the force you press into it",
                 why: "Rubber grips in proportion to how hard it is pressed into the hold. Every time you lift a foot to adjust it, that normal force goes to zero and the load transfers to your hands until the foot is back. Two adjustments on one foothold means two spells of hanging off your arms that a single accurate placement would have avoided.",
@@ -68,7 +71,7 @@ extension LeakKind {
 
         case .hesitation:
             return PhysicsNote(
-                plain: "Hanging still on a wall is not resting. Your forearms run down while you grip, whether you are moving or not, and above about half effort they even cut off their own blood supply. Time spent working out the next move while hanging is time taken off your best attempt at it.",
+                plain: "Hanging still is not resting. Your forearms run down while you grip, whether you are moving or not.",
                 concept: "Time under tension",
                 law: "Grip capacity decays with the time you spend holding, not the distance you cover",
                 why: "Standing still on a wall is not rest. Forearm force capacity falls away steadily while you are gripping, and above about half your maximum the muscle's own pressure closes off its blood supply, so it is working without resupply. Seconds spent hanging on a hold reading the next move are seconds subtracted from what you will have at the crux.",
@@ -77,7 +80,7 @@ extension LeakKind {
 
         case .wandering:
             return PhysicsNote(
-                plain: "Going up costs the same however you get there, but sideways does not: every meter across is work you do and then undo. A line that meanders costs you real energy for no height.",
+                plain: "Going up costs the same however you get there. Sideways does not: every meter across is work you do and then undo.",
                 concept: "Geometric entropy",
                 law: "H = ln(2L / C), where L is the path your center of mass traveled and C is the perimeter of its convex hull",
                 why: "Raising your mass by a given height costs the same work whatever route you take to get there. Horizontal excursions are different: every sideways meter is work you do and then undo, and none of it moves you up. Geometric entropy is the established measure of this in climbing research. A dead straight line scores zero and the number climbs as the path meanders.",
@@ -86,7 +89,7 @@ extension LeakKind {
 
         case .mistimedDynamics:
             return PhysicsNote(
-                plain: "Throw for a hold and you follow an arc, and at the very top of that arc you are briefly weightless. Catch it there and the hold barely has to hold you. Catch it early or late and you are fighting your own momentum.",
+                plain: "At the top of a throw you are briefly weightless. Catch the hold there and it barely has to hold you.",
                 concept: "The deadpoint",
                 law: "At the apex of the arc, vertical velocity passes through zero",
                 why: "Throw for a hold and your body follows an arc. At the very top of that arc you are momentarily not moving up or down. Catch the hold there and it only has to hold you. Catch early and it has to stop you still traveling upward; catch late and it has to arrest a fall that has already begun. Both cost force the perfectly timed catch does not.",
@@ -95,7 +98,7 @@ extension LeakKind {
 
         case .unopposed:
             return PhysicsNote(
-                plain: "Holds do not grip you, friction does, and friction only exists while something is pressing into the hold. Hang straight below a hold and gravity presses for you. Push two holds toward each other, like squeezing a box, and you make that press yourself, which is why compression problems work on holds you could never just hang off. When your weight ends up outside all of your hands and feet, there is nothing pushing back on the other side and you swing.",
+                plain: "Friction only exists while something presses into the hold. With your weight outside all your hands and feet, nothing presses back, so you swing.",
                 concept: "Friction, and the force pairs that make it",
                 law: "f = μN. The friction a hold can give you is the coefficient of your skin or rubber against it, times the force pressing into it",
                 why: "A hold does not hold you; friction does, and friction is bought with normal force. There are only two ways to make normal force. Gravity can do it, when you hang below a hold and your weight presses in. Or you can make it yourself, by loading two contacts toward each other so their sideways forces cancel: a pinch, a gaston against a sidepull, a hand pulling in while a foot pushes out. That cancelling pair is what makes a compression problem climbable on holds that would hold nothing at all if you simply hung off them. The same arithmetic explains where friction goes when it goes: only the part of your pull along the hold's normal counts, so pulling at an angle off that line gives N = F cos α. Thirty degrees off costs you thirteen percent of your friction and sixty degrees costs half, with nothing about the hold having changed. And when your center of mass hangs outside all of your contacts there is no second force at all: the sideways component has nothing to cancel it, so it becomes rotation about the outermost hand, which your fingers then pay for.",

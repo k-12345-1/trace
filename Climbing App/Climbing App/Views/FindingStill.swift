@@ -10,30 +10,24 @@ import UIKit
 /// the corner of a photograph of a wall. The crop is computed from the tracked
 /// joints, so it follows them up the route.
 ///
-/// And it draws the one measurement the finding rests on, with the corrected
-/// version ghosted behind it: the bent elbow against a straight arm, the hips
-/// against the line above the feet, the path taken against the line it could
-/// have been. One comparison, not a diagram.
+/// And it marks what is wrong. Where there is a corrected version that can
+/// honestly be drawn, it is ghosted in behind: the bent elbow against a straight
+/// arm, the hips against the line above the feet, the path taken against the
+/// line it could have been. Where there is not, because the measurement is in
+/// time rather than in space, the thing is circled and named. A foot placed
+/// twice has no better position to draw, only a better habit.
 ///
-/// Only what the tracking can actually support is drawn. Three of the eight
-/// leaks are geometric in a way a single frame can show; the rest get the
-/// cropped picture and the words. A drawing of something the tracking cannot
-/// see would be decoration that looks like evidence, which is worse than no
-/// drawing at all.
+/// Two inks and no third. Blue is what happened, white is what it should have
+/// been, and both sit on a dark casing because a gym wall is painted every hue
+/// there is: lightness is what separates a mark from it, never color.
 struct FindingStill: View {
     let image: UIImage
     let finding: Finding
     let climb: Climb?
-    /// Taller than a banner. A picture of a body part in a letterbox is mostly
-    /// wall: the card's shape is what decides how much of a climber can be in
-    /// it at once, and at a hundred and eighty points a pair of hips and the
-    /// feet under them did not both fit.
-    var height: CGFloat = 212
-
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
-            let box = region(for: size)
+            let box = shaped(region, to: size)
             let scale = CGSize(width: size.width / max(box.width, 0.0001),
                                height: size.height / max(box.height, 0.0001))
             ZStack(alignment: .topLeading) {
@@ -52,7 +46,10 @@ struct FindingStill: View {
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .clipped()
         }
-        .frame(height: height)
+        // The card takes its shape from what is in it rather than being a fixed
+        // band. A wandering line is tall and thin and a bent elbow is neither,
+        // and cropping both to one letterbox is what cut the ends off the line.
+        .aspectRatio(cardAspect, contentMode: .fit)
         .frame(maxWidth: .infinity)
         .background(Theme.surface2)
         .contentShape(Rectangle())
@@ -77,11 +74,32 @@ struct FindingStill: View {
     // photograph has to land on the thing it is marking, and scaledToFill does
     // not say where it put the picture.
 
-    private func region(for size: CGSize) -> CGRect {
+    /// What is shown, in the photograph's own coordinates.
+    ///
+    /// Worked out before the card is sized rather than after, which is the
+    /// whole trick: the card then takes its shape from this, so nothing has to
+    /// be cropped away to make a subject fit a letterbox it was never going to
+    /// fit.
+    private var region: CGRect {
         let whole = CGRect(x: 0, y: 0, width: 1, height: 1)
-        guard let subject = subject() else { return shaped(whole, to: size) }
+        guard let subject = subject() else { return whole }
         let margin = max(subject.width, subject.height) * 0.32
-        return shaped(subject.insetBy(dx: -margin, dy: -margin), to: size)
+        let grown = subject.insetBy(dx: -margin, dy: -margin)
+        let w = min(grown.width, 1), h = min(grown.height, 1)
+        return CGRect(x: min(max(0, grown.midX - w / 2), 1 - w),
+                      y: min(max(0, grown.midY - h / 2), 1 - h),
+                      width: w, height: h)
+    }
+
+    /// The card's shape, from the region's own, in points rather than in
+    /// normalized units. Clamped at both ends: a card is a card, not a poster.
+    private var cardAspect: CGFloat {
+        let pixels = image.size
+        let r = region
+        guard pixels.width > 0, pixels.height > 0, r.width > 0, r.height > 0
+        else { return 1.6 }
+        let a = (r.width * pixels.width) / (r.height * pixels.height)
+        return min(max(a, 0.72), 2.0)
     }
 
     /// What the card is a picture of, which is not the same as who is in it.
@@ -91,12 +109,15 @@ struct FindingStill: View {
     /// is wide, so the more of the body you keep the less of it you see. The
     /// subject is whatever the marks are drawn on, and nothing else.
     ///
-    /// Nil means the whole photograph, which is right for the one finding that
-    /// is about a route rather than a limb.
+    /// Nil means the whole photograph.
     private func subject() -> CGRect? {
         switch finding.kind {
         case .wandering:
-            return nil
+            // The line itself, all of it. It used to be the whole photograph
+            // squashed into a letterbox, which cut the top and bottom off the
+            // one mark the card exists to show.
+            guard let path = climb?.metrics.comPath, path.count >= 3 else { return nil }
+            return box(path)
         case .bentArms:
             guard let arm = bentArm() else { return wholeBody() }
             return box([arm.shoulder, arm.elbow, arm.wrist])
@@ -107,6 +128,14 @@ struct FindingStill: View {
                   let shoulders = midpoint(pose, .leftShoulder, .rightShoulder)
             else { return wholeBody() }
             return box([hips, feet, shoulders, CGPoint(x: feet.x, y: shoulders.y)])
+        case .impreciseFeet:
+            guard let pose else { return nil }
+            let feet = [JointID.leftAnkle, .rightAnkle].compactMap { pose.pt($0) }
+            return feet.count == 2 ? box(feet) : wholeBody()
+        case .hesitation:
+            guard let pose else { return nil }
+            let hands = [JointID.leftWrist, .rightWrist].compactMap { pose.pt($0) }
+            return hands.count == 2 ? box(hands) : wholeBody()
         default:
             return wholeBody()
         }
@@ -157,12 +186,17 @@ struct FindingStill: View {
     // MARK: The marks
 
     private enum Ink {
-        /// What happened. Read against a photograph of a gym, which is every
-        /// color at once, so it is lightness that separates it rather than hue.
-        static let now = Color(red: 1, green: 0.42, blue: 0.29)
+        /// What happened.
+        ///
+        /// The app's own overlay blue, not a warning color. A gym wall is
+        /// painted every hue there is, so hue is not what separates a mark from
+        /// it: lightness is, and every mark here is laid on a dark casing
+        /// first. Two inks, the blue and the white, and the difference between
+        /// them is the whole message.
+        static let now = Theme.blueLight
         /// What it should have been.
         static let instead = Color.white
-        static let casing = Color.black.opacity(0.55)
+        static let casing = Theme.blue.opacity(0.9)
     }
 
     private func draw(_ ctx: inout GraphicsContext, _ at: (CGPoint) -> CGPoint) {
@@ -170,8 +204,70 @@ struct FindingStill: View {
         case .bentArms:      drawBentArm(&ctx, at)
         case .weightOnArms:  drawHipsOverFeet(&ctx, at)
         case .wandering:     drawLine(&ctx, at)
-        default:             break
+        case .impreciseFeet: circleJoints([.leftAnkle, .rightAnkle], "these", &ctx, at)
+        case .hesitation:    circleJoints([.leftWrist, .rightWrist], "holding here", &ctx, at)
+        case .unopposed:     drawUnopposed(&ctx, at)
+        case .lurchy, .mistimedDynamics:
+            circlePoint(pose?.com, "your weight", &ctx, at)
         }
+    }
+
+    /// A ring around the thing being talked about.
+    ///
+    /// For the findings with no geometry to compare against, which is most of
+    /// them. There is no corrected version to ghost in for a foot that was
+    /// placed twice or a hand that hung there too long: the measurement is in
+    /// time, not in space. Pointing at where it happened is the honest amount
+    /// of drawing, and it is more than the picture said before.
+    private func circleJoints(_ ids: [JointID], _ caption: String,
+                              _ ctx: inout GraphicsContext, _ at: (CGPoint) -> CGPoint) {
+        guard let pose else { return }
+        let points = ids.compactMap { pose.pt($0) }
+        guard !points.isEmpty else { return }
+        for p in points { ring(&ctx, at(p), radius: 26, color: Ink.now) }
+        if let first = points.min(by: { $0.y < $1.y }) {
+            label(&ctx, caption, at: at(first),
+                  offset: CGSize(width: 0, height: -40), color: Ink.now)
+        }
+    }
+
+    private func circlePoint(_ p: CGPoint?, _ caption: String,
+                             _ ctx: inout GraphicsContext, _ at: (CGPoint) -> CGPoint) {
+        guard let p else { return }
+        ring(&ctx, at(p), radius: 30, color: Ink.now)
+        label(&ctx, caption, at: at(p),
+              offset: CGSize(width: 0, height: -44), color: Ink.now)
+    }
+
+    /// Where the weight was, and the span of contacts it should have been
+    /// inside. The gap between them is the finding.
+    private func drawUnopposed(_ ctx: inout GraphicsContext, _ at: (CGPoint) -> CGPoint) {
+        guard let pose, let com = pose.com else { return }
+        let contacts = [JointID.leftWrist, .rightWrist, .leftAnkle, .rightAnkle]
+            .compactMap { pose.pt($0) }
+        ring(&ctx, at(com), radius: 30, color: Ink.now)
+        label(&ctx, "your weight", at: at(com),
+              offset: CGSize(width: 0, height: -44), color: Ink.now)
+
+        // The span your hands and feet actually covered, drawn at the height of
+        // the nearest one so it reads as a floor rather than a horizon.
+        if let left = contacts.map(\.x).min(), let right = contacts.map(\.x).max(),
+           let y = contacts.map(\.y).min(), right > left {
+            stroke(&ctx, [at(CGPoint(x: left, y: y)), at(CGPoint(x: right, y: y))],
+                   color: Ink.instead, width: 3, dash: [7, 6])
+            label(&ctx, "inside here", at: at(CGPoint(x: (left + right) / 2, y: y)),
+                  offset: CGSize(width: 0, height: 18), color: Ink.instead)
+        }
+    }
+
+    private func ring(_ ctx: inout GraphicsContext, _ p: CGPoint,
+                      radius: CGFloat, color: Color) {
+        let rect = CGRect(x: p.x - radius, y: p.y - radius,
+                          width: radius * 2, height: radius * 2)
+        ctx.stroke(Path(ellipseIn: rect), with: .color(Ink.casing),
+                   style: StrokeStyle(lineWidth: 6))
+        ctx.stroke(Path(ellipseIn: rect), with: .color(color),
+                   style: StrokeStyle(lineWidth: 3))
     }
 
     /// The more bent of the two arms, because that is the one costing something.
@@ -243,7 +339,9 @@ struct FindingStill: View {
         stroke(&ctx, [at(first), at(last)], color: Ink.instead, width: 3, dash: [7, 6])
         stroke(&ctx, path.map(at), color: Ink.now, width: 3)
         label(&ctx, "the line you took", at: at(path[path.count / 2]),
-              offset: CGSize(width: 0, height: -16), color: Ink.now)
+              offset: CGSize(width: 0, height: -18), color: Ink.now)
+        label(&ctx, "straight up", at: mid(at(first), at(last)),
+              offset: CGSize(width: 0, height: 18), color: Ink.instead)
     }
 
     // MARK: Drawing

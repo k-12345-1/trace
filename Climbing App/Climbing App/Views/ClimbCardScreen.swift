@@ -33,12 +33,17 @@ struct ClimbCardScreen: View {
                         attempts
                         analysis
                         physics
+                        // Inside the card, not under it. The clearance for the
+                        // bar used to sit outside this, which left a band of
+                        // bare paper between the last thing on the page and the
+                        // bottom of the screen: the page appeared to stop, and
+                        // then there was more page.
+                        Color.clear.frame(height: 156)
                     }
                     .background(Theme.ground)
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .padding(.top, -28)
                 }
-                .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
             // Without this the photo stops at the safe area and the clock and
@@ -65,11 +70,26 @@ struct ClimbCardScreen: View {
 
     // MARK: Photo of the climb
 
+    private static let photoHeight: CGFloat = 330
+
+    /// The photograph, which grows rather than slides when the page is pulled
+    /// down.
+    ///
+    /// A scroll view bounces at the top whatever you do, and what a bounce
+    /// used to reveal here was a band of bare paper above the picture: the one
+    /// place on this screen with nothing in it, shown by the one gesture
+    /// everybody makes without meaning to. Stretching the picture into that
+    /// space is what every photo header does, and it costs one measurement.
     private var photo: some View {
-        ClimbThumbnail(climb: live.latest)
-            .frame(height: 330)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .topLeading) { back }
+        GeometryReader { geo in
+            let pulled = max(0, geo.frame(in: .scrollView).minY)
+            ClimbThumbnail(climb: live.latest)
+                .frame(width: geo.size.width, height: Self.photoHeight + pulled)
+                .offset(y: -pulled)
+        }
+        .frame(height: Self.photoHeight)
+        .frame(maxWidth: .infinity)
+        .overlay(alignment: .topLeading) { back }
     }
 
     /// The photo runs under the status bar, so the way out has to sit on top of it.
@@ -245,11 +265,10 @@ struct ClimbCardScreen: View {
     private var whereItWas: some View {
         let gym = store.gyms.first { $0.id == live.latest.gymID }
         return Button { choosingGym = true } label: {
-            // No pin glyph in front of it. An icon there pushed the line
-            // twenty points to the right of the route name directly above it,
-            // and the only thing it said was "this is a place", which the
-            // words already say.
             HStack(spacing: 9) {
+                Image(systemName: gym == nil ? "mappin.slash" : "mappin.and.ellipse")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.ink3)
                 Text(gym?.name ?? "Not filed at a gym")
                     .font(Theme.ui(14, gym == nil ? .regular : .semibold))
                     .foregroundStyle(gym == nil ? Theme.ink3 : Theme.ink2)
@@ -296,13 +315,8 @@ struct ClimbCardScreen: View {
     /// observation costs you something rather than a topic of its own.
     private var physics: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                SectionTitle("What the movement showed")
-                Text("Each one with the mechanics behind it")
-                    .font(Theme.ui(14))
-                    .foregroundStyle(Theme.ink3)
-            }
-            .padding(.horizontal, Theme.gutter)
+            SectionTitle("What the movement showed")
+                .padding(.horizontal, Theme.gutter)
 
             if notes.isEmpty {
                 Text("Nothing on this route crossed the threshold worth mentioning. The measurements above still stand; there is just no leak to explain.")

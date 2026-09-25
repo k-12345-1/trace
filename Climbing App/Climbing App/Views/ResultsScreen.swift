@@ -128,7 +128,6 @@ struct ResultsScreen: View {
                     scrubber
                     telemetry
                     header
-                    Hairline()
                     if climb.metrics.isTrustworthy {
                         efficiency
                         ending
