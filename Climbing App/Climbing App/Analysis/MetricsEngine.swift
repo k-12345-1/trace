@@ -8,7 +8,7 @@ import CoreGraphics
 /// or the sequence. It measures how well you executed whatever you chose to do.
 enum MetricsEngine {
 
-    /// COM speed below this (normalised units per second) counts as "still".
+    /// COM speed below this (normalized units per second) counts as "still".
     private static let stillSpeed = 0.035
     /// A still stretch longer than this is a pause worth mentioning.
     private static let pauseSeconds = 0.8
@@ -59,8 +59,8 @@ enum MetricsEngine {
 
     // MARK: - Weight on arms rather than feet
     //
-    // How far the centre of mass sits sideways of the feet, in torso lengths, while
-    // the climber is not moving. Normalising by torso length is what makes it
+    // How far the center of mass sits sideways of the feet, in torso lengths, while
+    // the climber is not moving. Normalizing by torso length is what makes it
     // independent of how far away the phone was.
     //
     // Note this is a projection, so it means different things at different camera
@@ -136,13 +136,13 @@ enum MetricsEngine {
         return offsets
     }
 
-    /// Moments where the centre of mass stopped rising. In image coordinates y grows
+    /// Moments where the center of mass stopped rising. In image coordinates y grows
     /// downward, so rising means a negative vertical velocity.
     ///
     /// An apex is only an apex if something was thrown. The first version of this
     /// tested the sign of the vertical velocity alone, which on real footage fires
     /// on every micro-wobble at 30 frames a second: a thirteen second boulder came
-    /// back with most of its frames labelled deadpoint. Three gates fix that.
+    /// back with most of its frames labeled deadpoint. Three gates fix that.
     ///
     /// The rise has to be fast enough to be a move rather than noise; it has to
     /// have lasted, so that a single jittery frame cannot qualify; and the climber
@@ -255,7 +255,7 @@ enum MetricsEngine {
 
     // MARK: - Smoothness
     //
-    // Log dimensionless jerk. Third derivative of COM position, normalised by
+    // Log dimensionless jerk. Third derivative of COM position, normalized by
     // duration and path length so clips of different lengths compare. Lower is
     // smoother. Comparable within one capture setup, not across setups.
 

@@ -3,9 +3,9 @@ import SwiftUI
 /// Height, reach and weight.
 ///
 /// Three numbers, all optional, all doing real work. Height gives Trace a scale,
-/// so speeds stop being body lengths and start being metres. Span sizes the
+/// so speeds stop being body lengths and start being meters. Span sizes the
 /// balance envelope on the overlay to your arms rather than to an average.
-/// Weight turns the height your centre of mass gained into joules.
+/// Weight turns the height your center of mass gained into joules.
 struct PersonalInfoScreen: View {
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
@@ -133,7 +133,7 @@ struct PersonalInfoScreen: View {
             if imperial {
                 FeetInchesField(cm: value, focus: $focus, field: field, valid: valid)
             } else {
-                CentimetresField(cm: value, focus: $focus, field: field, valid: valid)
+                CentimetersField(cm: value, focus: $focus, field: field, valid: valid)
             }
 
             if !valid {
@@ -258,7 +258,7 @@ struct PersonalInfoScreen: View {
 
 // MARK: - Metric entry
 
-private struct CentimetresField: View {
+private struct CentimetersField: View {
     @Binding var cm: Double?
     @FocusState.Binding var focus: PersonalInfoScreen.Field?
     let field: PersonalInfoScreen.Field

@@ -6,12 +6,12 @@ enum Theme {
 
     // MARK: Ground and surfaces
     //
-    // Four colours and nothing else: white, a light grey, a light blue and a
+    // Four colors and nothing else: white, a light gray, a light blue and a
     // dark blue. Everything on screen is one of those, at a weight or an
-    // opacity. The grey is given a blue cast so it belongs to the same family
+    // opacity. The gray is given a blue cast so it belongs to the same family
     // rather than sitting beside it as a neutral.
     static let ground   = Color(hex: 0xFFFFFF)
-    static let surface  = Color(hex: 0xF2F5F9)   // the light grey
+    static let surface  = Color(hex: 0xF2F5F9)   // the light gray
     static let surface2 = Color(hex: 0xE5EBF2)
     static let line     = Color(hex: 0xE8EDF3)
     static let lineStrong = Color(hex: 0xCBD6E2)
@@ -27,12 +27,12 @@ enum Theme {
     static let blueLight = Color(hex: 0x5B95D6)
     static let blueWash  = Color(hex: 0x5B95D6).opacity(0.13)
 
-    /// Kept so older code that asked for the banner colour still compiles.
+    /// Kept so older code that asked for the banner color still compiles.
     static let wine = blue
 
     // MARK: Ink
     //
-    // Text is the dark blue rather than a black, so the page has no fifth colour
+    // Text is the dark blue rather than a black, so the page has no fifth color
     // hiding in it.
     static let ink   = Color(hex: 0x0F2C5C)
     static let ink2  = Color(hex: 0x4A6183)

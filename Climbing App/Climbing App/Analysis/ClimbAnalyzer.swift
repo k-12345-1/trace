@@ -14,7 +14,7 @@ final class ClimbAnalyzer: ObservableObject {
 
     @Published var state: State = .idle
 
-    func analyse(sourceURL: URL, label: String) async {
+    func analyze(sourceURL: URL, label: String) async {
         state = .working(0)
         do {
             let filename = try Store.shared.importVideo(from: sourceURL)

@@ -100,7 +100,7 @@ struct HomeScreen: View {
     // MARK: Your gyms
     //
     // Tiles with the name underneath rather than cards with the name inside.
-    // A square holds a logo, a photograph or a wall of colours equally well,
+    // A square holds a logo, a photograph or a wall of colors equally well,
     // and putting the label outside it means the tile never has to reserve
     // space for text it might not need.
 
@@ -160,7 +160,7 @@ struct HomeScreen: View {
 
     private func tile(_ gym: Gym) -> some View {
         let counts = store.routeCount(in: gym)
-        let colours = store.routes(in: gym).prefix(9).map { Color(hexString: $0.colorHex) }
+        let colors = store.routes(in: gym).prefix(9).map { Color(hexString: $0.colorHex) }
         return GymTile(
             name: gym.name,
             sub: "\(counts.total) route\(counts.total == 1 ? "" : "s")",
@@ -168,18 +168,18 @@ struct HomeScreen: View {
         ) {
             ZStack {
                 Theme.surface
-                if colours.isEmpty {
+                if colors.isEmpty {
                     Text(initials(of: gym.name))
                         .font(Theme.serif(34, .semibold))
                         .foregroundStyle(Theme.blue)
                 } else {
-                    // The wall itself, as the colours set on it. It is the only
+                    // The wall itself, as the colors set on it. It is the only
                     // picture of a gym Trace actually has.
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5),
                                              count: 3), spacing: 5) {
-                        ForEach(Array(colours.enumerated()), id: \.offset) { _, colour in
+                        ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(colour)
+                                .fill(color)
                                 .aspectRatio(1, contentMode: .fit)
                         }
                     }

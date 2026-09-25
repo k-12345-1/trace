@@ -3,10 +3,10 @@ import Foundation
 import CoreGraphics
 @testable import ClimbingApp
 
-/// Builds a synthetic wall: a dark background with holds of known colour and
+/// Builds a synthetic wall: a dark background with holds of known color and
 /// known position, so what the scanner should find is known in advance.
 enum Wall {
-    struct Blob { var cx: Double; var cy: Double; var r: Double; var colour: (UInt8, UInt8, UInt8) }
+    struct Blob { var cx: Double; var cy: Double; var r: Double; var color: (UInt8, UInt8, UInt8) }
 
     static let red: (UInt8, UInt8, UInt8)    = (200, 60, 45)
     static let blue: (UInt8, UInt8, UInt8)   = (50, 95, 190)
@@ -14,18 +14,18 @@ enum Wall {
 
     /// Six red holds up the middle, four blue off to the sides, two yellow.
     static let route: [Blob] = [
-        Blob(cx: 0.50, cy: 0.86, r: 0.035, colour: red),
-        Blob(cx: 0.44, cy: 0.70, r: 0.032, colour: red),
-        Blob(cx: 0.56, cy: 0.56, r: 0.034, colour: red),
-        Blob(cx: 0.47, cy: 0.42, r: 0.030, colour: red),
-        Blob(cx: 0.54, cy: 0.28, r: 0.033, colour: red),
-        Blob(cx: 0.49, cy: 0.14, r: 0.036, colour: red),
-        Blob(cx: 0.16, cy: 0.75, r: 0.034, colour: blue),
-        Blob(cx: 0.84, cy: 0.62, r: 0.031, colour: blue),
-        Blob(cx: 0.18, cy: 0.35, r: 0.033, colour: blue),
-        Blob(cx: 0.82, cy: 0.22, r: 0.032, colour: blue),
-        Blob(cx: 0.30, cy: 0.50, r: 0.030, colour: yellow),
-        Blob(cx: 0.70, cy: 0.88, r: 0.030, colour: yellow)
+        Blob(cx: 0.50, cy: 0.86, r: 0.035, color: red),
+        Blob(cx: 0.44, cy: 0.70, r: 0.032, color: red),
+        Blob(cx: 0.56, cy: 0.56, r: 0.034, color: red),
+        Blob(cx: 0.47, cy: 0.42, r: 0.030, color: red),
+        Blob(cx: 0.54, cy: 0.28, r: 0.033, color: red),
+        Blob(cx: 0.49, cy: 0.14, r: 0.036, color: red),
+        Blob(cx: 0.16, cy: 0.75, r: 0.034, color: blue),
+        Blob(cx: 0.84, cy: 0.62, r: 0.031, color: blue),
+        Blob(cx: 0.18, cy: 0.35, r: 0.033, color: blue),
+        Blob(cx: 0.82, cy: 0.22, r: 0.032, color: blue),
+        Blob(cx: 0.30, cy: 0.50, r: 0.030, color: yellow),
+        Blob(cx: 0.70, cy: 0.88, r: 0.030, color: yellow)
     ]
 
     static func image(_ blobs: [Blob] = route, w: Int = 800, h: Int = 1200) -> CGImage {
@@ -36,9 +36,9 @@ enum Wall {
         ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
 
         for b in blobs {
-            ctx.setFillColor(CGColor(red: Double(b.colour.0) / 255,
-                                     green: Double(b.colour.1) / 255,
-                                     blue: Double(b.colour.2) / 255, alpha: 1))
+            ctx.setFillColor(CGColor(red: Double(b.color.0) / 255,
+                                     green: Double(b.color.1) / 255,
+                                     blue: Double(b.color.2) / 255, alpha: 1))
             // Context origin is bottom left; blob coordinates are top left.
             let r = b.r * Double(w)
             ctx.fillEllipse(in: CGRect(x: b.cx * Double(w) - r,
@@ -48,9 +48,9 @@ enum Wall {
         return ctx.makeImage()!
     }
 
-    /// A point inside the first blob of a given colour, in normalised top-left space.
-    static func point(of colour: (UInt8, UInt8, UInt8)) -> CGPoint {
-        let b = route.first { $0.colour == colour }!
+    /// A point inside the first blob of a given color, in normalized top-left space.
+    static func point(of color: (UInt8, UInt8, UInt8)) -> CGPoint {
+        let b = route.first { $0.color == color }!
         return CGPoint(x: b.cx, y: b.cy)
     }
 }
@@ -59,7 +59,7 @@ enum Wall {
 struct RouteScannerTests {
 
     @Test("Tapping a red hold finds the red route and nothing else")
-    func findsOneColour() {
+    func findsOneColor() {
         let found = RouteScanner.detectHolds(in: Wall.image(),
                                              sample: Wall.point(of: Wall.red),
                                              tolerance: 30)
@@ -67,7 +67,7 @@ struct RouteScannerTests {
         #expect(found.holds.count == 6, "found \(found.holds.count)")
 
         // Every detection should sit on a red blob.
-        let reds = Wall.route.filter { $0.colour == Wall.red }
+        let reds = Wall.route.filter { $0.color == Wall.red }
         for hold in found.holds {
             let near = reds.contains { b in
                 abs(b.cx - hold.rect.midX) < 0.03 && abs(b.cy - hold.rect.midY) < 0.03
@@ -77,7 +77,7 @@ struct RouteScannerTests {
     }
 
     @Test("Tapping a blue hold finds the blue set instead")
-    func picksTheTappedColour() {
+    func picksTheTappedColor() {
         let found = RouteScanner.detectHolds(in: Wall.image(),
                                              sample: Wall.point(of: Wall.blue),
                                              tolerance: 30)
@@ -85,7 +85,7 @@ struct RouteScannerTests {
     }
 
     @Test("The sampled color is reported back for the route swatch")
-    func reportsColour() {
+    func reportsColor() {
         let found = RouteScanner.detectHolds(in: Wall.image(),
                                              sample: Wall.point(of: Wall.blue),
                                              tolerance: 30)
@@ -126,7 +126,7 @@ struct RouteScannerTests {
 }
 
 @Suite("Color")
-struct ColourTests {
+struct ColorTests {
 
     @Test("Identical colors are zero apart")
     func identity() {

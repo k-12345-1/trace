@@ -4,8 +4,8 @@ import UIKit
 
 /// Scan a route off any wall in any gym.
 ///
-/// Photograph the wall, tap one hold of the route's colour, and Trace picks out
-/// everything else that colour. No route database, no hold model, no gym
+/// Photograph the wall, tap one hold of the route's color, and Trace picks out
+/// everything else that color. No route database, no hold model, no gym
 /// partnership: it works on the first photo you take anywhere.
 struct ScanScreen: View {
     @ObservedObject private var store = Store.shared

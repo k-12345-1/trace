@@ -279,7 +279,7 @@ final class Store: ObservableObject {
     /// Whether the scanner opens, or the paywall does.
     ///
     /// The first scan is free and complete. Nobody can tell from a screenshot
-    /// whether colour segmentation copes with their gym's lighting, so they get
+    /// whether color segmentation copes with their gym's lighting, so they get
     /// to find out on their own wall before being asked for anything.
     var scanNeedsPro: Bool { scansUsed >= 1 }
 

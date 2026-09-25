@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Draws the climber on top of their own footage, in the language of the
 /// reference clip: a teal skeleton with yellow joints, magenta trails behind
-/// every extremity, angle chips on leader lines, and a marked centre of mass
+/// every extremity, angle chips on leader lines, and a marked center of mass
 /// sitting inside its balance envelope.
 ///
 /// Nothing new is measured. Every number here already exists in MetricsEngine;
@@ -13,22 +13,22 @@ struct OverlayView: View {
     /// width / height of the video as displayed.
     let videoAspect: Double
     var showReadout: Bool = true
-    /// Metres per normalised image unit, when the climber has given their height.
+    /// Meters per normalized image unit, when the climber has given their height.
     /// Without it every distance stays in body lengths, which is honest rather
     /// than inconvenient: the phone genuinely does not know.
-    var metresPerUnit: Double? = nil
-    /// Half the climber's span, in normalised units, when they have given it.
+    var metersPerUnit: Double? = nil
+    /// Half the climber's span, in normalized units, when they have given it.
     var reachRadius: Double? = nil
     /// What the panel calls this climber. The route's own name, normally.
     var title: String = "Climber"
 
-    /// The overlay palette: the app's four colours, on footage.
+    /// The overlay palette: the app's four colors, on footage.
     ///
     /// A wall is painted every hue at once, so hue cannot be what separates the
     /// drawing from the wall behind it. Lightness does that instead. Every light
     /// mark is laid over a dark blue casing first, which is what makes white
     /// read on a white volume and light blue read on a blue jug. The casing is
-    /// the whole reason a four colour overlay survives a gym.
+    /// the whole reason a four color overlay survives a gym.
     private enum Ink {
         static let bone = Color.white
         static let joint = Theme.blueLight
@@ -90,7 +90,7 @@ struct OverlayView: View {
 
     // MARK: Telemetry
 
-    /// The centre of mass one beat earlier, so the panel can show where it came
+    /// The center of mass one beat earlier, so the panel can show where it came
     /// from as well as where it is. Half a second back rather than one frame:
     /// a single frame's difference is inside the tracker's own noise.
     private func previousCOM(before t: Double) -> CGPoint? {
@@ -121,7 +121,7 @@ struct OverlayView: View {
         return frames.min { abs($0.time - time) < abs($1.time - time) }
     }
 
-    /// Normalised body height, used as the scale for every drawn size so the
+    /// Normalized body height, used as the scale for every drawn size so the
     /// overlay keeps its proportions whether the climber fills the frame or not.
     private func bodyHeight(_ frame: PoseFrame) -> Double {
         Double(PhaseTimeline.boundingBox(frame)?.height ?? 0.5)
@@ -129,7 +129,7 @@ struct OverlayView: View {
 
     // MARK: Balance envelope
 
-    /// A circle on the centre of mass, the radius of the climber's own reach.
+    /// A circle on the center of mass, the radius of the climber's own reach.
     /// It is not a measurement, it is a frame of reference: when a hold sits
     /// outside it, the move needs a shift before it needs more strength.
     private func drawEnvelope(ctx: inout GraphicsContext, frame: PoseFrame,
@@ -147,7 +147,7 @@ struct OverlayView: View {
 
     // MARK: Trails
 
-    /// Where each hand, each foot and the centre of mass have just been. The
+    /// Where each hand, each foot and the center of mass have just been. The
     /// trail is what makes a jerky pull look jerky: a clean move leaves a clean
     /// arc, a scrappy one leaves a scribble.
     private func drawTrails(ctx: inout GraphicsContext, rect: CGRect) {
@@ -191,7 +191,7 @@ struct OverlayView: View {
             bones.move(to: map(p1, rect)); bones.addLine(to: map(p2, rect))
         }
         // The casing first. Without it a white limb disappears against a white
-        // volume, which is the one hold colour a gym always has.
+        // volume, which is the one hold color a gym always has.
         ctx.stroke(bones, with: .color(Ink.casing.opacity(0.85)),
                    style: StrokeStyle(lineWidth: 5.0, lineCap: .round, lineJoin: .round))
         ctx.stroke(bones, with: .color(Ink.bone),
@@ -236,7 +236,7 @@ struct OverlayView: View {
                             rect: CGRect, scale: Double) {
         let size = min(13, max(8.5, rect.width * 0.030))
         let reach = max(42, scale * 0.30)
-        let centre = frame.com.map { map($0, rect) }
+        let center = frame.com.map { map($0, rect) }
 
         for (vertex, a, b) in Self.angled {
             guard let v = frame.pt(vertex), let pa = frame.pt(a), let pb = frame.pt(b)
@@ -246,7 +246,7 @@ struct OverlayView: View {
 
             // Chips splay outward from the body, so they land on wall rather
             // than on the climber and keep clear of one another.
-            let away = unit(from: centre ?? joint, to: joint, fallback: CGPoint(x: 0, y: -1))
+            let away = unit(from: center ?? joint, to: joint, fallback: CGPoint(x: 0, y: -1))
             let anchor = CGPoint(x: joint.x + away.x * reach, y: joint.y + away.y * reach)
 
             var leader = Path()
@@ -276,7 +276,7 @@ struct OverlayView: View {
         return CGPoint(x: dx / len, y: dy / len)
     }
 
-    // MARK: Centre of mass
+    // MARK: Center of mass
 
     private func drawCOM(ctx: inout GraphicsContext, frame: PoseFrame,
                          rect: CGRect, scale: Double) {
@@ -327,7 +327,7 @@ struct TelemetryPanel: View {
     let readout: PhaseTimeline.Readout
     let com: CGPoint?
     let previous: CGPoint?
-    let metresPerUnit: Double?
+    let metersPerUnit: Double?
     let title: String
 
     private let ground = Theme.blue.opacity(0.88)
@@ -415,11 +415,11 @@ struct TelemetryPanel: View {
 
     private var positionText: String { coords(com) }
 
-    /// Metres per second once the climber has given a height, body lengths per
+    /// Meters per second once the climber has given a height, body lengths per
     /// second before that. Body lengths are not a fallback for a missing number,
     /// they are the honest unit: a single camera cannot know the distance.
     private var velocityText: String {
-        if let m = BodyScale.metresPerSecond(readout.speedRaw, metresPerUnit: metresPerUnit) {
+        if let m = BodyScale.metersPerSecond(readout.speedRaw, metersPerUnit: metersPerUnit) {
             return String(format: "%.1f m/s", m)
         }
         return String(format: "%.2f bl/s", readout.speed)

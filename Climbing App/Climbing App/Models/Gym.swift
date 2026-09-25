@@ -12,7 +12,7 @@ struct Gym: Codable, Identifiable, Hashable {
 
 /// A route scanned off a wall.
 ///
-/// It is a photo, a colour, and the holds Trace found in that colour. It is not
+/// It is a photo, a color, and the holds Trace found in that color. It is not
 /// a claim about what the setter intended, which is why the climber confirms the
 /// holds before it is saved.
 struct Route: Codable, Identifiable, Hashable {
@@ -22,7 +22,7 @@ struct Route: Codable, Identifiable, Hashable {
     var grade: String
     var colorHex: String
     var photoFilename: String
-    /// Normalised bounding boxes, origin top left.
+    /// Normalized bounding boxes, origin top left.
     var holds: [CGRect]
     var scannedAt: Date = Date()
     var sent: Bool = false

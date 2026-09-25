@@ -9,7 +9,7 @@ import SwiftUI
 final class CameraController: NSObject, ObservableObject {
 
     @Published var isRecording = false
-    @Published var isAuthorised = false
+    @Published var isAuthorized = false
     @Published var isAvailable = false
     @Published var elapsed: Double = 0
     @Published var errorMessage: String?
@@ -22,11 +22,11 @@ final class CameraController: NSObject, ObservableObject {
     func prepare() async {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
-        case .authorized: isAuthorised = true
-        case .notDetermined: isAuthorised = await AVCaptureDevice.requestAccess(for: .video)
-        default: isAuthorised = false
+        case .authorized: isAuthorized = true
+        case .notDetermined: isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
+        default: isAuthorized = false
         }
-        guard isAuthorised else { return }
+        guard isAuthorized else { return }
         configure()
     }
 

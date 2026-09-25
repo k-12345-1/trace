@@ -5,7 +5,7 @@ import Foundation
 /// A phone cannot know how far away you are, which is why every distance Trace
 /// reports is in body lengths by default: a real number that survives the camera
 /// being moved. Give it your height and it gains a scale, so the same numbers can
-/// be said in metres. Give it your span and the balance envelope becomes your
+/// be said in meters. Give it your span and the balance envelope becomes your
 /// envelope rather than a proportion borrowed from the average climber.
 ///
 /// Stored in centimetres whichever units you type in, because the arithmetic
@@ -15,11 +15,11 @@ struct BodyProfile: Codable, Equatable {
     var spanCM: Double?
     /// Body mass in kilogrammes, whatever units you typed.
     ///
-    /// It does not move your centre of mass. Where the COM sits is a weighted
+    /// It does not move your center of mass. Where the COM sits is a weighted
     /// average of segment positions, and Dempster's fractions are fractions, so
     /// they cancel: a 60 kg and a 90 kg climber in the same pose have the COM in
     /// the same place. What mass buys is the step after that. Once Trace knows
-    /// how far the COM moved in metres, mass turns that path into joules, and
+    /// how far the COM moved in meters, mass turns that path into joules, and
     /// the lifting you paid for stops being a ratio and becomes an amount.
     var massKG: Double?
     /// Feet and inches, purely for display. It never touches the maths.
@@ -29,7 +29,7 @@ struct BodyProfile: Codable, Equatable {
 
     var isEmpty: Bool { heightCM == nil && spanCM == nil && massKG == nil }
     var hasScale: Bool { (heightCM ?? 0) > 0 }
-    /// Work in joules needs both: metres from the height, kilogrammes from the mass.
+    /// Work in joules needs both: meters from the height, kilogrammes from the mass.
     var canWeighWork: Bool { hasScale && (massKG ?? 0) > 0 }
 
     /// Span minus height, the number climbers actually quote. Positive is a

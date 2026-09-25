@@ -78,7 +78,7 @@ struct AnalyzingScreen: View {
                 FlatButton(title: "Analyze", filled: true) {
                     guard !started else { return }
                     started = true
-                    Task { await analyzer.analyse(sourceURL: sourceURL, label: label) }
+                    Task { await analyzer.analyze(sourceURL: sourceURL, label: label) }
                 }
                 .padding(.top, 6)
             }

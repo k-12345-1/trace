@@ -8,7 +8,7 @@ import CoreLocation
 /// a new phone with nothing on it still has something to say.
 ///
 /// Two honesties are carried on the face of the screen rather than buried. The
-/// coordinates behind the distances are city centres, so a distance is to the
+/// coordinates behind the distances are city centers, so a distance is to the
 /// city and not to the door. And the list is a hand-built starter set rather
 /// than a survey, so it is certainly missing gyms.
 struct ExploreScreen: View {
@@ -177,7 +177,7 @@ struct ExploreScreen: View {
 
     private func row(_ venue: Venue) -> some View {
         HStack(spacing: 14) {
-            // The colours you have scanned there, when you have. A gym you have
+            // The colors you have scanned there, when you have. A gym you have
             // been to should not look identical to one you have not.
             face(for: venue)
 

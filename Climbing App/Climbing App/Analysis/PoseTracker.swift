@@ -103,7 +103,7 @@ enum PoseTracker {
 
         for (visionName, id) in mapping {
             guard let p = points[visionName], p.confidence > 0 else { continue }
-            // Vision is normalised with origin bottom-left. Flip to top-left so the
+            // Vision is normalized with origin bottom-left. Flip to top-left so the
             // overlay and the metrics share one coordinate system.
             joints[id] = Joint(x: Double(p.location.x),
                                y: Double(1 - p.location.y),

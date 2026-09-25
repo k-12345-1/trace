@@ -206,7 +206,7 @@ struct ResultsScreen: View {
                 frames: climb.frames,
                 time: playback.time,
                 videoAspect: aspect,
-                metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames, body: store.body),
+                metersPerUnit: BodyScale.metersPerUnit(frames: climb.frames, body: store.body),
                 reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body),
                 title: label
             )
@@ -256,7 +256,7 @@ struct ResultsScreen: View {
                 readout: r,
                 com: nearestCOM(playback.time),
                 previous: nearestCOM(playback.time - 0.5),
-                metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames, body: store.body),
+                metersPerUnit: BodyScale.metersPerUnit(frames: climb.frames, body: store.body),
                 title: label
             )
             .padding(.horizontal, Theme.gutter)
@@ -432,7 +432,7 @@ struct ResultsScreen: View {
         .padding(.vertical, 22)
     }
 
-    /// The rise and fall of the centre of mass. Computed here rather than stored,
+    /// The rise and fall of the center of mass. Computed here rather than stored,
     /// because it is a reading of a path the climb already carries.
     private var lift: BodyScale.Lift? {
         BodyScale.lift(path: climb.metrics.comPath)
@@ -441,7 +441,7 @@ struct ResultsScreen: View {
     private var work: (net: Double, gross: Double)? {
         guard let lift else { return nil }
         return BodyScale.work(joules: lift,
-                              metresPerUnit: BodyScale.metresPerUnit(frames: climb.frames,
+                              metersPerUnit: BodyScale.metersPerUnit(frames: climb.frames,
                                                                      body: store.body),
                               body: store.body)
     }

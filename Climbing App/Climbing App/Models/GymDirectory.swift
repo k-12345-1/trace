@@ -33,7 +33,7 @@ struct Venue: Identifiable, Hashable {
 /// Two things have to be said plainly about this list, because the screen that
 /// shows it would otherwise imply more than it has.
 ///
-/// The coordinates are **city centres, not street addresses**. A gym's distance
+/// The coordinates are **city centers, not street addresses**. A gym's distance
 /// is therefore the distance to its city, which is the right precision for
 /// "what is near me" and the wrong precision for "how far is the door". The
 /// screen says so rather than rounding the problem away.

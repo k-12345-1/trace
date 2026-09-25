@@ -13,7 +13,7 @@ import StoreKit
 /// Trace cannot leak.
 ///
 /// Entitlement is read from StoreKit itself rather than from a flag Trace writes
-/// down. A local flag would be one cancelled subscription away from being a lie,
+/// down. A local flag would be one canceled subscription away from being a lie,
 /// and it would be trivially editable on a jailbroken device. `Transaction`
 /// is the truth, it is verified by Apple, and it survives a reinstall.
 @MainActor
@@ -45,7 +45,7 @@ final class Subscription: ObservableObject {
     @Published var plan: Plan = .yearly
     @Published private(set) var isPurchasing = false
     /// Set when a purchase fails for a reason worth showing. Cancellation is not
-    /// one: someone who taps Cancel does not need to be told they cancelled.
+    /// one: someone who taps Cancel does not need to be told they canceled.
     @Published var problem: String?
 
     private var updates: Task<Void, Never>?

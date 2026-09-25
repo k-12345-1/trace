@@ -42,7 +42,7 @@ enum FindingEngine {
             let percent = Int((m.comOffsetFromFeet * 100).rounded())
             let w = worstOffsetWindow(frames: frames) ?? whole
             // "Resting" was wrong: the measurement is taken over every frame
-            // where the centre of mass was barely moving, which on a climb with
+            // where the center of mass was barely moving, which on a climb with
             // no pauses in it is not a rest at all.
             out.append(Finding(
                 kind: .weightOnArms,
@@ -202,7 +202,7 @@ enum FindingEngine {
         }
     }
 
-    /// Where the centre of mass hung furthest out from over the feet.
+    /// Where the center of mass hung furthest out from over the feet.
     static func worstOffsetWindow(frames: [PoseFrame]) -> Window? {
         bestWindow(frames: frames) { f in
             guard let com = f.com,
@@ -213,7 +213,7 @@ enum FindingEngine {
     }
 
     /// Where the movement was roughest, measured the same way the metric is:
-    /// the magnitude of the third derivative of the centre-of-mass path.
+    /// the magnitude of the third derivative of the center-of-mass path.
     static func worstJerkWindow(frames: [PoseFrame]) -> Window? {
         let usable = frames.filter { $0.com != nil }
         guard usable.count > 8 else { return nil }

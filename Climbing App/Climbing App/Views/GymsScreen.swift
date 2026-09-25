@@ -3,7 +3,7 @@ import SwiftUI
 /// Every gym you have scanned something at, and what is on the wall there.
 ///
 /// Trace has no directory of gyms. Each one here exists because you scanned a
-/// route at it, which is why the tile shows the colours on that wall rather than
+/// route at it, which is why the tile shows the colors on that wall rather than
 /// a logo: the routes you have saved are the only picture of the place it has.
 struct GymsScreen: View {
     @ObservedObject private var store = Store.shared
@@ -102,7 +102,7 @@ struct GymsScreen: View {
     }
 }
 
-/// One gym: the colours on its walls, its name, and what you have done there.
+/// One gym: the colors on its walls, its name, and what you have done there.
 private struct GymCard: View {
     let gym: Gym
     @ObservedObject private var store = Store.shared
@@ -141,7 +141,7 @@ private struct GymCard: View {
         .contentShape(Rectangle())
     }
 
-    /// The wall, as far as Trace has seen it: a block of the route colours, or
+    /// The wall, as far as Trace has seen it: a block of the route colors, or
     /// the gym's initials when nothing has been scanned yet.
     @ViewBuilder
     private func face(_ routes: [Route]) -> some View {

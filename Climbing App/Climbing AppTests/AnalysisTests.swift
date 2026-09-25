@@ -82,10 +82,10 @@ struct MovementMetricsTests {
     }
 }
 
-// MARK: - Centre of mass
+// MARK: - Center of mass
 
 @Suite("Center of mass")
-struct CentreOfMassTests {
+struct CenterOfMassTests {
 
     @Test("A symmetric body has its center of mass on the midline")
     func symmetric() {

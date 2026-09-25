@@ -10,7 +10,7 @@ enum Fixture {
         Joint(x: x, y: y, confidence: c)
     }
 
-    /// A body whose torso is exactly 0.20 tall, so centre-of-mass offsets read
+    /// A body whose torso is exactly 0.20 tall, so center-of-mass offsets read
     /// directly in torso lengths.
     static func body(t: Double, comY: Double, feetX: Double,
                      wrist: CGPoint, hipX: Double? = nil) -> PoseFrame {

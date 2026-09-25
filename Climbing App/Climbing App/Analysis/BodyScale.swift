@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// Turning pixels into metres.
+/// Turning pixels into meters.
 ///
 /// A single camera cannot measure distance. What it can do, once you have said
 /// how tall you are, is work backwards: find the frame where you were most
@@ -26,17 +26,17 @@ enum BodyScale {
     /// enough that a single constant is honest here.
     static let noseToAnkleFraction = 0.89
 
-    /// Metres per unit of normalised image height, or nil when there is nothing
+    /// Meters per unit of normalized image height, or nil when there is nothing
     /// to work from.
-    static func metresPerUnit(frames: [PoseFrame], body: BodyProfile) -> Double? {
+    static func metersPerUnit(frames: [PoseFrame], body: BodyProfile) -> Double? {
         guard let heightCM = body.heightCM, heightCM > 0 else { return nil }
         guard let extent = extendedExtent(frames: frames), extent > 0.02 else { return nil }
-        let trackedMetres = (heightCM / 100) * noseToAnkleFraction
-        return trackedMetres / extent
+        let trackedMeters = (heightCM / 100) * noseToAnkleFraction
+        return trackedMeters / extent
     }
 
     /// How tall the tracked joints stood at the climber's most extended, in
-    /// normalised image units.
+    /// normalized image units.
     ///
     /// The 95th percentile rather than the maximum: one frame of bad tracking
     /// can stretch a joint far outside the body, and the maximum would take that
@@ -57,15 +57,15 @@ enum BodyScale {
 
     // MARK: What the scale is for
 
-    /// The radius of the climber's reach, in normalised image units.
+    /// The radius of the climber's reach, in normalized image units.
     ///
-    /// Half the span, because the envelope is drawn on the centre of mass and an
+    /// Half the span, because the envelope is drawn on the center of mass and an
     /// arm reaches out from roughly the middle of the body. Without a recorded
     /// span there is no honest answer, so the overlay keeps its proportional
     /// fallback instead of inventing one.
     static func reachRadius(frames: [PoseFrame], body: BodyProfile) -> Double? {
         guard let spanCM = body.spanCM, spanCM > 0,
-              let mpu = metresPerUnit(frames: frames, body: body), mpu > 0
+              let mpu = metersPerUnit(frames: frames, body: body), mpu > 0
         else { return nil }
         return (spanCM / 200) / mpu
     }
@@ -75,7 +75,7 @@ enum BodyScale {
     /// How much of the climb was spent going up, and how much of that you paid
     /// for twice.
     ///
-    /// `net` is the rise from the lowest point of the centre-of-mass path to the
+    /// `net` is the rise from the lowest point of the center-of-mass path to the
     /// highest: the lifting the route actually asked for. `gross` is the sum of
     /// every upward step, which includes every time you dropped back down and
     /// lifted the same weight again. Their ratio needs no scale at all, which is
@@ -83,7 +83,7 @@ enum BodyScale {
     ///
     /// Image coordinates grow downward, so a rise is a fall in y.
     struct Lift {
-        /// Normalised image units.
+        /// Normalized image units.
         var net: Double
         var gross: Double
         /// Gross over net. 1.0 is a climb with no lost height in it.
@@ -109,16 +109,16 @@ enum BodyScale {
     /// Gravity only, and only the going-up part: no tendon, no friction, no heat.
     /// It is a floor on the energy the climb cost, not the cost itself, and the
     /// screen says so rather than letting the number imply more than it holds.
-    static func work(joules lift: Lift, metresPerUnit: Double?, body: BodyProfile) -> (net: Double, gross: Double)? {
-        guard let metresPerUnit, metresPerUnit > 0,
+    static func work(joules lift: Lift, metersPerUnit: Double?, body: BodyProfile) -> (net: Double, gross: Double)? {
+        guard let metersPerUnit, metersPerUnit > 0,
               let mass = body.massKG, mass > 0 else { return nil }
-        let k = mass * g * metresPerUnit
+        let k = mass * g * metersPerUnit
         return (lift.net * k, lift.gross * k)
     }
 
-    /// A speed in normalised units per second, said in metres per second.
-    static func metresPerSecond(_ normalised: Double, metresPerUnit: Double?) -> Double? {
-        guard let metresPerUnit else { return nil }
-        return normalised * metresPerUnit
+    /// A speed in normalized units per second, said in meters per second.
+    static func metersPerSecond(_ normalized: Double, metersPerUnit: Double?) -> Double? {
+        guard let metersPerUnit else { return nil }
+        return normalized * metersPerUnit
     }
 }

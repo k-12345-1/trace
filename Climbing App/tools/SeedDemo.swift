@@ -63,12 +63,12 @@ func elbow(shoulder: (Double, Double), hand: (Double, Double),
                  y: my + py * bend * d * outward, confidence: 0.93)
 }
 
-/// Joint positions in normalised image space, origin top-left.
+/// Joint positions in normalized image space, origin top-left.
 func pose(t: Double, progress p: Double, style: Style) -> [JointID: Joint] {
     let s = params(style)
 
     // Stop-start climbers hold still between moves, which shows up as flat
-    // stretches in the centre-of-mass path and as pauses in the metrics.
+    // stretches in the center-of-mass path and as pauses in the metrics.
     let eased: Double
     if s.stutter {
         let steps = 7.0
@@ -162,7 +162,7 @@ func drawFrame(ctx: CGContext, joints: [JointID: Joint], holds: [Hold]) {
     }
     ctx.strokePath()
 
-    // Holds, in every colour a gym actually uses.
+    // Holds, in every color a gym actually uses.
     for hold in holds {
         let c = holdColours[hold.c]
         ctx.saveGState()

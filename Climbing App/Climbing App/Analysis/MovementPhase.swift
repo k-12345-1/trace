@@ -12,7 +12,7 @@ import CoreGraphics
 enum MovementPhase: String, Codable, CaseIterable {
     case resting        // still long enough that it is a rest, not a pause
     case still          // momentarily stopped
-    case reaching       // a hand travelling to a new hold
+    case reaching       // a hand traveling to a new hold
     case deadpoint      // at the top of the arc, weightless
     case footSet        // a foot being placed
     case moving         // continuous movement, nothing else notable
@@ -126,17 +126,17 @@ enum PhaseTimeline {
     // MARK: Live readout
     //
     // Speeds are reported in body lengths per second. A phone cannot know how far
-    // away the climber is, so metres would be invented; body lengths are real and
+    // away the climber is, so meters would be invented; body lengths are real and
     // survive the camera being moved.
 
     struct Readout {
         var phase: MovementPhase
         var speed: Double          // body lengths per second
-        /// The same speed before any normalising, in image units per second.
-        /// This is what BodyScale needs to say it in metres.
+        /// The same speed before any normalizing, in image units per second.
+        /// This is what BodyScale needs to say it in meters.
         var speedRaw: Double
         var elbow: Double?         // degrees, when both arms are visible
-        var box: CGRect            // the tracked climber, normalised
+        var box: CGRect            // the tracked climber, normalized
     }
 
     static func readout(frames: [PoseFrame], phases: [MovementPhase], at time: Double) -> Readout? {
@@ -150,7 +150,7 @@ enum PhaseTimeline {
         guard let box = boundingBox(frame) else { return nil }
 
         // Body length as the scale reference, so the number means the same thing
-        // whether the phone was two metres away or five.
+        // whether the phone was two meters away or five.
         let body = max(box.height, 0.05)
         var raw = 0.0
         if index > 0, let a = frame.com, let b = frames[index - 1].com {

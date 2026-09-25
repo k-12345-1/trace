@@ -11,8 +11,8 @@ struct Readout: View {
     var unit: String? = nil
     var delta: String? = nil
     var deltaIsWork: Bool = false
-    /// A note on how to read the number. Not a judgement, so it never takes the
-    /// colour that a delta does.
+    /// A note on how to read the number. Not a judgment, so it never takes the
+    /// color that a delta does.
     var hint: String? = nil
 
     var body: some View {

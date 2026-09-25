@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// A single tracked joint in normalised image space, origin top-left, y increasing downward.
+/// A single tracked joint in normalized image space, origin top-left, y increasing downward.
 struct Joint: Codable, Hashable {
     var x: Double
     var y: Double
@@ -28,7 +28,7 @@ enum JointID: String, Codable, CaseIterable {
 struct PoseFrame: Codable {
     var time: Double                       // seconds from clip start
     var joints: [JointID: Joint]
-    var com: CGPoint?                      // centre of mass, normalised
+    var com: CGPoint?                      // center of mass, normalized
     var meanConfidence: Double
 
     func pt(_ id: JointID) -> CGPoint? {

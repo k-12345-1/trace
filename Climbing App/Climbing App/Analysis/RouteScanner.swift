@@ -5,18 +5,18 @@ import ImageIO
 
 /// Finds a route in a photo of a wall.
 ///
-/// Gyms mark routes by hold colour, so that is what this reads. You tap one hold,
-/// and every hold close enough to it in colour is picked out. That is the same
+/// Gyms mark routes by hold color, so that is what this reads. You tap one hold,
+/// and every hold close enough to it in color is picked out. That is the same
 /// signal a climber uses standing at the bottom of the wall, and it needs no
 /// trained model, no dataset and no gym partnership: it works on the first photo
 /// in any gym on earth.
 ///
-/// What it is not: it does not recognise hold *shapes*, and it cannot tell a route
-/// apart from unrelated holds that happen to share its colour. The review step
+/// What it is not: it does not recognize hold *shapes*, and it cannot tell a route
+/// apart from unrelated holds that happen to share its color. The review step
 /// exists so the climber can throw those out.
 enum RouteScanner {
 
-    /// A detected hold, in normalised image coordinates with the origin top left.
+    /// A detected hold, in normalized image coordinates with the origin top left.
     struct Hold: Identifiable, Hashable {
         var id = UUID()
         var rect: CGRect
@@ -37,11 +37,11 @@ enum RouteScanner {
     /// Analysis resolution. Big enough to separate holds, small enough to be instant.
     static let workingWidth = 420
 
-    // MARK: Colour segmentation
+    // MARK: Color segmentation
 
     /// - Parameters:
-    ///   - sample: the tapped point, normalised, origin top left.
-    ///   - tolerance: CIE76 colour distance. Around 20 is tight, 45 is generous.
+    ///   - sample: the tapped point, normalized, origin top left.
+    ///   - tolerance: CIE76 color distance. Around 20 is tight, 45 is generous.
     static func detectHolds(in image: CGImage,
                             sample: CGPoint,
                             tolerance: Double = 30) -> (holds: [Hold], colorHex: String) {
@@ -52,7 +52,7 @@ enum RouteScanner {
         let target = bmp.averageLab(around: (sx, sy), radius: 2)
         let hex = bmp.hex(at: (min(max(sx, 0), bmp.width - 1), min(max(sy, 0), bmp.height - 1)))
 
-        // Binary mask of everything close enough in colour to what was tapped.
+        // Binary mask of everything close enough in color to what was tapped.
         var mask = [Bool](repeating: false, count: bmp.width * bmp.height)
         for i in 0..<(bmp.width * bmp.height) {
             mask[i] = bmp.lab(at: i).distance(to: target) < tolerance
@@ -172,7 +172,7 @@ enum RouteScanner {
 
 // MARK: - Pixels
 
-/// A downscaled RGBA copy of an image, with colour conversion cached in Lab.
+/// A downscaled RGBA copy of an image, with color conversion cached in Lab.
 struct Bitmap {
     let width: Int
     let height: Int
@@ -222,7 +222,7 @@ struct Bitmap {
     }
 }
 
-/// CIE L*a*b*. Colour distance in RGB does not match what the eye sees, and a
+/// CIE L*a*b*. Color distance in RGB does not match what the eye sees, and a
 /// route is picked out by eye, so the comparison happens here instead.
 struct Lab {
     var l: Double, a: Double, b: Double
@@ -250,7 +250,7 @@ struct Lab {
         self.b = 200 * (fy - fz)
     }
 
-    /// CIE76. Good enough to separate gym hold colours, and fast.
+    /// CIE76. Good enough to separate gym hold colors, and fast.
     func distance(to other: Lab) -> Double {
         let dl = l - other.l, da = a - other.a, db = b - other.b
         return (dl * dl + da * da + db * db).squareRoot()

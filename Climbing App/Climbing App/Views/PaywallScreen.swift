@@ -6,7 +6,7 @@ import StoreKit
 /// It appears when someone opens the scanner for the second time. The first scan
 /// is free and complete, not a teaser: you get the holds, the gym, the route
 /// saved, all of it. That is deliberate. Nobody can tell from a screenshot
-/// whether colour segmentation works on their gym's lighting, so the honest way
+/// whether color segmentation works on their gym's lighting, so the honest way
 /// to sell it is to let them find out on their own wall first.
 ///
 /// Everything already scanned stays scanned whether or not they pay here.

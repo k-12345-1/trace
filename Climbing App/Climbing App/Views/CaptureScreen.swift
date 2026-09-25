@@ -35,7 +35,7 @@ struct CaptureScreen: View {
     private var framingGuide: some View {
         GeometryReader { geo in
             ZStack {
-                // Rule of thirds, so the climber can be kept centred and whole.
+                // Rule of thirds, so the climber can be kept centered and whole.
                 Path { p in
                     p.move(to: CGPoint(x: geo.size.width / 3, y: 0))
                     p.addLine(to: CGPoint(x: geo.size.width / 3, y: geo.size.height))
@@ -55,7 +55,7 @@ struct CaptureScreen: View {
 
     private var topBar: some View {
         HStack {
-            // This screen is black, and every colour on it used to come from
+            // This screen is black, and every color on it used to come from
             // the light-ground palette: Cancel was navy ink on black, which is
             // to say invisible.
             Button {
@@ -118,13 +118,13 @@ struct CaptureScreen: View {
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(.white.opacity(0.7))
 
-            Text(camera.isAuthorised
+            Text(camera.isAuthorized
                  ? "No camera here"
                  : "Trace needs the camera")
                 .font(Theme.serif(22, .semibold))
                 .foregroundStyle(.white)
 
-            Text(camera.isAuthorised
+            Text(camera.isAuthorized
                  ? "This device has no camera Trace can use, which is always true of the Simulator. Import a clip you already filmed instead."
                  : "Recording needs permission to use the camera. You can allow it in Settings, or import a clip you already filmed.")
                 .font(Theme.ui(14.5))

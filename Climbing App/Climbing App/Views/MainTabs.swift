@@ -195,7 +195,7 @@ private struct TabBar: View {
     @Binding var tab: MainTabs.Tab
     let entryOpen: Bool
     let onPick: (MainTabs.Tab) -> Void
-    let onCentre: () -> Void
+    let onCenter: () -> Void
 
     private let height: CGFloat = 64
     private let target: CGFloat = 44
@@ -207,7 +207,7 @@ private struct TabBar: View {
 
             HStack(spacing: 0) {
                 item(.home)
-                centre
+                center
                 item(.profile)
             }
             .padding(.horizontal, 6)
@@ -222,7 +222,7 @@ private struct TabBar: View {
             ZStack(alignment: .bottom) {
                 which.icon(size: 23, color: active ? Theme.blueLight : .white.opacity(0.82))
                 // A short rule, not a pill. It marks the tab without turning
-                // the bar into a row of coloured blocks.
+                // the bar into a row of colored blocks.
                 Capsule()
                     .fill(Theme.blueLight)
                     .frame(width: active ? 14 : 0, height: 2)
@@ -241,8 +241,8 @@ private struct TabBar: View {
     /// It looks like a plus and behaves like the Lineage Health three dot
     /// control: it toggles rather than presenting, so the way out is the same
     /// button you came in by.
-    private var centre: some View {
-        Button(action: onCentre) {
+    private var center: some View {
+        Button(action: onCenter) {
             ZStack {
                 Circle().fill(Theme.blueLight)
                 Image(systemName: "plus")

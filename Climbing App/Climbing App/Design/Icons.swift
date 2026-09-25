@@ -4,7 +4,7 @@ import SwiftUI
 /// they came out of the same drawer.
 ///
 /// Both are stroked outlines in a 24 unit box at weight 1.6, with round caps and
-/// joins. There is no filled variant: an active tab changes colour, it does not
+/// joins. There is no filled variant: an active tab changes color, it does not
 /// change shape, which is what keeps the bar from flickering between two
 /// different drawings as you move across it.
 enum Ic {
@@ -16,8 +16,8 @@ enum Ic {
     /// The doorway is cut out of the outline rather than drawn as a second
     /// shape, which is why it is one continuous path.
     ///
-    /// Its jambs sit at x 9 and 15, so it is centred on the ridge at 12. The
-    /// first trace of this put the right jamb at 16, which centred the doorway
+    /// Its jambs sit at x 9 and 15, so it is centered on the ridge at 12. The
+    /// first trace of this put the right jamb at 16, which centered the doorway
     /// on 12.5 and left the whole icon looking very slightly askew without
     /// anything obviously wrong with it.
     struct Home: Shape {
@@ -60,7 +60,7 @@ enum Ic {
     }
 }
 
-/// A stroked icon at a given size and colour, drawn the way the reference draws
+/// A stroked icon at a given size and color, drawn the way the reference draws
 /// them rather than at whatever weight a system symbol happens to be.
 struct StrokeIcon<S: Shape>: View {
     let shape: S

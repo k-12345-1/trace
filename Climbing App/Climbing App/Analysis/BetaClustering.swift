@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// Groups attempts on the same climb by the *shape* of the centre-of-mass path.
+/// Groups attempts on the same climb by the *shape* of the center-of-mass path.
 ///
 /// This is how Trace respects the fact that everyone's beta is different. It never
 /// reads the wall and never suggests a sequence. It notices when two attempts traced
@@ -14,7 +14,7 @@ import CoreGraphics
 enum BetaClustering {
 
     /// Distance below which two paths count as the same sequence, in units of path
-    /// radius. This is the one number in Trace picked by judgement rather than
+    /// radius. This is the one number in Trace picked by judgment rather than
     /// derived, and it wants calibrating against real footage in Phase 0.
     static let sameSequenceThreshold = 0.35
 
@@ -43,7 +43,7 @@ enum BetaClustering {
 
         let step = total / Double(n - 1)
         var out: [CGPoint] = [path[0]]
-        var travelled = 0.0
+        var traveled = 0.0
         var target = step
         var i = 1
 
@@ -51,15 +51,15 @@ enum BetaClustering {
             let segment = MetricsEngine.distance(path[i], path[i - 1])
             if segment <= 0 { i += 1; continue }
 
-            if travelled + segment >= target {
-                let t = (target - travelled) / segment
+            if traveled + segment >= target {
+                let t = (target - traveled) / segment
                 out.append(CGPoint(
                     x: path[i - 1].x + (path[i].x - path[i - 1].x) * t,
                     y: path[i - 1].y + (path[i].y - path[i - 1].y) * t
                 ))
                 target += step
             } else {
-                travelled += segment
+                traveled += segment
                 i += 1
             }
         }
@@ -67,26 +67,26 @@ enum BetaClustering {
         return out
     }
 
-    /// Centre on the path's centroid and scale by its RMS radius, so a climber who
+    /// Center on the path's centroid and scale by its RMS radius, so a climber who
     /// stood further from the phone is not counted as having climbed differently.
-    static func normalise(_ path: [CGPoint]) -> [CGPoint] {
+    static func normalize(_ path: [CGPoint]) -> [CGPoint] {
         guard !path.isEmpty else { return path }
         let n = Double(path.count)
         let cx = path.reduce(0.0) { $0 + Double($1.x) } / n
         let cy = path.reduce(0.0) { $0 + Double($1.y) } / n
 
-        let centred = path.map { CGPoint(x: Double($0.x) - cx, y: Double($0.y) - cy) }
-        let rms = (centred.reduce(0.0) {
+        let centered = path.map { CGPoint(x: Double($0.x) - cx, y: Double($0.y) - cy) }
+        let rms = (centered.reduce(0.0) {
             $0 + Double($1.x * $1.x + $1.y * $1.y)
         } / n).squareRoot()
 
-        guard rms > 1e-6 else { return centred }
-        return centred.map { CGPoint(x: Double($0.x) / rms, y: Double($0.y) / rms) }
+        guard rms > 1e-6 else { return centered }
+        return centered.map { CGPoint(x: Double($0.x) / rms, y: Double($0.y) / rms) }
     }
 
-    /// Mean point-to-point distance between two shape-normalised paths.
+    /// Mean point-to-point distance between two shape-normalized paths.
     static func shapeDistance(_ a: [CGPoint], _ b: [CGPoint]) -> Double {
-        let pa = normalise(resample(a)), pb = normalise(resample(b))
+        let pa = normalize(resample(a)), pb = normalize(resample(b))
         guard pa.count == pb.count, !pa.isEmpty else { return .infinity }
         let sum = zip(pa, pb).reduce(0.0) { $0 + MetricsEngine.distance($1.0, $1.1) }
         return sum / Double(pa.count)

@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// The dash pattern is not decorative. Twenty even dashes divide the real
 /// circumference of a 16.5 radius circle (2π·16.5 ≈ 103.67) exactly, so the
-/// pattern closes with no mismatched seam, and a half-period offset centres a
+/// pattern closes with no mismatched seam, and a half-period offset centers a
 /// whole dash at twelve o'clock rather than cutting one in half there.
 struct BackRing: View {
     var color: Color = Theme.ink
@@ -43,7 +43,7 @@ struct BackRing: View {
     }
 
     /// The shaft and the chevron, placed the way the reference places them:
-    /// scaled to three quarters and centred just right of the ring's middle.
+    /// scaled to three quarters and centered just right of the ring's middle.
     private struct Arrow: Shape {
         func path(in rect: CGRect) -> Path {
             let k = min(rect.width, rect.height) / 36

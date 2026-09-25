@@ -3,7 +3,7 @@ import SwiftUI
 /// Signing in and signing up, built on the Lineage Health pattern.
 ///
 /// Two screens rather than one with a toggle. Sign in leads, sign up is one tap
-/// away, and both are laid out identically: the mark starts centred at full
+/// away, and both are laid out identically: the mark starts centered at full
 /// size, lifts to a fixed spot near the top after a beat, and the form fades in
 /// underneath it. Because both screens settle the mark in the same place, moving
 /// between them does not move the logo, which is the whole point of doing it
@@ -67,7 +67,7 @@ private struct AuthShell<Content: View>: View {
     }
 }
 
-/// The mark over the wordmark, centred. This is what animates.
+/// The mark over the wordmark, centered. This is what animates.
 private struct LogoLockup: View {
     var body: some View {
         VStack(spacing: 14) {
@@ -272,7 +272,7 @@ private struct LegalFooter: View {
     }
 }
 
-/// With no red in the palette, a problem cannot be signalled by colouring the
+/// With no red in the palette, a problem cannot be signalled by coloring the
 /// sentence. It gets an icon and a panel instead, which is a stronger signal
 /// anyway: it changes the shape of the screen rather than a few pixels of hue.
 private struct AuthMessage: View {

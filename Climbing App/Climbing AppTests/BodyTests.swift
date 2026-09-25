@@ -68,7 +68,7 @@ struct BodyProfileTests {
     }
 }
 
-// MARK: - Pixels into metres
+// MARK: - Pixels into meters
 
 @Suite("Body scale")
 struct BodyScaleTests {
@@ -93,16 +93,16 @@ struct BodyScaleTests {
 
     @Test("No height means no scale, and that is not an error")
     func noHeightNoScale() {
-        #expect(BodyScale.metresPerUnit(frames: frames(extent: 0.5),
+        #expect(BodyScale.metersPerUnit(frames: frames(extent: 0.5),
                                         body: .empty) == nil)
-        #expect(BodyScale.metresPerUnit(frames: [], body: BodyProfile(heightCM: 170)) == nil)
+        #expect(BodyScale.metersPerUnit(frames: [], body: BodyProfile(heightCM: 170)) == nil)
     }
 
     @Test("A climber filling half the frame gets the expected scale")
     func knownScale() {
         // Tracked extent 0.5 of frame height is 0.89 x 1.70 m of real body,
         // so one unit of frame height is 1.513 / 0.5 = 3.026 m.
-        let mpu = BodyScale.metresPerUnit(frames: frames(extent: 0.5),
+        let mpu = BodyScale.metersPerUnit(frames: frames(extent: 0.5),
                                           body: BodyProfile(heightCM: 170))
         #expect(mpu != nil)
         #expect(abs(mpu! - (1.70 * 0.89) / 0.5) < 0.0001)
@@ -110,9 +110,9 @@ struct BodyScaleTests {
 
     @Test("A taller climber at the same distance reads a larger scale")
     func tallerIsLarger() {
-        let short = BodyScale.metresPerUnit(frames: frames(extent: 0.5),
+        let short = BodyScale.metersPerUnit(frames: frames(extent: 0.5),
                                             body: BodyProfile(heightCM: 160))!
-        let tall = BodyScale.metresPerUnit(frames: frames(extent: 0.5),
+        let tall = BodyScale.metersPerUnit(frames: frames(extent: 0.5),
                                            body: BodyProfile(heightCM: 190))!
         #expect(tall > short)
     }
@@ -130,7 +130,7 @@ struct BodyScaleTests {
     @Test("Reach radius is half the span in image units")
     func reachRadius() {
         let body = BodyProfile(heightCM: 170, spanCM: 180)
-        let mpu = BodyScale.metresPerUnit(frames: frames(extent: 0.5), body: body)!
+        let mpu = BodyScale.metersPerUnit(frames: frames(extent: 0.5), body: body)!
         let radius = BodyScale.reachRadius(frames: frames(extent: 0.5), body: body)!
         // 0.90 m of arm, converted back through the scale.
         #expect(abs(radius - 0.90 / mpu) < 0.0001)
@@ -144,8 +144,8 @@ struct BodyScaleTests {
 
     @Test("Speed converts only when there is a scale")
     func speedConversion() {
-        #expect(BodyScale.metresPerSecond(0.2, metresPerUnit: nil) == nil)
-        let m = BodyScale.metresPerSecond(0.2, metresPerUnit: 3.0)
+        #expect(BodyScale.metersPerSecond(0.2, metersPerUnit: nil) == nil)
+        let m = BodyScale.metersPerSecond(0.2, metersPerUnit: 3.0)
         #expect(m != nil && abs(m! - 0.6) < 0.0001)
     }
 }
