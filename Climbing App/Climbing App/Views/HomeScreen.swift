@@ -42,10 +42,12 @@ struct HomeScreen: View {
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
-                MountainMark(color: .white, inset: 0.16)
-                    .frame(width: 30, height: 30)
-                    .background(Theme.blue)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                MountainMark(color: Theme.blue, inset: 0.14)
+                    .frame(width: 32, height: 32)
+                    .background(Theme.ground,
+                                in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(Theme.lineStrong, lineWidth: 1))
                 Text("Trace")
                     .font(Theme.serif(24, .semibold))
                     .foregroundStyle(Theme.blue)

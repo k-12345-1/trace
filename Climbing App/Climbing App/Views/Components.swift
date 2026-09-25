@@ -255,3 +255,32 @@ struct SectionHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+
+/// A wrapping row of small tappable chips. Used for timecodes that seek the
+/// clip, where a list would be six lines for six numbers.
+struct FlowOfChips: View {
+    let items: [(String, () -> Void)]
+
+    init(_ items: [(String, () -> Void)]) { self.items = items }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 7) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    Button(action: item.1) {
+                        Text(item.0)
+                            .font(Theme.ui(12.5, .medium)).monospacedDigit()
+                            .foregroundStyle(Theme.accentText)
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 7)
+                            .background(Theme.surface, in: Capsule())
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 1)
+        }
+    }
+}

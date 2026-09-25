@@ -131,6 +131,7 @@ struct ResultsScreen: View {
                     Hairline()
                     if climb.metrics.isTrustworthy {
                         ending
+                        wasted
                         headline
                         Hairline()
                         readouts
@@ -405,6 +406,40 @@ struct ResultsScreen: View {
     }
 
     // MARK: One thing at a time
+
+    /// The movement that went nowhere, with the moments it happened.
+    ///
+    /// Entropy already says how much of the climb was wasted. This says when,
+    /// which is the difference between a number and something you can work on.
+    @ViewBuilder
+    private var wasted: some View {
+        if let reading = WasteEngine.read(frames: climb.frames),
+           let summary = WasteEngine.summary(reading) {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionTitle("Movement that went nowhere")
+                Text(summary)
+                    .font(Theme.body(14))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Tappable, because the point of finding the moment is to look
+                // at it.
+                FlowOfChips(reading.excursions.prefix(6).map { e in
+                    (timecode(e.start), { playback.seek(to: max(0, e.start - 0.3)) })
+                })
+
+                Text(WasteEngine.caveat)
+                    .font(Theme.ui(12))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .card()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.bottom, 20)
+        }
+    }
 
     /// How the attempt ended, and if it ended on the mat, what was already
     /// going wrong when it did.

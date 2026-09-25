@@ -1,30 +1,37 @@
 import SwiftUI
 
-/// The Trace mark: a mountain drawn as a wireframe.
+/// Trace's mark: a ridge in outline with its shaded flank hachured.
 ///
-/// It is the same idea as the overlay. Trace looks at a climber and draws the
-/// structure underneath them rather than the surface, so the mark is a mountain
-/// with its structure showing rather than a filled silhouette.
+/// It is an engraving rather than a logo. The silhouette carries the name, and
+/// the strokes across the right flank are how a wood block or a printed map
+/// shades a slope: short marks running down the fall line, long near the summit
+/// and short near the foot, thinning as they go. That is where the character
+/// is, and it is the one ornament in an app that otherwise has none.
 ///
-/// The geometry is fixed, not sketched. Five points, a lattice at a stated angle
-/// and a stated spacing, one pen weight throughout. It is the same construction
-/// the app icon is rendered from, so the two cannot drift apart.
+/// Blue on white. The mark is the dark thing on a light page everywhere it
+/// appears, including the app icon, which is generated from the same geometry
+/// by `tools/MakeIcon.swift`. Keep the two in step.
 struct MountainMark: View {
     var color: Color = Theme.blue
     /// Fraction of the frame left empty around the mark.
     var inset: Double = 0.06
 
-    /// The outline, in a 100 by 100 design space. Left shoulder lower and
-    /// broader, main peak right and higher.
-    static let outline: [CGPoint] = [
-        CGPoint(x: 9, y: 78), CGPoint(x: 33, y: 41), CGPoint(x: 45, y: 53),
-        CGPoint(x: 62, y: 20), CGPoint(x: 91, y: 78)
+    /// The ridge, in a 100 by 100 design space with y downward. A low left
+    /// shoulder, a notch, a second summit, and one long flank falling right.
+    static let ridge: [CGPoint] = [
+        CGPoint(x: 5,  y: 84),
+        CGPoint(x: 22, y: 57),
+        CGPoint(x: 31, y: 65),
+        CGPoint(x: 46, y: 31),
+        CGPoint(x: 54, y: 43),
+        CGPoint(x: 63, y: 14),
+        CGPoint(x: 95, y: 84)
     ]
 
-    static let latticeAngles: [Double] = [58, -58]
-    static let latticeSpacing: Double = 17
-    static let outlineWeight: Double = 4.0
-    static let latticeWeight: Double = 3.2
+    /// The summit the shaded flank falls from.
+    static let summit = 5
+
+    static let outlineWeight: Double = 4.4
 
     var body: some View {
         Canvas { ctx, size in
@@ -36,58 +43,74 @@ struct MountainMark: View {
                 CGPoint(x: ox + q.x * scale, y: oy + q.y * scale)
             }
 
-            var shape = Path()
-            shape.addLines(Self.outline.map(p))
-            shape.closeSubpath()
+            var body = Path()
+            body.addLines(Self.ridge.map(p))
+            body.closeSubpath()
 
-            // The lattice only exists inside the mountain.
             ctx.drawLayer { inner in
-                inner.clip(to: shape)
-                var mesh = Path()
-                for angle in Self.latticeAngles {
-                    addLattice(&mesh, angle: angle, scale: scale, ox: ox, oy: oy)
+                inner.clip(to: body)
+                var hachures = Path()
+                for line in Self.hachures(count: Self.count(for: side)) {
+                    hachures.move(to: p(line.from))
+                    hachures.addLine(to: p(line.to))
+                    // Stroked individually so each can carry its own weight.
+                    inner.stroke(hachures, with: .color(color),
+                                 style: StrokeStyle(lineWidth: line.weight * scale,
+                                                    lineCap: .round))
+                    hachures = Path()
                 }
-                inner.stroke(mesh, with: .color(color),
-                             style: StrokeStyle(lineWidth: Self.latticeWeight * scale,
-                                                lineCap: .butt))
             }
 
-            ctx.stroke(shape, with: .color(color),
+            ctx.stroke(body, with: .color(color),
                        style: StrokeStyle(lineWidth: Self.outlineWeight * scale,
                                           lineCap: .round, lineJoin: .round))
         }
         .accessibilityHidden(true)
     }
 
-    /// Parallel lines at one angle, far enough past the edges to cross the whole
-    /// mountain whatever the angle.
-    private func addLattice(_ path: inout Path, angle: Double,
-                            scale: Double, ox: Double, oy: Double) {
-        let a = angle * .pi / 180
-        let dx = cos(a), dy = sin(a)
-        let nx = -dy, ny = dx
-        let reach = 160.0
-        let steps = Int(200 / Self.latticeSpacing)
-        for i in -steps...steps {
-            let offset = Double(i) * Self.latticeSpacing
-            let cx = 50 + nx * offset, cy = 50 + ny * offset
-            let from = CGPoint(x: ox + (cx - dx * reach) * scale,
-                               y: oy + (cy - dy * reach) * scale)
-            let to = CGPoint(x: ox + (cx + dx * reach) * scale,
-                             y: oy + (cy + dy * reach) * scale)
-            path.move(to: from)
-            path.addLine(to: to)
+    struct Hachure {
+        let from: CGPoint
+        let to: CGPoint
+        let weight: Double
+    }
+
+    /// How many strokes to draw at a given rendered size.
+    ///
+    /// Twenty six of them is right on an icon and a grey smear at thirty
+    /// points, so the count follows the size. The mark stays recognizable
+    /// either way, which is the whole job of a mark.
+    static func count(for side: Double) -> Int {
+        switch side {
+        case ..<26:   return 6
+        case ..<44:   return 9
+        case ..<90:   return 14
+        case ..<200:  return 20
+        default:      return 26
         }
     }
-}
 
-#Preview {
-    VStack(spacing: 20) {
-        MountainMark(color: .white)
-            .frame(width: 180, height: 180)
-            .background(Theme.blue)
-        MountainMark()
-            .frame(width: 56, height: 56)
+    /// The strokes across the shaded flank, in design space.
+    static func hachures(count: Int) -> [Hachure] {
+        guard count > 1 else { return [] }
+        let a = ridge[summit], b = ridge[6]
+        let dx = b.x - a.x, dy = b.y - a.y
+        let length = (dx * dx + dy * dy).squareRoot()
+        guard length > 0 else { return [] }
+        let ux = dx / length, uy = dy / length
+        // Across the flank, pointing into the body of the mountain.
+        let nx = -uy, ny = ux
+
+        return (1..<count).map { i in
+            let t = Double(i) / Double(count)
+            let root = CGPoint(x: a.x + dx * t, y: a.y + dy * t)
+            // Long at the top, short at the foot, with a swell through the
+            // middle so the inner edge of the shading is not a straight line.
+            let swell = sin(t * .pi)
+            let reach = (20.0 * (1 - t) + 4.0) * (0.75 + 0.35 * swell)
+            return Hachure(
+                from: root,
+                to: CGPoint(x: root.x + nx * reach, y: root.y + ny * reach),
+                weight: 1.9 - 0.9 * t)
+        }
     }
-    .padding()
 }

@@ -71,10 +71,12 @@ private struct AuthShell<Content: View>: View {
 private struct LogoLockup: View {
     var body: some View {
         VStack(spacing: 14) {
-            MountainMark(color: .white, inset: 0.16)
-                .frame(width: 84, height: 84)
-                .background(Theme.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
+            MountainMark(color: Theme.blue, inset: 0.12)
+                .frame(width: 92, height: 92)
+                .background(Theme.ground,
+                            in: RoundedRectangle(cornerRadius: 23, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 23, style: .continuous)
+                    .stroke(Theme.lineStrong, lineWidth: 1))
             Text("Trace")
                 .font(Theme.serif(34, .semibold))
                 .foregroundStyle(Theme.blue)
@@ -488,10 +490,12 @@ struct StaySignedInScreen: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 16) {
-                    MountainMark(color: .white, inset: 0.16)
-                        .frame(width: 72, height: 72)
-                        .background(Theme.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+                    MountainMark(color: Theme.blue, inset: 0.12)
+                        .frame(width: 76, height: 76)
+                        .background(Theme.ground,
+                                    in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 19, style: .continuous)
+                            .stroke(Theme.lineStrong, lineWidth: 1))
 
                     Text("Stay signed in?")
                         .font(Theme.serif(30, .semibold))
