@@ -113,19 +113,73 @@ struct PaywallScreen: View {
         .card()
     }
 
+    // MARK: Choosing how to pay
+    //
+    // Two rows rather than a segmented control, because the thing being chosen
+    // is a price and a price needs room to be read. Same features either way,
+    // which is why neither row lists any.
+
     private var price: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(billing.priceText)
-                .font(Theme.serif(34, .semibold))
-                .foregroundStyle(Theme.ink)
-            Text("per \(billing.periodText)")
-                .font(Theme.ui(15))
-                .foregroundStyle(Theme.ink3)
-            Spacer()
+        VStack(spacing: 8) {
+            ForEach(Subscription.Plan.allCases) { plan in
+                planRow(plan)
+            }
         }
         .padding(.horizontal, Theme.gutter)
-        .padding(.top, 28)
-        .padding(.bottom, 4)
+        .padding(.top, 26)
+    }
+
+    private func planRow(_ plan: Subscription.Plan) -> some View {
+        let chosen = billing.plan == plan
+        return Button {
+            billing.plan = plan
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .stroke(chosen ? Theme.accent : Theme.lineStrong, lineWidth: chosen ? 6 : 1.5)
+                        .frame(width: 21, height: 21)
+                }
+                .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(plan.title)
+                        .font(Theme.ui(16, .semibold))
+                        .foregroundStyle(Theme.ink)
+                    if plan == .yearly, let each = billing.yearlyPerMonth {
+                        Text("\(each) a month, billed once a year")
+                            .font(Theme.ui(12.5))
+                            .foregroundStyle(Theme.ink3)
+                    } else {
+                        Text("Billed every month")
+                            .font(Theme.ui(12.5))
+                            .foregroundStyle(Theme.ink3)
+                    }
+                }
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(billing.price(plan))
+                        .font(Theme.serif(20, .semibold))
+                        .foregroundStyle(Theme.ink)
+                    if plan == .yearly, let saving = billing.yearlySaving {
+                        Text("Save \(saving)%")
+                            .font(Theme.ui(11, .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(Theme.accent, in: Capsule())
+                    }
+                }
+            }
+            .padding(15)
+            .frame(maxWidth: .infinity)
+            .background(chosen ? Theme.accentWash : Theme.surface,
+                        in: RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous)
+                .stroke(chosen ? Theme.accent : .clear, lineWidth: 1.5))
+            .contentShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private var buttons: some View {

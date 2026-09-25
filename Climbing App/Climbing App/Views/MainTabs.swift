@@ -120,9 +120,9 @@ struct MainTabs: View {
                     onClose: close,
                     pickerItem: $pickerItem
                 )
-                .padding(.horizontal, 14)
-                .padding(.top, 74)
-                .padding(.bottom, 112)
+                .padding(.horizontal, 12)
+                .padding(.top, 26)
+                .padding(.bottom, 108)
                 .transition(.opacity)
             }
 
@@ -274,7 +274,7 @@ private struct AddPanel: View {
             ScrollView {
                 VStack(spacing: 10) {
                     row(icon: "record.circle", title: "Record a climb",
-                        detail: "Phone on the floor, square to the wall, whole boulder in frame. Side on is best.",
+                        detail: "Phone on the floor, square to the wall, whole boulder in frame.",
                         action: onRecord)
 
                     PhotosPicker(selection: $pickerItem, matching: .videos,

@@ -1,43 +1,67 @@
 {
-  "identifier" : "A1B2C3D4",
-  "nonRenewingSubscriptions" : [],
-  "products" : [],
-  "settings" : {
-    "_applicationInternalID" : "6470000000",
-    "_developerTeamID" : "TRACECLIMB",
-    "_lastSynchronizedDate" : 780000000,
-    "_storefront" : "USA",
-    "_storeKitErrors" : []
+  "identifier": "A1B2C3D4",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "6470000000",
+    "_developerTeamID": "TRACECLIMB",
+    "_lastSynchronizedDate": 780000000,
+    "_storefront": "USA",
+    "_storeKitErrors": []
   },
-  "subscriptionGroups" : [
+  "subscriptionGroups": [
     {
-      "id" : "21500001",
-      "localizations" : [],
-      "name" : "Trace Pro",
-      "subscriptions" : [
+      "id": "21500001",
+      "localizations": [],
+      "name": "Trace Pro",
+      "subscriptions": [
         {
-          "adHocOffers" : [],
-          "codeOffers" : [],
-          "displayPrice" : "9.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "6470000001",
-          "introductoryOffer" : null,
-          "localizations" : [
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "40.00",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6470000002",
+          "introductoryOffer": null,
+          "localizations": [
             {
-              "description" : "Unlimited route scans and recommendations, measured entirely on your phone.",
-              "displayName" : "Trace Pro",
-              "locale" : "en_US"
+              "description": "Unlimited route scans and recommendations, measured entirely on your phone. Twelve months.",
+              "displayName": "Trace Pro, yearly",
+              "locale": "en_US"
             }
           ],
-          "productID" : "co.traceclimb.pro.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Trace Pro Monthly",
-          "subscriptionGroupID" : "21500001",
-          "type" : "RecurringSubscription"
+          "productID": "co.traceclimb.pro.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Trace Pro Yearly",
+          "subscriptionGroupID": "21500001",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "4.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "6470000001",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Unlimited route scans and recommendations, measured entirely on your phone.",
+              "displayName": "Trace Pro, monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "co.traceclimb.pro.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Trace Pro Monthly",
+          "subscriptionGroupID": "21500001",
+          "type": "RecurringSubscription"
         }
       ]
     }
   ],
-  "version" : { "major" : 4, "minor" : 0 }
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
 }

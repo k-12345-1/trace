@@ -1,7 +1,8 @@
 import Foundation
 import StoreKit
 
-/// Trace Pro: one monthly subscription, bought through the App Store.
+/// Trace Pro: one subscription, billed monthly or yearly, bought through the
+/// App Store.
 ///
 /// Apple takes the payment. Apple Pay, the card on the Apple ID, or whatever
 /// else the person has set up is the App Store's business, not Trace's, which is
@@ -20,14 +21,28 @@ final class Subscription: ObservableObject {
 
     static let shared = Subscription()
 
-    /// The single product. One plan, one price, no tiers to compare.
-    static let monthlyID = "co.traceclimb.pro.monthly"
+    /// Two products, one subscription. Same features either way: the choice is
+    /// how often it bills, not what you get, because a cheaper tier that takes
+    /// something away would make the paywall a menu rather than a decision.
+    enum Plan: String, CaseIterable, Identifiable {
+        case yearly  = "co.traceclimb.pro.yearly"
+        case monthly = "co.traceclimb.pro.monthly"
+
+        var id: String { rawValue }
+        var title: String { self == .yearly ? "Yearly" : "Monthly" }
+    }
+
+    static var productIDs: [String] { Plan.allCases.map(\.rawValue) }
 
     /// What the store says right now.
     @Published private(set) var isPro = false
-    /// The product, once the App Store has handed it over. Nil while loading, and
-    /// nil forever if the device is offline, which the paywall has to survive.
-    @Published private(set) var product: Product?
+    /// The products, once the App Store has handed them over. Empty while
+    /// loading, and empty forever if the device is offline, which the paywall
+    /// has to survive.
+    @Published private(set) var products: [Plan: Product] = [:]
+    /// Which one the paywall has selected. Yearly leads because it is the
+    /// cheaper way to pay for the same thing.
+    @Published var plan: Plan = .yearly
     @Published private(set) var isPurchasing = false
     /// Set when a purchase fails for a reason worth showing. Cancellation is not
     /// one: someone who taps Cancel does not need to be told they cancelled.
@@ -55,12 +70,15 @@ final class Subscription: ObservableObject {
 
     func load() async {
         do {
-            product = try await Product.products(for: [Self.monthlyID]).first
+            let fetched = try await Product.products(for: Self.productIDs)
+            products = Dictionary(uniqueKeysWithValues: fetched.compactMap { p in
+                Plan(rawValue: p.id).map { ($0, p) }
+            })
         } catch {
-            // Offline. The paywall falls back to naming the price in text, which
-            // is better than an empty screen, and Buy will still work once the
-            // App Store answers.
-            product = nil
+            // Offline. The paywall falls back to naming the prices in text,
+            // which is better than an empty screen, and Buy will still work
+            // once the App Store answers.
+            products = [:]
         }
     }
 
@@ -68,7 +86,7 @@ final class Subscription: ObservableObject {
     func refresh() async {
         for await result in Transaction.currentEntitlements {
             guard case .verified(let t) = result,
-                  t.productID == Self.monthlyID,
+                  Plan(rawValue: t.productID) != nil,
                   t.revocationDate == nil else { continue }
             // An expired subscription still appears here, so the date is checked
             // rather than assumed.
@@ -85,7 +103,7 @@ final class Subscription: ObservableObject {
     /// into whatever the person was trying to do.
     @discardableResult
     func buy() async -> Bool {
-        guard let product else {
+        guard let product = products[plan] else {
             problem = "The App Store is not reachable. Check your connection and try again."
             return false
         }
@@ -132,20 +150,32 @@ final class Subscription: ObservableObject {
     // MARK: Display
 
     /// The price as the App Store formats it, in the person's own currency.
-    /// The hard-coded fallback is only ever seen offline, and it is marked as
-    /// the US price rather than pretending to be local.
-    var priceText: String {
-        product?.displayPrice ?? "$9.99"
+    /// The hard-coded fallbacks are only ever seen offline.
+    func price(_ plan: Plan) -> String {
+        products[plan]?.displayPrice ?? (plan == .yearly ? "$40.00" : "$4.99")
     }
 
-    var periodText: String {
-        guard let unit = product?.subscription?.subscriptionPeriod.unit else { return "month" }
-        switch unit {
-        case .day:   return "day"
-        case .week:  return "week"
-        case .month: return "month"
-        case .year:  return "year"
-        @unknown default: return "month"
+    func period(_ plan: Plan) -> String {
+        plan == .yearly ? "year" : "month"
+    }
+
+    var priceText: String { price(plan) }
+    var periodText: String { period(plan) }
+
+    /// What a year costs when paid monthly, so the yearly saving is a number
+    /// rather than a claim. Nil when the two prices are not comparable.
+    var yearlySaving: Int? {
+        guard let m = products[.monthly]?.price, let y = products[.yearly]?.price else {
+            return 33   // 4.99 × 12 = 59.88 against 40.00, offline fallback
         }
+        let full = m * 12
+        guard full > y, full > 0 else { return nil }
+        return Int((((full - y) / full) * 100 as Decimal as NSDecimalNumber).doubleValue.rounded())
+    }
+
+    /// The yearly price said per month, which is how people compare the two.
+    var yearlyPerMonth: String? {
+        guard let y = products[.yearly] else { return "$3.33" }
+        return y.priceFormatStyle.format(y.price / 12)
     }
 }

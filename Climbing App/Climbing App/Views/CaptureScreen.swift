@@ -54,18 +54,26 @@ struct CaptureScreen: View {
 
     private var topBar: some View {
         HStack {
+            // This screen is black, and every colour on it used to come from
+            // the light-ground palette: Cancel was navy ink on black, which is
+            // to say invisible.
             Button {
                 camera.teardown()
                 onFinish(nil)
                 dismiss()
             } label: {
-                Text("CANCEL")
-                    .font(Theme.mono(11, weight: .medium))
-                    .tracking(1.3)
-                    .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.black.opacity(0.55))
+                HStack(spacing: 7) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Cancel")
+                        .font(Theme.ui(15, .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.black.opacity(0.55), in: Capsule())
+                .overlay(Capsule().stroke(.white.opacity(0.28), lineWidth: 1))
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
 
@@ -83,14 +91,6 @@ struct CaptureScreen: View {
 
     private var controls: some View {
         VStack(spacing: 16) {
-            if !camera.isRecording {
-                Text("Side on if you can. Trace measures how far your hips sit from your feet, and that only works when it can see your profile.")
-                    .font(Theme.body(12.5))
-                    .foregroundStyle(Theme.ink2)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 34)
-            }
-
             RecordButton(isRecording: camera.isRecording) {
                 if camera.isRecording {
                     camera.stop()
@@ -115,20 +115,40 @@ struct CaptureScreen: View {
     // MARK: No camera
 
     private var unavailable: some View {
-        VStack(spacing: 14) {
-            MicroLabel(text: "No camera")
+        VStack(spacing: 16) {
+            Image(systemName: "video.slash")
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(.white.opacity(0.7))
+
             Text(camera.isAuthorised
-                 ? "This device has no camera Trace can use. Import a clip from your library instead."
-                 : "Trace needs the camera to watch you climb. You can still import a clip you already filmed.")
-                .font(Theme.body(15))
-                .foregroundStyle(Theme.ink2)
+                 ? "No camera here"
+                 : "Trace needs the camera")
+                .font(Theme.serif(22, .semibold))
+                .foregroundStyle(.white)
+
+            Text(camera.isAuthorised
+                 ? "This device has no camera Trace can use, which is always true of the Simulator. Import a clip you already filmed instead."
+                 : "Recording needs permission to use the camera. You can allow it in Settings, or import a clip you already filmed.")
+                .font(Theme.ui(14.5))
+                .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
-            FlatButton(title: "Back") {
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
                 onFinish(nil)
                 dismiss()
+            } label: {
+                Text("Back")
+                    .font(Theme.ui(16, .semibold))
+                    .foregroundStyle(Theme.blue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(.white, in: Capsule())
+                    .contentShape(Capsule())
             }
-            .frame(width: 200)
+            .buttonStyle(.plain)
+            .padding(.top, 6)
         }
-        .padding(30)
+        .padding(.horizontal, 34)
     }
 }
