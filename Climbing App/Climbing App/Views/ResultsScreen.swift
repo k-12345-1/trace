@@ -120,9 +120,14 @@ struct ResultsScreen: View {
                     // the very top of the screen, under the status bar, with the
                     // back control floating on it.
                     stage
-                    header
-                    telemetry
+                    // The scrubber belongs to the video, so it sits against it.
+                    // It was two sections down, under the name and the live
+                    // readout, which put the control for the clip below a
+                    // paragraph about the clip. The telemetry follows, because
+                    // what it shows is whatever the scrubber is pointing at.
                     scrubber
+                    telemetry
+                    header
                     Hairline()
                     if climb.metrics.isTrustworthy {
                         ending
@@ -376,8 +381,8 @@ struct ResultsScreen: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 18)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
     }
 
     /// "1x", "0.5x", "0.25x", with the duration no longer shown beside it.

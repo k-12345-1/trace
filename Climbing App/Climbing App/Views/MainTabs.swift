@@ -136,20 +136,33 @@ struct MainTabs: View {
                     pickerItem: $pickerItem
                 )
                 .padding(.horizontal, 12)
+                .padding(.top, 8)
                 .padding(.bottom, 92)
                 .transition(.opacity)
             }
 
-            TabBar(tab: $tab, entryOpen: entryOpen, onPick: pick) {
-                withAnimation(.easeOut(duration: 0.18)) { entryOpen.toggle() }
+            // The bar hangs off a full height layer of its own.
+            //
+            // The keyboard is a safe area inset like any other, so it shrinks
+            // whatever it is inside and anything anchored to the bottom of that
+            // rides up on top of the keys. Putting the modifier on the bar does
+            // not help: the bar is not what got shorter, its parent is. So the
+            // parent here is a clear layer that keeps its height, and the bar
+            // is anchored to the bottom of that instead.
+            //
+            // The pages still get the inset, so a field being typed into is
+            // still scrolled clear of the keyboard.
+            VStack(spacing: 0) {
+                // A spacer rather than a clear color. A Color fills the screen
+                // and takes every tap that lands on it, which would make the
+                // whole page under the bar dead; a Spacer occupies the same
+                // room and hit-tests nothing.
+                Spacer(minLength: 0)
+                TabBar(tab: $tab, entryOpen: entryOpen, onPick: pick) {
+                    withAnimation(.easeOut(duration: 0.18)) { entryOpen.toggle() }
+                }
+                .padding(.horizontal, 10)
             }
-            .padding(.horizontal, 10)
-            // The keyboard is a safe area inset like any other, so by default
-            // the bar rides up on top of it: two rows of controls stacked over
-            // the keys, which is neither useful nor what anyone expects. The
-            // bar stays at the bottom of the screen and the keyboard covers it.
-            // Only the bar opts out. The page underneath still gets the inset,
-            // so a field being typed into is still lifted clear of the keys.
             .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .fullScreenCover(isPresented: $showCapture) {
@@ -351,13 +364,14 @@ private struct AddPanel: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 18)
         }
-        // As tall as what is in it, not as tall as the screen.
+        // Full height, with rows that keep their own size inside it.
         //
-        // Stretched to fill, three rows of two lines each became cards over four
-        // hundred points high with the text floating in the middle of them. The
-        // rows carry a generous minimum instead, so the panel is substantial
-        // because its contents are, and there is no dead space anywhere in it.
-        .frame(maxWidth: .infinity)
+        // The panel being tall was never the problem. Stretching the rows to
+        // fill it was: three rows of two lines each became cards over four
+        // hundred points high with their text floating in the middle. The rows
+        // sit at the top at a sensible size and the space below them is space,
+        // which is what the panel looked like before any of this.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Theme.blue)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 16, y: 8)

@@ -293,8 +293,10 @@ struct ScanScreen: View {
             .font(Theme.body(15))
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 13).padding(.vertical, 12)
-            .background(Theme.surface)
-            .overlay(RoundedRectangle(cornerRadius: Theme.r).stroke(Theme.lineStrong, lineWidth: 1))
+            // Clipped to the border's shape. Unclipped, the fill is a square
+            // behind a rounded outline and its corners show as a halo.
+            .background(Theme.surface,
+                        in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
     }
 
     // MARK: Work
