@@ -151,7 +151,7 @@ extension LegalScreen {
                 Section(heading: "What does leave the device", body: [
                     "Your account. Signing in sends your email address and password to our authentication provider so we can tell whether the person opening the app is you. We store your email address, when the account was made, and nothing else about you. We do not store your password: the provider holds a hash of it.",
                     "Your subscription. Purchases are handled by Apple. Apple tells the app whether a subscription is active. We never see your card, your billing address, or your Apple ID. We do not receive a payment record with your name on it.",
-                    "Gym logos. Trace ships none: a gym's logo is theirs, and the only place it exists is on their own website. So the first time you see a particular gym in Explore, Trace asks that gym's website for the icon it publishes, and saves it on this phone. Nothing about you goes with that request: no name, no account, no location, no identifier, and no cookie survives it. The gym's web host can see that someone asked. Each gym is asked once, ever, and you can turn the whole thing off in Profile, which leaves initials in place of logos.",
+                    "Gym logos. Trace ships none: a gym's logo is theirs, and the only place it exists is on their own website. So the first time you see a particular gym in Explore, Trace asks that gym's website for the icon it publishes, and saves it on this phone. Nothing about you goes with that request: no name, no account, no location, no identifier, and no cookie survives it. The gym's web host can see that someone asked, and nothing more than that. Each gym is asked once, ever, and a gym whose site has no usable icon is never asked again.",
                     "That is the complete list. There is no analytics, no crash reporting, no advertising identifier, no tracking pixel, and no third party SDK that phones home."
                 ]),
                 Section(heading: "Filming other people", body: [
@@ -172,7 +172,7 @@ extension LegalScreen {
                 ]),
                 Section(heading: "Changes", body: [
                     "This document ships inside the app, so it can only change when you install an update. The version number at the top changes with it, and a material change will be flagged in the app rather than made quietly.",
-                    "Version 1.1 added gym logos, described above. It is the only thing that has ever been added to the list of what leaves this phone, and it is the only one with a switch, because it is the only one that is not required to run the app."
+                    "Version 1.1 added gym logos, described above. It is the only thing that has ever been added to the list of what leaves this phone."
                 ])
             ],
             insideApp: insideApp)

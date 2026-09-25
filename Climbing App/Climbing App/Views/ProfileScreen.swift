@@ -135,14 +135,6 @@ struct ProfileScreen: View {
 
             Hairline()
 
-            // The one switch in the app, because it is the one thing Trace
-            // does over the network that is not your account or your
-            // subscription. It says what it costs rather than being a word
-            // with a toggle beside it.
-            logoSwitch
-
-            Hairline()
-
             NavigationLink { LegalScreen.privacy() } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
                         .font(.system(size: 17, weight: .light))
@@ -186,35 +178,6 @@ struct ProfileScreen: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-
-    private var logoSwitch: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "building.2")
-                .font(.system(size: 17, weight: .light))
-                .foregroundStyle(Theme.blue)
-                .frame(width: 44, height: 44)
-                .background(Theme.surface2)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Gym logos")
-                    .font(Theme.serif(17.5, .semibold))
-                    .foregroundStyle(Theme.ink)
-                Text("Fetched once from each gym's own site and kept here. Nothing about you goes with the request; off means initials.")
-                    .font(Theme.ui(12.5))
-                    .foregroundStyle(Theme.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 8)
-
-            Toggle("", isOn: Binding(get: { store.fetchesGymLogos },
-                                     set: { store.setFetchesGymLogos($0) }))
-                .labelsHidden()
-                .tint(Theme.button)
-        }
-        .padding(.vertical, 12)
     }
 
     /// A square well, a serif label, a line of detail, a chevron. The square is

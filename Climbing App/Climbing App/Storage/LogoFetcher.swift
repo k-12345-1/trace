@@ -12,11 +12,11 @@ import UIKit
 /// that leaves the phone for a reason that is not the person's account or their
 /// subscription.
 ///
-/// So it is a setting, on by default, that says exactly that and can be turned
-/// off, and the privacy policy lists it rather than claiming nothing goes out.
-/// Nothing about the person goes with the request: no id, no account, no
-/// location, and the session is ephemeral so no cookie survives it. What comes
-/// back is saved on the phone and never asked for twice.
+/// So the privacy policy lists it rather than claiming nothing goes out, and
+/// the request is kept to the minimum that can still answer the question.
+/// Nothing about the person goes with it: no id, no account, no location, and
+/// the session is ephemeral so no cookie survives it. What comes back is saved
+/// on the phone and never asked for twice.
 ///
 /// What it gets is the site's own icon, which for most gyms is their logo and
 /// for a few is whatever their web host set. It is not guaranteed to be good.

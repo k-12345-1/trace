@@ -29,15 +29,6 @@ final class Store: ObservableObject {
     /// done, not the number of results still kept.
     @Published private(set) var scansUsed = 0
 
-    /// Whether Trace may ask a gym's own website for its logo.
-    ///
-    /// The one thing the app does over the network that is not the person's
-    /// account or their subscription, so it gets a switch and a line in the
-    /// privacy policy rather than being done quietly. On, because a directory
-    /// of six hundred gyms drawn as six hundred pairs of initials is a worse
-    /// app, and off is one tap away in Profile.
-    @Published private(set) var fetchesGymLogos = true
-
     static let shared = Store()
 
     nonisolated static var documents: URL {
@@ -55,7 +46,6 @@ final class Store: ObservableObject {
     nonisolated private static var accountURL: URL { documents.appendingPathComponent("account.json") }
     nonisolated private static var bodyURL: URL { documents.appendingPathComponent("body.json") }
     nonisolated private static var scansURL: URL { documents.appendingPathComponent("scans.json") }
-    nonisolated private static var settingsURL: URL { documents.appendingPathComponent("settings.json") }
 
     nonisolated static var routePhotosDirectory: URL {
         let url = documents.appendingPathComponent("Routes", isDirectory: true)
@@ -99,28 +89,12 @@ final class Store: ObservableObject {
         if let data = try? Data(contentsOf: Self.bodyURL) {
             body = (try? decoder.decode(BodyProfile.self, from: data)) ?? .empty
         }
-        if let data = try? Data(contentsOf: Self.settingsURL),
-           let saved = try? decoder.decode(Settings.self, from: data) {
-            fetchesGymLogos = saved.fetchesGymLogos
-        }
         // The tokens live in the keychain, never beside the climbs.
         session = Keychain.load()
 
         // Re-judge the focus at launch. Without this a focus that was already met
         // keeps showing as open until the next climb happens to be saved.
         refreshFocus()
-    }
-
-    /// The handful of choices that are preferences rather than data. A struct
-    /// with named fields, so adding the next one does not mean a second file.
-    private struct Settings: Codable {
-        var fetchesGymLogos = true
-    }
-
-    func setFetchesGymLogos(_ on: Bool) {
-        fetchesGymLogos = on
-        let data = try? JSONEncoder().encode(Settings(fetchesGymLogos: on))
-        if let data { try? data.write(to: Self.settingsURL, options: .atomic) }
     }
 
     func save(_ climb: Climb) {
@@ -411,7 +385,7 @@ final class Store: ObservableObject {
             Thumbnails.remove(for: climb)
         }
         for url in [Self.indexURL, Self.focusURL, Self.gymsURL, Self.routesURL,
-                    Self.accountURL, Self.bodyURL, Self.scansURL, Self.settingsURL] {
+                    Self.accountURL, Self.bodyURL, Self.scansURL] {
             try? FileManager.default.removeItem(at: url)
         }
         // Fetched gym logos too. They are nobody's personal data, but they are

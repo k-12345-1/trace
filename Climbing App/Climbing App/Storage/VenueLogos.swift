@@ -8,12 +8,11 @@ import UIKit
 /// thing that makes a row recognizable before you read it, and the only place a
 /// gym's logo exists is on the gym's own website.
 ///
-/// The cost is honest and it is the reason this is a setting: asking a gym's
-/// site for its icon tells that site somebody is interested in that gym. So
-/// nothing goes with the request except the request, it happens once per gym
-/// ever, the answer lives on the phone afterwards, and the privacy policy says
-/// so. Turning the setting off stops it and leaves the logos already saved
-/// where they are.
+/// The cost is small and it is stated rather than hidden: asking a gym's site
+/// for its icon tells that site somebody is interested in that gym. So nothing
+/// goes with the request except the request, it happens once per gym ever, the
+/// answer lives on the phone afterwards, and the privacy policy lists it rather
+/// than claiming nothing goes out.
 ///
 /// Only for gyms actually on screen. Scrolling past a row is what asks for it,
 /// which means a directory of six hundred gyms makes a handful of requests
@@ -64,7 +63,6 @@ final class VenueLogos: ObservableObject {
     /// gyms have no usable icon.
     func logo(for venue: Venue) -> UIImage? {
         if let hit = images[venue.id] { return hit }
-        guard Store.shared.fetchesGymLogos else { return nil }
         guard !settled.contains(venue.id), !inFlight.contains(venue.id) else { return nil }
 
         // On disk from a previous run.
@@ -115,9 +113,9 @@ final class VenueLogos: ObservableObject {
         try? data.write(to: Self.missesURL, options: .atomic)
     }
 
-    /// Everything fetched, gone. The setting turning off does not do this: a
-    /// logo already on the phone costs nothing to keep, and deleting it would
-    /// only mean asking again if the setting came back on.
+    /// Everything fetched, gone. Called when the person deletes everything
+    /// Trace holds on this phone: these are nobody's personal data, but they
+    /// are the record of which gyms this phone looked at.
     func forgetEverything() {
         images.removeAll()
         settled.removeAll()
