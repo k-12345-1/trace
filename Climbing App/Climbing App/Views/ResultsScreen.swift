@@ -561,6 +561,16 @@ struct ResultsScreen: View {
                         value: climb.metrics.hasDynamicMoves
                             ? "\(Int(climb.metrics.meanDeadpointError.rounded()))" : "—",
                         unit: climb.metrics.hasDynamicMoves ? "ms off" : "no dynos")
+                // Friction is bought with normal force, and normal force comes
+                // either from gravity or from a pair of contacts loaded toward
+                // each other. These two say how much of the climb had a pair.
+                Readout(label: "In opposition",
+                        value: "\(Int((climb.metrics.bracketedFraction * 100).rounded()))",
+                        unit: "% of the time")
+                Readout(label: "Compression",
+                        value: climb.metrics.compressionFraction > 0.01
+                            ? "\(Int((climb.metrics.compressionFraction * 100).rounded()))" : "—",
+                        unit: climb.metrics.compressionFraction > 0.01 ? "% squeezing" : "none")
                 if let lift {
                     // A ratio, so it needs no scale and no weight. 1.4 means you
                     // lifted yourself 40 percent further than the route asked.

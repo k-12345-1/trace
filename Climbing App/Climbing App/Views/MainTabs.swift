@@ -155,18 +155,15 @@ struct MainTabs: View {
         .fullScreenCover(isPresented: $showCapture) {
             CaptureScreen { url in
                 showCapture = false
-                if let url {
-                    // The next turn of the run loop, for the same reason the
-                    // panel hands off that way: raising a cover inside the
-                    // transaction that dismisses another gives UIKit two
-                    // presentations to settle at once.
-                    next { pending = PendingClip(url: url) }
-                } else {
-                    reopen()
-                }
+                guard let url else { return }   // backing out lands on the panel
+                // The next turn of the run loop: raising a cover inside the
+                // transaction that dismisses another gives UIKit two
+                // presentations to settle at once.
+                done()
+                next { pending = PendingClip(url: url) }
             }
         }
-        .fullScreenCover(isPresented: $showScan, onDismiss: reopen) { ScanScreen() }
+        .fullScreenCover(isPresented: $showScan) { ScanScreen() }
         .fullScreenCover(isPresented: $showPaywall) {
             NavigationStack {
                 PaywallScreen { showScan = true }
@@ -204,34 +201,31 @@ struct MainTabs: View {
         withAnimation(.easeOut(duration: 0.18)) { entryOpen = false }
     }
 
-    /// Back to the panel you started from.
-    ///
-    /// Backing out of the camera or the scanner used to drop you on whichever
-    /// page happened to be behind the panel, which is not where you were: you
-    /// were in the middle of adding something, and the thing you most likely
-    /// want next is the other way of adding it. The same turn-of-the-run-loop
-    /// rule as `leave` applies, because this runs while a cover is dismissing.
-    private func reopen() {
-        next { withAnimation(.easeOut(duration: 0.18)) { entryOpen = true } }
+    /// The panel is already open behind every cover it raised, so backing out
+    /// of one needs nothing done at all. This exists for the paths that close
+    /// it: finishing a recording, or picking a clip, both of which move you on
+    /// rather than back.
+    private func done() {
+        entryOpen = false
     }
 
-    /// Closes the panel, then presents whatever it was that the panel started.
+    /// Opens something from the panel, and leaves the panel where it is.
     ///
-    /// The two have to be separate turns of the run loop, and this is the whole
-    /// reason the record button and the cancel button on the capture screen were
-    /// dead on the device.
+    /// Underneath a full screen cover the panel is invisible, so leaving it up
+    /// costs nothing while the camera is running and pays for itself when the
+    /// camera goes away: the panel is already on screen, with no animation to
+    /// wait through and no glimpse of the page behind it. Closing it first and
+    /// reopening it afterwards is what produced the flash of Home on the way
+    /// out.
     ///
-    /// Raising a `fullScreenCover` inside the same transaction that animates the
-    /// panel and its scrim away gives UIKit two presentations to settle at once.
-    /// It resolves them by drawing the cover and leaving the dismissing view's
-    /// window in front of it, so the capture screen appeared exactly as it
-    /// should and every tap on it landed on a scrim that was already gone. A
-    /// wrong hit target is wrong for one control; this was wrong for all of
-    /// them, which is what pointed at the presentation rather than at the
-    /// buttons.
+    /// It also avoids the defect that killed the record button. Raising a cover
+    /// inside the same transaction that animates the panel away gives UIKit two
+    /// presentations to settle at once, and it resolves them by drawing the
+    /// cover while leaving the dismissing view's window in front of it: the
+    /// screen looks right and every tap lands on a scrim that is already gone.
+    /// There is no dismissal here to collide with.
     private func leave(_ present: @escaping () -> Void) {
-        close()
-        next(present)
+        present()
     }
 
     /// One turn of the run loop later. Every handoff between two covers goes
@@ -243,7 +237,7 @@ struct MainTabs: View {
     private func loadPicked(_ item: PhotosPickerItem) async {
         guard let movie = try? await item.loadTransferable(type: PickedMovie.self) else { return }
         pickerItem = nil
-        close()
+        done()
         next { pending = PendingClip(url: movie.url) }
     }
 }
@@ -285,7 +279,7 @@ private struct TabBar: View {
                 Capsule()
                     .fill(Theme.blueLight)
                     .frame(width: active ? 14 : 0, height: 2)
-                    .offset(y: 10)
+                    .offset(y: 8)
             }
             .frame(width: target, height: target)
             .frame(maxWidth: .infinity)

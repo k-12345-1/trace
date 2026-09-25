@@ -123,6 +123,27 @@ enum FindingEngine {
             ))
         }
 
+        // Hanging outside your contacts.
+        //
+        // Not a strength problem. When the center of mass is outside the span of
+        // your hands and feet, nothing cancels the sideways pull on the outermost
+        // one and the body rotates about it. The fix is a second contact on the
+        // other side, which is why the drill is about finding the pair rather
+        // than about holding on harder.
+        if m.swingTotal > 1.0 {
+            let severity: Severity = m.swingTotal > 4.0 ? .costly
+                                   : m.swingTotal > 2.0 ? .moderate : .minor
+            let worst = ForceEngine.swings(frames: frames)
+                .max { $0.duration < $1.duration }
+            let seconds = Int(m.swingTotal.rounded())
+            out.append(Finding(
+                kind: .unopposed,
+                severity: severity,
+                start: worst?.start ?? whole.start, end: worst?.end ?? whole.end,
+                message: "For \(seconds) second\(seconds == 1 ? "" : "s") your weight hung outside your hands and feet rather than between them. With nothing on the other side to pull against, the sideways part of the load has nothing to cancel it and turns into a swing your arms then pay for."
+            ))
+        }
+
         // Foot precision.
         if m.footAdjustments >= 3 {
             let severity: Severity = m.footAdjustments >= 8 ? .costly

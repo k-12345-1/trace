@@ -19,7 +19,7 @@ enum Severity: Int, Codable, Comparable {
 
 enum LeakKind: String, Codable {
     case bentArms, weightOnArms, lurchy, impreciseFeet, hesitation, wandering
-    case mistimedDynamics
+    case mistimedDynamics, unopposed
 
     var title: String {
         switch self {
@@ -30,6 +30,7 @@ enum LeakKind: String, Codable {
         case .hesitation:       return "Reading the route while hanging on it"
         case .wandering:        return "Wandering line"
         case .mistimedDynamics: return "Catching outside the deadpoint"
+        case .unopposed:        return "Hanging outside your contacts"
         }
     }
 
@@ -50,6 +51,8 @@ enum LeakKind: String, Codable {
             return "Climb it again and try to keep your hips traveling in one line."
         case .mistimedDynamics:
             return "Deadpoint isolation. Pick one dynamic move and repeat it, catching the hold at the exact top of the arc rather than on the way up or the way down."
+        case .unopposed:
+            return "Find the second force. Before the reach, put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving. A flag is not for balance, it is the other half of a pair."
         }
     }
 }
@@ -83,6 +86,14 @@ struct Metrics: Codable {
     var comPath: [CGPoint]
     var duration: Double
     var trackingConfidence: Double // 0 to 1, fraction of frames with a usable skeleton
+    /// Share of tracked time the center of mass sat between the outermost
+    /// contacts, which is the whole of opposition reduced to one number.
+    var bracketedFraction: Double = 0
+    /// Share of tracked time spent squeezing between two wide hands.
+    var compressionFraction: Double = 0
+    /// Seconds held outside the contacts, long enough to be a position rather
+    /// than a moment in transit.
+    var swingTotal: Double = 0
 
     /// Below this we do not draw and we do not coach. Confidently wrong feedback
     /// is the failure mode that kills the product.
@@ -121,12 +132,20 @@ struct Metrics: Codable {
         trackingConfidence = try c.decode(Double.self, forKey: .trackingConfidence)
         comOffsetFromFeet  = try c.decodeIfPresent(Double.self, forKey: .comOffsetFromFeet) ?? 0
         deadpointOffsets   = try c.decodeIfPresent([Double].self, forKey: .deadpointOffsets) ?? []
+        bracketedFraction  = try c.decodeIfPresent(Double.self, forKey: .bracketedFraction) ?? 0
+        compressionFraction = try c.decodeIfPresent(Double.self, forKey: .compressionFraction) ?? 0
+        swingTotal         = try c.decodeIfPresent(Double.self, forKey: .swingTotal) ?? 0
     }
 
     init(entropy: Double, logJerk: Double, pathRatio: Double, staticElbowAngle: Double,
          pauseCount: Int, pauseTotal: Double, footAdjustments: Int,
          comOffsetFromFeet: Double = 0, deadpointOffsets: [Double] = [],
-         comPath: [CGPoint], duration: Double, trackingConfidence: Double) {
+         comPath: [CGPoint], duration: Double, trackingConfidence: Double,
+         bracketedFraction: Double = 0, compressionFraction: Double = 0,
+         swingTotal: Double = 0) {
+        self.bracketedFraction = bracketedFraction
+        self.compressionFraction = compressionFraction
+        self.swingTotal = swingTotal
         self.entropy = entropy
         self.logJerk = logJerk
         self.pathRatio = pathRatio

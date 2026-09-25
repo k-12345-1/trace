@@ -80,6 +80,14 @@ extension LeakKind {
                 why: "Throw for a hold and your body follows an arc. At the very top of that arc you are momentarily not moving up or down. Catch the hold there and it only has to hold you. Catch early and it has to stop you still traveling upward; catch late and it has to arrest a fall that has already begun. Both cost force the perfectly timed catch does not.",
                 measured: "The signed time between your hand reaching the hold and the apex of your center of mass arc. Negative is early, positive is late."
             )
+
+        case .unopposed:
+            return PhysicsNote(
+                concept: "Friction, and the force pairs that make it",
+                law: "f = μN. The friction a hold can give you is the coefficient of your skin or rubber against it, times the force pressing into it",
+                why: "A hold does not hold you; friction does, and friction is bought with normal force. There are only two ways to make normal force. Gravity can do it, when you hang below a hold and your weight presses in. Or you can make it yourself, by loading two contacts toward each other so their sideways forces cancel: a pinch, a gaston against a sidepull, a hand pulling in while a foot pushes out. That cancelling pair is what makes a compression problem climbable on holds that would hold nothing at all if you simply hung off them. The same arithmetic explains where friction goes when it goes: only the part of your pull along the hold's normal counts, so pulling at an angle off that line gives N = F cos α. Thirty degrees off costs you thirteen percent of your friction and sixty degrees costs half, with nothing about the hold having changed. And when your center of mass hangs outside all of your contacts there is no second force at all: the sideways component has nothing to cancel it, so it becomes rotation about the outermost hand, which your fingers then pay for.",
+                measured: "The time your center of mass spent horizontally outside the span of your hands and feet, against the time it spent between them. Trace measures this in the plane of the wall. It has no depth, so it cannot see which way a hold faces or how far your hips were off the wall, and it therefore never claims to know α."
+            )
         }
     }
 }

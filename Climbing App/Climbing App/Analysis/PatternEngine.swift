@@ -72,7 +72,12 @@ enum PatternEngine {
                   unit: { "\(Int(($0 * 100).rounded()))% stopped" }),
         Dimension(kind: .mistimedDynamics, higherIsBetter: false,
                   strong: 80, flag: 120, weak: 200,
-                  unit: { "\(Int($0.rounded())) ms off" })
+                  unit: { "\(Int($0.rounded())) ms off" }),
+        // Read as the share of the climb spent outside the contacts rather than
+        // as seconds, because seconds reward a short climb for being short.
+        Dimension(kind: .unopposed, higherIsBetter: false,
+                  strong: 0.05, flag: 0.15, weak: 0.30,
+                  unit: { "\(Int(($0 * 100).rounded()))% unopposed" })
     ]
 
     // MARK: A reading
@@ -187,6 +192,9 @@ enum PatternEngine {
         case .mistimedDynamics: return m.hasDynamicMoves ? v : nil
         case .weightOnArms:     return v > 0 ? v : nil
         case .bentArms:         return v > 0 ? v : nil
+        // Not FocusEngine's value, which is seconds. The share is what compares
+        // across climbs of different lengths.
+        case .unopposed:        return 1 - m.bracketedFraction
         default:                return v
         }
     }

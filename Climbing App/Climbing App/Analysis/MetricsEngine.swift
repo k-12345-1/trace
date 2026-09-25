@@ -53,7 +53,10 @@ enum MetricsEngine {
             deadpointOffsets: deadpointOffsets(frames: tracked, times: times),
             comPath: path,
             duration: duration,
-            trackingConfidence: confidence
+            trackingConfidence: confidence,
+            bracketedFraction: ForceEngine.bracketedFraction(frames: tracked),
+            compressionFraction: ForceEngine.compressionFraction(frames: tracked),
+            swingTotal: ForceEngine.swingTotal(frames: tracked)
         )
     }
 

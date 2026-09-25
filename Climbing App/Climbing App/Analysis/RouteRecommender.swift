@@ -87,6 +87,8 @@ enum RouteRecommender {
             return "A narrow line straight up, so it is obvious the moment you drift off it."
         case .mistimedDynamics:
             return "One move much longer than the rest. It has to be thrown, so the timing is the move."
+        case .unopposed:
+            return "Holds spread wide on both sides of the line. Every reach then has somewhere on the far side to press against."
         }
     }
 
@@ -115,6 +117,10 @@ enum RouteRecommender {
             return rank(shape.spread, pool.map(\.spread), ascending: false)
         case .mistimedDynamics:
             return rank(shape.spike, pool.map(\.spike), ascending: true)
+        case .unopposed:
+            // Wide, like weight on your arms, because a route that only ever
+            // goes straight up never offers the second contact to pull against.
+            return rank(shape.spread, pool.map(\.spread), ascending: true)
         }
     }
 
