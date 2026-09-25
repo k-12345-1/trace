@@ -277,6 +277,10 @@ struct MetricStrip: View {
         var id: String { label }
     }
     let items: [Item]
+    /// Where each column's number and label sit inside it. Leading on a route,
+    /// which reads as a row of readings under a heading; centred on the profile,
+    /// where it is the only thing on its line and has no column to hang off.
+    var alignment: HorizontalAlignment = .leading
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -284,7 +288,7 @@ struct MetricStrip: View {
                 if i > 0 {
                     Rectangle().fill(Theme.line).frame(width: 1, height: 34)
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: alignment, spacing: 4) {
                     Text(item.value)
                         .font(Theme.ui(19, .semibold)).monospacedDigit()
                         .foregroundStyle(Theme.ink)
@@ -295,8 +299,9 @@ struct MetricStrip: View {
                         .foregroundStyle(Theme.ink3)
                         .lineLimit(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, i > 0 ? 14 : 0)
+                .frame(maxWidth: .infinity,
+                       alignment: alignment == .center ? .center : .leading)
+                .padding(.leading, alignment == .center ? 0 : (i > 0 ? 14 : 0))
             }
         }
     }

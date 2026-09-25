@@ -7,11 +7,10 @@ import SwiftUI
 /// point avatar tile, a full width navy pill, bold sans labels, and round icon
 /// wells, none of which appear anywhere else in Trace.
 ///
-/// So it is a page like the others now. A serif title, a strip of counts
-/// exactly as a route shows its counts, one card of rows split by hairlines,
-/// and the two ways out set as underlined text at the foot of the page, the
-/// way deleting a route is set on the route's own screen. Everything that was
-/// on it is still on it.
+/// So it is a page like the others now: a serif title, a strip of counts
+/// exactly as a route shows its counts, and one card of rows split by
+/// hairlines, the last two of which end something rather than go somewhere.
+/// Everything that was on it is still on it.
 struct ProfileScreen: View {
     @ObservedObject private var store = Store.shared
     @ObservedObject private var billing = Subscription.shared
@@ -30,7 +29,6 @@ struct ProfileScreen: View {
                         .padding(.top, 30)
                         .padding(.bottom, 12)
                     rows
-                    leaving
                 }
                 .padding(.bottom, 156)
             }
@@ -95,7 +93,7 @@ struct ProfileScreen: View {
                   label: store.gyms.count == 1 ? "Gym" : "Gyms"),
             .init(value: "\(store.routes.count)",
                   label: store.routes.count == 1 ? "Route" : "Routes")
-        ])
+        ], alignment: .center)
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 26)
     }
@@ -142,6 +140,27 @@ struct ProfileScreen: View {
                     label: "Privacy & AI", detail: "On-device analysis · Policy")
             }
             .buttonStyle(.plain)
+
+            Hairline()
+
+            Button { confirmingSignOut = true } label: {
+                row(icon: AnyView(Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)),
+                    label: "Sign out", detail: "End your session", leaving: true)
+            }
+            .buttonStyle(.plain)
+
+            Hairline()
+
+            Button { confirmingDelete = true } label: {
+                row(icon: AnyView(Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)),
+                    label: "Delete account", detail: "Permanently remove your data",
+                    leaving: true)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
@@ -149,45 +168,19 @@ struct ProfileScreen: View {
         .padding(.horizontal, Theme.gutter)
     }
 
-    /// The two ways out, set the way deleting a route is set on the route's own
-    /// screen: underlined text at the foot of the page, not a row with an icon
-    /// that looks like somewhere to go.
-    private var leaving: some View {
-        VStack(spacing: 22) {
-            way("Sign out", "End your session") { confirmingSignOut = true }
-            way("Delete account", "Permanently remove your data") { confirmingDelete = true }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 34)
-    }
-
-    private func way(_ label: String, _ detail: String,
-                     _ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Text(label)
-                    .font(Theme.ui(15, .semibold))
-                    .foregroundStyle(Theme.ink2)
-                    .underline()
-                Text(detail)
-                    .font(Theme.ui(12.5))
-                    .foregroundStyle(Theme.ink3)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
     /// A square well, a serif label, a line of detail, a chevron. The square is
     /// the shape everything else in the app puts a picture in; the round wells
     /// this used belonged to a different app.
-    private func row(icon: AnyView, label: String, detail: String) -> some View {
+    /// `leaving` marks the two that end something rather than go somewhere.
+    /// This palette has no red, so they invert their well instead: a white mark
+    /// on the dark blue rather than a dark mark on a pale one. They also have
+    /// no chevron, because there is nowhere to arrive.
+    private func row(icon: AnyView, label: String, detail: String,
+                     leaving: Bool = false) -> some View {
         HStack(spacing: 14) {
             icon
                 .frame(width: 44, height: 44)
-                .background(Theme.surface2)
+                .background(leaving ? Theme.blue : Theme.surface2)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
@@ -200,9 +193,11 @@ struct ProfileScreen: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.ink3)
+            if !leaving {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.ink3)
+            }
         }
         .frame(minHeight: 62)
         .contentShape(Rectangle())
