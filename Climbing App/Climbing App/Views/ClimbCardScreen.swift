@@ -282,7 +282,9 @@ struct ClimbCardScreen: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, Theme.gutter)
+        // No gutter of its own. This sits inside the heading, which already
+        // has one, and the second copy is what pushed the pin twenty-two
+        // points right of the route name directly above it.
         .confirmationDialog("Which gym?", isPresented: $choosingGym, titleVisibility: .visible) {
             ForEach(store.gyms) { g in
                 Button(g.name) { store.setGym(g.id, for: live.latest) }

@@ -197,7 +197,7 @@ struct ResultsScreen: View {
         }
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 20)
-        .padding(.bottom, 4)
+        .padding(.bottom, 20)
     }
 
     /// What this attempt came down to, on one line under the name. It is the

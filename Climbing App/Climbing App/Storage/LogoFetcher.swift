@@ -44,13 +44,6 @@ enum LogoFetcher {
     /// A logo is not megabytes. Anything bigger is something else.
     static let maximumBytes = 3_000_000
 
-    static func logo(for gym: Gym) async throws -> Data {
-        guard let venueID = gym.venueID,
-              let venue = GymDirectory.all.first(where: { $0.id == venueID })
-        else { throw Failure.noWebsite }
-        return try await logo(for: venue)
-    }
-
     static func logo(for venue: Venue) async throws -> Data {
         guard let site = venue.website,
               let base = URL(string: site),

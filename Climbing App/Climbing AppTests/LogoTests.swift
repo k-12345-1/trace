@@ -89,11 +89,14 @@ struct LogoTests {
     }
 
     /// A gym with no website has nowhere to ask, and says so rather than
-    /// failing silently.
+    /// failing silently. Most of the directory is in this position, so this is
+    /// the common case and not the edge one.
     @Test func aGymWithNoWebsiteExplainsItself() async {
-        let gym = Gym(name: "Nowhere", venueID: nil)
+        let venue = Venue(id: "node/1", name: "Nowhere", city: "Nowhere",
+                          state: "ZZ", street: nil, website: nil,
+                          latitude: 0, longitude: 0)
         do {
-            _ = try await LogoFetcher.logo(for: gym)
+            _ = try await LogoFetcher.logo(for: venue)
             Issue.record("expected a failure")
         } catch let e as LogoFetcher.Failure {
             #expect(e.errorDescription?.contains("no website") == true)
