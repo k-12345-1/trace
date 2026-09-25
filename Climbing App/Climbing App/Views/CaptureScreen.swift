@@ -92,15 +92,28 @@ struct CaptureScreen: View {
     }
 
     private var controls: some View {
-        RecordButton(isRecording: camera.isRecording) {
-            if camera.isRecording {
-                camera.stop()
-            } else {
-                camera.start { url in
-                    camera.teardown()
-                    onFinish(url)
-                    dismiss()
+        VStack(spacing: 10) {
+            RecordButton(isRecording: camera.isRecording) {
+                if camera.isRecording {
+                    camera.stop()
+                } else {
+                    camera.start { url in
+                        camera.teardown()
+                        onFinish(url)
+                        dismiss()
+                    }
                 }
+            }
+
+            // Whatever went wrong, said here. Nothing on this screen is allowed
+            // to fail quietly any more.
+            if let problem = camera.errorMessage {
+                Text(problem)
+                    .font(Theme.ui(13))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 30)
             }
         }
         // No gradient behind it. It was a black box the width of the button,

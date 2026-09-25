@@ -109,15 +109,16 @@ struct MainTabs: View {
 
             if entryOpen {
                 AddPanel(
-                    onRecord: { close(); showCapture = true },
+                    onRecord: { leave { showCapture = true } },
                     // The second scan is where Trace asks. Entitlement is read
                     // from StoreKit, never from a flag of our own.
                     onScan: {
-                        close()
-                        if Store.shared.scanNeedsPro && !Subscription.shared.isPro {
-                            showPaywall = true
-                        } else {
-                            showScan = true
+                        leave {
+                            if Store.shared.scanNeedsPro && !Subscription.shared.isPro {
+                                showPaywall = true
+                            } else {
+                                showScan = true
+                            }
                         }
                     },
                     onClose: close,
@@ -178,6 +179,25 @@ struct MainTabs: View {
 
     private func close() {
         withAnimation(.easeOut(duration: 0.18)) { entryOpen = false }
+    }
+
+    /// Closes the panel, then presents whatever it was that the panel started.
+    ///
+    /// The two have to be separate turns of the run loop, and this is the whole
+    /// reason the record button and the cancel button on the capture screen were
+    /// dead on the device.
+    ///
+    /// Raising a `fullScreenCover` inside the same transaction that animates the
+    /// panel and its scrim away gives UIKit two presentations to settle at once.
+    /// It resolves them by drawing the cover and leaving the dismissing view's
+    /// window in front of it, so the capture screen appeared exactly as it
+    /// should and every tap on it landed on a scrim that was already gone. A
+    /// wrong hit target is wrong for one control; this was wrong for all of
+    /// them, which is what pointed at the presentation rather than at the
+    /// buttons.
+    private func leave(_ present: @escaping () -> Void) {
+        close()
+        DispatchQueue.main.async(execute: present)
     }
 
     private func loadPicked(_ item: PhotosPickerItem) async {

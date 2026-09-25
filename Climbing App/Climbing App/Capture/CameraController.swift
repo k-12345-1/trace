@@ -47,8 +47,18 @@ final class CameraController: NSObject, ObservableObject {
 
         // 60fps where the device offers it. Jerk is a third derivative and
         // deadpoint timing is measured in tens of milliseconds, so frame rate matters.
+        //
+        // Capped at 1080p and at 60, rather than simply taking the last format
+        // that can reach 60. The list runs low to high, so the last match on a
+        // recent iPhone is 4K or a 240fps slow motion format: far more data than
+        // pose tracking can use, and a slow motion format is not a format this
+        // output records the way you would expect.
         if let format = device.formats.last(where: { f in
-            f.videoSupportedFrameRateRanges.contains { $0.maxFrameRate >= 60 }
+            let size = CMVideoFormatDescriptionGetDimensions(f.formatDescription)
+            guard size.width <= 1920, size.height <= 1920 else { return false }
+            return f.videoSupportedFrameRateRanges.contains {
+                $0.maxFrameRate >= 60 && $0.minFrameRate <= 60
+            }
         }) {
             try? device.lockForConfiguration()
             device.activeFormat = format
@@ -70,7 +80,18 @@ final class CameraController: NSObject, ObservableObject {
     }
 
     func start(completion: @escaping (URL?) -> Void) {
-        guard isAvailable, !output.isRecording else { return }
+        // Said out loud rather than returned quietly. A button whose action runs
+        // and then hits a guard is indistinguishable, on the screen, from a
+        // button that was never tapped, and that ambiguity cost a long time.
+        guard isAvailable else {
+            errorMessage = "The camera is not ready yet. Give it a moment and tap again."
+            return
+        }
+        guard !output.isRecording else { return }
+        guard output.connection(with: .video) != nil else {
+            errorMessage = "This camera cannot record video. Import a clip instead."
+            return
+        }
         self.completion = completion
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).mov")
