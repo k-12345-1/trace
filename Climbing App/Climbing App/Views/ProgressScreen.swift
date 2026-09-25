@@ -98,24 +98,31 @@ struct ProgressScreen: View {
                         }
                     }
 
+                    // Rounded at both ends, and the fill rounded too. Square
+                    // ends on a bar this thin are the detail that made the
+                    // whole panel read as a diagram of a panel.
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Rectangle().fill(Theme.surface2).frame(height: 6)
-                            Rectangle()
+                            Capsule().fill(Theme.surface2).frame(height: 7)
+                            Capsule()
                                 .fill(focus.isResolved ? Theme.ok : Theme.accent)
-                                .frame(width: geo.size.width * focus.progress, height: 6)
+                                .frame(width: max(7, geo.size.width * focus.progress),
+                                       height: 7)
                         }
                     }
-                    .frame(height: 6)
+                    .frame(height: 7)
 
                     Text(FocusEngine.meaning(for: focus.kind))
                         .font(Theme.body(12.5))
                         .foregroundStyle(Theme.ink3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(16)
-                .background(Theme.blueWash)
-                .overlay(Rectangle().stroke(Theme.lineStrong, lineWidth: 1))
+                .padding(18)
+                // A card, like everything else that holds something. It was a
+                // square cornered box with a drawn edge, which is the one shape
+                // this app does not use anywhere: a rectangle sitting among
+                // rounded surfaces reads as a screenshot of another app.
+                .card(radius: Theme.rCard, fill: Theme.blueWash)
 
                 VStack(alignment: .leading, spacing: 6) {
                     MicroLabel(text: "Drill", color: Theme.accentText)
@@ -205,7 +212,11 @@ struct ProgressScreen: View {
                     .font(Theme.body(13.5))
                     .foregroundStyle(Theme.ink2)
             } else {
-                VStack(spacing: 1) {
+                // Cards with rounded bars, not a bordered table of rectangles.
+                // The old version was a square edged box, hairlines between
+                // rows, and a hard cornered bar: three rectangles inside each
+                // other on a page where everything else is a rounded surface.
+                VStack(spacing: 8) {
                     ForEach(counts, id: \.kind) { entry in
                         HStack(spacing: 12) {
                             Text(entry.kind.title)
@@ -216,12 +227,12 @@ struct ProgressScreen: View {
 
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    Rectangle().fill(Theme.surface2).frame(height: 8)
-                                    Rectangle()
+                                    Capsule().fill(Theme.surface2).frame(height: 8)
+                                    Capsule()
                                         .fill(entry.kind == store.focus?.kind
                                               ? Theme.accent : Theme.ink3)
-                                        .frame(width: geo.size.width
-                                               * CGFloat(entry.count) / CGFloat(total),
+                                        .frame(width: max(8, geo.size.width
+                                               * CGFloat(entry.count) / CGFloat(total)),
                                                height: 8)
                                 }
                                 .frame(height: geo.size.height, alignment: .center)
@@ -233,13 +244,11 @@ struct ProgressScreen: View {
                                 .foregroundStyle(Theme.ink2)
                                 .frame(width: 20, alignment: .trailing)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 11)
-                        .background(Theme.surface)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .card()
                     }
                 }
-                .background(Theme.line)
-                .overlay(Rectangle().stroke(Theme.line, lineWidth: 1))
             }
         }
         .padding(.horizontal, 20)

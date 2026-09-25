@@ -484,12 +484,13 @@ private struct AddPanel: View {
         // Ten, not eighteen: the ring sits four points inside its tap target,
         // so this is what puts its edge on the same line as the cards below.
         .padding(.horizontal, 10)
-        // Four short of the margin, because the ring sits four points inside
-        // its forty-four point tap target. What has to land on the margin is
-        // the ring's edge, not the box around it: the ring is the highest ink
-        // on the panel and the card below is the lowest, so measuring between
-        // those two is what makes the blue at either end the same.
-        .padding(.top, Self.margin - 4)
+        // Higher than the margin below the last card, which is a deliberate
+        // asymmetry rather than a missed one. Measured, the ring's edge and the
+        // card's edge sat the same distance from their ends of the panel and it
+        // still read as sitting low, because a ring is mostly air and a card is
+        // solid: matching their bounding boxes does not match what the eye
+        // weighs. Eight points up is where it stops looking low.
+        .padding(.top, Self.margin - 12)
         .padding(.bottom, 16)
     }
 

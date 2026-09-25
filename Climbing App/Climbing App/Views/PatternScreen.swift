@@ -51,14 +51,6 @@ struct PatternSection: View {
 
     private func row(_ r: PatternEngine.Reading) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // The ramp runs light to dark with cost, so the weakest dimension is
-            // the darkest mark on the page. It never carries the meaning alone:
-            // the word is right beside it.
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(color(r.standing))
-                .frame(width: 4)
-                .frame(maxHeight: .infinity)
-
             VStack(alignment: .leading, spacing: 4) {
                 Text(r.kind.title)
                     .font(Theme.ui(15, .semibold))
@@ -66,6 +58,13 @@ struct PatternSection: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 8) {
+                    // The same dot a route wears beside its worst finding,
+                    // rather than a bar down the side of the card. The ramp runs
+                    // light to dark with cost, and it never carries the meaning
+                    // alone: the word is right beside it.
+                    Circle()
+                        .fill(color(r.standing))
+                        .frame(width: 9, height: 9)
                     Text(r.standing.label)
                         .font(Theme.ui(12.5, .semibold))
                         .foregroundStyle(color(r.standing))
@@ -85,7 +84,7 @@ struct PatternSection: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .card()
     }
