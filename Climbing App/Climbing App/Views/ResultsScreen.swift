@@ -404,7 +404,7 @@ struct ResultsScreen: View {
     /// for first and the rest of the page is why it came out that way.
     @ViewBuilder
     private var efficiency: some View {
-        if let reading = EfficiencyEngine.read(climb) {
+        if let reading = EfficiencyCache.read(climb) {
             EfficiencyCard(reading: reading)
                 .padding(.horizontal, Theme.gutter)
                 .padding(.bottom, 20)

@@ -418,6 +418,7 @@ final class Store: ObservableObject {
         // the record of which gyms this phone looked at, and "removes
         // everything Trace holds on this phone" has to mean it.
         VenueLogos.shared.forgetEverything()
+        EfficiencyCache.forgetEverything()
         try? FileManager.default.removeItem(at: Self.routePhotosDirectory)
         try? FileManager.default.removeItem(at: Self.videosDirectory)
         try? FileManager.default.removeItem(at: Thumbnails.directory)

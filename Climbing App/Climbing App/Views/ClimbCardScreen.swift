@@ -190,7 +190,7 @@ struct ClimbCardScreen: View {
                             // two attempts on one route is the reason this list
                             // exists, and an entropy figure does not do that at
                             // a glance.
-                            if let reading = EfficiencyEngine.read(climb) {
+                            if let reading = EfficiencyCache.read(climb) {
                                 EfficiencyBadge(reading: reading, compact: true)
                             } else {
                                 Text("H \(String(format: "%.2f", climb.metrics.entropy))")
