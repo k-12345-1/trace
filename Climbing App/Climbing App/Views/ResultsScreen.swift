@@ -173,16 +173,16 @@ struct ResultsScreen: View {
                     draftLabel = climb.label
                     renaming = true
                 } label: {
-                    HStack(spacing: 8) {
-                        Text(label)
-                            .font(Theme.title(27))
-                            .foregroundStyle(Theme.ink)
-                            .multilineTextAlignment(.leading)
-                        Image(systemName: "pencil")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Theme.ink3)
-                    }
-                    .contentShape(Rectangle())
+                    // Set in the title, not parked beside it: interpolated into
+                    // the Text it sits on the title's own baseline and wraps
+                    // with the last word.
+                    (Text(label).font(Theme.title(27)).foregroundColor(Theme.ink)
+                     + Text("  ")
+                     + Text(Image(systemName: "pencil"))
+                        .font(.system(size: 13)).foregroundColor(Theme.ink3))
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 

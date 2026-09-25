@@ -20,8 +20,9 @@ struct ScanScreen: View {
     @State private var dropped: Set<UUID> = []
     @State private var colorHex = "#888888"
     @State private var grades: [String] = []
-    @State private var tolerance: Double = 30
-    @State private var sample: CGPoint?
+    /// Holds the scan missed, pointed at by hand. Kept apart from the scanned
+    /// ones so that changing colour does not throw them away.
+    @State private var added: [RouteScanner.Hold] = []
     @State private var scanning = false
     /// Every route color Trace can see on this wall, best first.
     @State private var swatches: [RouteScanner.Swatch] = []
@@ -36,7 +37,9 @@ struct ScanScreen: View {
     @State private var gymName = ""
     @State private var selectedGym: Gym?
 
-    private var kept: [RouteScanner.Hold] { holds.filter { !dropped.contains($0.id) } }
+    private var kept: [RouteScanner.Hold] {
+        (holds + added).filter { !dropped.contains($0.id) }
+    }
 
     var body: some View {
         Group {
@@ -112,17 +115,27 @@ struct ScanScreen: View {
 
     // MARK: The wall
 
+    /// The photograph, at its own shape.
+    ///
+    /// It used to sit in a box of a fixed height with the picture fitted inside
+    /// it, which put black down both sides of every portrait photo: a letterbox
+    /// around the one thing on this screen worth looking at. The box now takes
+    /// the picture's own aspect at the full width of the phone, so the image
+    /// runs edge to edge and nothing is cropped. A tall photograph makes a tall
+    /// stage, and the page scrolls, which it already did.
     private func stage(_ ui: UIImage) -> some View {
-        GeometryReader { geo in
-            let rect = fitted(image: ui.size, in: geo.size)
+        let aspect = ui.size.height > 0 ? ui.size.width / ui.size.height : 0.75
+        return GeometryReader { geo in
+            let rect = CGRect(origin: .zero, size: geo.size)
             ZStack {
-                Color.black
                 Image(uiImage: ui)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
 
                 // Everything Trace thinks is on the route.
-                ForEach(holds) { hold in
+                ForEach(holds + added) { hold in
                     let dropped = self.dropped.contains(hold.id)
                     Rectangle()
                         .stroke(dropped ? Theme.ink3.opacity(0.5) : Theme.accent,
@@ -134,26 +147,16 @@ struct ScanScreen: View {
                         .onTapGesture { toggle(hold) }
                 }
 
-                if let s = sample {
-                    Circle()
-                        .stroke(Theme.chalk, lineWidth: 2)
-                        .frame(width: 22, height: 22)
-                        .position(x: rect.minX + s.x * rect.width,
-                                  y: rect.minY + s.y * rect.height)
-                }
             }
             .contentShape(Rectangle())
             .onTapGesture { location in
                 guard rect.contains(location) else { return }
-                let p = CGPoint(x: (location.x - rect.minX) / rect.width,
-                                y: (location.y - rect.minY) / rect.height)
-                sample = p
-                chosen = nil
-                run(sample: p)
+                add(at: CGPoint(x: (location.x - rect.minX) / rect.width,
+                                y: (location.y - rect.minY) / rect.height))
             }
         }
-        .frame(height: 380)
-        .clipped()
+        .aspectRatio(aspect, contentMode: .fit)
+        .frame(maxWidth: .infinity)
     }
 
     /// The wall's own colors, offered rather than asked for.
@@ -198,17 +201,6 @@ struct ScanScreen: View {
         .contentShape(Rectangle())
     }
 
-    private func fitted(image: CGSize, in size: CGSize) -> CGRect {
-        guard image.width > 0, image.height > 0 else { return .zero }
-        let ia = image.width / image.height, va = size.width / size.height
-        if va > ia {
-            let w = size.height * ia
-            return CGRect(x: (size.width - w) / 2, y: 0, width: w, height: size.height)
-        }
-        let h = size.width / ia
-        return CGRect(x: 0, y: (size.height - h) / 2, width: size.width, height: h)
-    }
-
     // MARK: Controls
 
     private var controls: some View {
@@ -218,10 +210,10 @@ struct ScanScreen: View {
             HStack {
                 if scanning || reading {
                     MicroLabel(text: "Reading the wall")
-                } else if holds.isEmpty {
+                } else if kept.isEmpty {
                     MicroLabel(text: swatches.isEmpty
-                               ? "No route colors found. Tap a hold instead."
-                               : "Pick a color above, or tap a hold.")
+                               ? "No route colors found. Tap the holds to add them."
+                               : "Pick a color above.")
                 } else {
                     HStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 2)
@@ -237,26 +229,16 @@ struct ScanScreen: View {
                     .foregroundStyle(Theme.ink3)
             }
 
-            if sample != nil || chosen != nil {
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack {
-                        MicroLabel(text: "Color range")
-                        Spacer()
-                        Text(String(format: "%.0f", tolerance))
-                            .font(Theme.mono(10.5)).foregroundStyle(Theme.ink3)
-                    }
-                    Slider(value: $tolerance, in: 12...60, step: 1)
-                        .tint(Theme.accent)
-                        .onChange(of: tolerance) { _, _ in
-                            if let s = sample { run(sample: s) }
-                            else if let chosen { run(color: chosen) }
-                        }
-                    Text("Widen this if holds are missing, tighten it if the wall itself is being picked up. Tap any box to drop a hold that is not part of the route.")
-                        .font(Theme.body(12))
-                        .foregroundStyle(Theme.ink3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            // No tolerance slider. Asking a climber to tune a colour distance
+            // until their route appears is asking them to do the computer's job
+            // with a control whose effect nobody can predict. The two things
+            // they can actually judge are whether a box belongs to the route
+            // and whether a hold was missed, so those are the two things the
+            // photograph takes.
+            Text("Tap a hold Trace missed to add it. Tap any box to drop a hold that is not part of the route.")
+                .font(Theme.body(12))
+                .foregroundStyle(Theme.ink3)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
@@ -391,13 +373,28 @@ struct ScanScreen: View {
 
     private func pick(_ swatch: RouteScanner.Swatch) {
         chosen = swatch
-        sample = nil
         colorHex = swatch.hex
-        // The slider starts where this color's own reach ends, which is as wide
-        // as it can go without taking in the route next to it. Moving it is
-        // still the way to argue with that.
-        tolerance = swatch.reach
         run(color: swatch)
+    }
+
+    /// A hold the scan missed, pointed at.
+    ///
+    /// The blob is grown out from the tapped pixel, so a hold added by hand has
+    /// the same outline as one found by the scan. When the tap grows into
+    /// something that is not a hold, usually the wall itself, a plain box goes
+    /// down instead: a tap that does nothing is indistinguishable from a tap
+    /// that missed.
+    private func add(at point: CGPoint) {
+        guard let cg = image?.cgImage else { return }
+        if let found = RouteScanner.hold(in: cg, at: point) {
+            added.append(found)
+        } else {
+            let size = 0.055
+            added.append(RouteScanner.Hold(
+                rect: CGRect(x: point.x - size / 2, y: point.y - size / 2,
+                             width: size, height: size),
+                area: size * size))
+        }
     }
 
     /// The chosen color, found again at full resolution. The swatch's own holds
@@ -407,7 +404,10 @@ struct ScanScreen: View {
         guard let cg = image?.cgImage,
               let index = swatches.firstIndex(of: swatch) else { return }
         scanning = true
-        let tol = tolerance
+        // The colour's own reach: as wide as it can go without taking in the
+        // route next to it. It was the slider's starting value and it is now
+        // the whole of the answer.
+        let tol = swatch.reach
         let all = swatches
         Task.detached {
             // The whole palette, not just the one color, so the full resolution
@@ -422,27 +422,12 @@ struct ScanScreen: View {
         }
     }
 
-    private func run(sample p: CGPoint) {
-        guard let cg = image?.cgImage else { return }
-        scanning = true
-        let tol = tolerance
-        Task.detached {
-            let result = RouteScanner.detectHolds(in: cg, sample: p, tolerance: tol)
-            await MainActor.run {
-                holds = result.holds
-                colorHex = result.colorHex
-                dropped = []
-                scanning = false
-            }
-        }
-    }
-
     private func toggle(_ hold: RouteScanner.Hold) {
         if dropped.contains(hold.id) { dropped.remove(hold.id) } else { dropped.insert(hold.id) }
     }
 
     private func reset() {
-        holds = []; dropped = []; sample = nil; chosen = nil; swatches = []
+        holds = []; added = []; dropped = []; chosen = nil; swatches = []
     }
 
     /// Back to the photograph, with the wall read again. Clearing the colors

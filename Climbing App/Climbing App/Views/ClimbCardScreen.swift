@@ -38,7 +38,11 @@ struct ClimbCardScreen: View {
                         // bare paper between the last thing on the page and the
                         // bottom of the screen: the page appeared to stop, and
                         // then there was more page.
-                        Color.clear.frame(height: 156)
+                        //
+                        // Enough to reach under the floating bar and no more.
+                        // At a hundred and fifty six it was a screenful of
+                        // empty cream under the last line.
+                        Color.clear.frame(height: 104)
                     }
                     .background(Theme.ground)
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
@@ -104,22 +108,27 @@ struct ClimbCardScreen: View {
 
     private var heading: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(live.name)
-                    .font(Theme.title(30))
-                    .foregroundStyle(Theme.ink)
+            // The pencil is set in the title rather than parked beside it.
+            //
+            // As its own view in an HStack it was a glyph floating off the end
+            // of a line, aligned to a baseline it does not share and sitting
+            // wherever the row's alignment put it. Interpolated into the Text
+            // it is laid out as a character: it sits on the title's own
+            // baseline, at its own smaller size, and it moves with the last
+            // word when the name wraps.
+            Button {
+                draftName = live.name == "Untitled climb" ? "" : live.name
+                renaming = true
+            } label: {
+                (Text(live.name).font(Theme.title(30)).foregroundColor(Theme.ink)
+                 + Text("  ")
+                 + Text(Image(systemName: "pencil"))
+                    .font(.system(size: 15)).foregroundColor(Theme.ink3))
                     .fixedSize(horizontal: false, vertical: true)
-                Button {
-                    draftName = live.name == "Untitled climb" ? "" : live.name
-                    renaming = true
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.ink3)
-                }
-                .buttonStyle(.plain)
-                Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
             whereItWas
 

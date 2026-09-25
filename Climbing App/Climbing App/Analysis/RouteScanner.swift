@@ -294,6 +294,64 @@ enum RouteScanner {
         }
     }
 
+    // MARK: One hold, tapped
+
+    /// The hold under a finger.
+    ///
+    /// Colour segmentation misses holds: one in shadow, one half behind a
+    /// volume, one whose plastic is a shade off the rest of the set. The answer
+    /// is not a tolerance slider, which asks the climber to solve a colour
+    /// science problem to get their own route back. It is to let them point at
+    /// the hold that was missed.
+    ///
+    /// This grows a blob out from the tapped pixel rather than dropping a fixed
+    /// square there, so a hold added by hand has the same outline as a hold
+    /// found by the scan and can be told apart from its neighbours.
+    ///
+    /// Nil when the tap grew into something that is not a hold: the wall, a
+    /// mat, the whole panel. The caller puts a plain box there instead, because
+    /// a tap that does nothing is indistinguishable from a tap that missed.
+    static func hold(in image: CGImage, at point: CGPoint,
+                     tolerance: Double = 34) -> Hold? {
+        guard let bmp = Bitmap(image, targetWidth: workingWidth) else { return nil }
+        let x = min(max(Int((Double(bmp.width) * point.x).rounded()), 0), bmp.width - 1)
+        let y = min(max(Int((Double(bmp.height) * point.y).rounded()), 0), bmp.height - 1)
+
+        let target = bmp.averageLab(around: (x, y), radius: 2)
+        var mask = [Bool](repeating: false, count: bmp.width * bmp.height)
+        for i in 0..<(bmp.width * bmp.height) {
+            mask[i] = bmp.lab(at: i).distance(to: target) < tolerance
+        }
+
+        let start = y * bmp.width + x
+        guard mask[start] else { return nil }
+
+        var comp = Component()
+        var stack = [start]
+        mask[start] = false
+        while let i = stack.popLast() {
+            let px = i % bmp.width, py = i / bmp.width
+            comp.add(px, py)
+            if px > 0, mask[i - 1] { mask[i - 1] = false; stack.append(i - 1) }
+            if px < bmp.width - 1, mask[i + 1] { mask[i + 1] = false; stack.append(i + 1) }
+            if py > 0, mask[i - bmp.width] { mask[i - bmp.width] = false; stack.append(i - bmp.width) }
+            if py < bmp.height - 1, mask[i + bmp.width] {
+                mask[i + bmp.width] = false; stack.append(i + bmp.width)
+            }
+        }
+
+        let total = Double(bmp.width * bmp.height)
+        guard comp.count >= 6, Double(comp.count) / total <= maxAreaFraction else { return nil }
+
+        let w = Double(comp.maxX - comp.minX + 1)
+        let h = Double(comp.maxY - comp.minY + 1)
+        return Hold(rect: CGRect(x: Double(comp.minX) / Double(bmp.width),
+                                 y: Double(comp.minY) / Double(bmp.height),
+                                 width: w / Double(bmp.width),
+                                 height: h / Double(bmp.height)),
+                    area: Double(comp.count) / total)
+    }
+
     // MARK: Connected components
 
     private struct Component {

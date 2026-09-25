@@ -302,3 +302,56 @@ struct NeighbourTests {
         #expect(best.reach > 20, "a color with no neighbour was pulled in to \(best.reach)")
     }
 }
+
+/// Pointing at a hold the scan missed.
+///
+/// The old answer to a missed hold was a tolerance slider, which asks a climber
+/// to solve a colour science problem to get their own route back. The new one is
+/// to tap the hold. That has to give back the hold's actual outline, not a
+/// square where the finger landed, or a hand-added hold looks nothing like the
+/// ones beside it.
+@Suite("Tapping a missed hold")
+struct TappedHoldTests {
+
+    private let image = Wall.image()
+
+    @Test("A tap on a hold returns that hold")
+    func aTapFindsTheHold() throws {
+        let blob = Wall.route.first { $0.color == Wall.yellow }!
+        let hold = try #require(RouteScanner.hold(in: image,
+                                                  at: CGPoint(x: blob.cx, y: blob.cy)))
+        #expect(hold.rect.contains(CGPoint(x: blob.cx, y: blob.cy)),
+                "the box \(hold.rect) does not contain the tap")
+        // Roughly the blob's own size, not a fixed square: the fixture's blobs
+        // are drawn at 2r wide.
+        #expect(abs(hold.rect.width - blob.r * 2) < 0.02,
+                "the box was \(hold.rect.width) wide and the hold is \(blob.r * 2)")
+    }
+
+    /// The tap that has to fail. A finger on the wall between holds would
+    /// otherwise grow a blob the size of the photograph and add the whole wall
+    /// to the route.
+    @Test("A tap on the wall adds nothing")
+    func aTapOnTheWallIsRefused() {
+        #expect(RouteScanner.hold(in: image, at: CGPoint(x: 0.03, y: 0.03)) == nil)
+    }
+
+    @Test("A tap outside the picture does not crash")
+    func aTapOffTheEdgeIsSafe() {
+        _ = RouteScanner.hold(in: image, at: CGPoint(x: -0.4, y: 1.8))
+        _ = RouteScanner.hold(in: image, at: CGPoint(x: 1.5, y: -0.2))
+    }
+
+    /// Two holds of the same colour next to each other must not merge into one
+    /// box, or tapping the one that was missed swallows the one that was not.
+    @Test("A tap takes one hold, not its neighbour")
+    func neighboursStaySeparate() throws {
+        let near: [Wall.Blob] = [
+            Wall.Blob(cx: 0.40, cy: 0.50, r: 0.03, color: Wall.blue),
+            Wall.Blob(cx: 0.52, cy: 0.50, r: 0.03, color: Wall.blue)
+        ]
+        let hold = try #require(RouteScanner.hold(in: Wall.image(near),
+                                                  at: CGPoint(x: 0.40, y: 0.50)))
+        #expect(hold.rect.width < 0.10, "the box spanned both holds: \(hold.rect)")
+    }
+}
