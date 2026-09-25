@@ -14,6 +14,7 @@ struct ClimbCardScreen: View {
     @State private var draftName = ""
     @State private var expanded: Set<String> = []
     @State private var confirmingDelete = false
+    @State private var choosingGym = false
     @Environment(\.dismiss) private var dismiss
 
     /// Read back out of the store so a rename or a send shows at once.
@@ -98,6 +99,8 @@ struct ClimbCardScreen: View {
                 .buttonStyle(.plain)
                 Spacer(minLength: 0)
             }
+
+            whereItWas
 
             if let top = live.topFinding {
                 HStack(spacing: 7) {
@@ -223,6 +226,48 @@ struct ClimbCardScreen: View {
             }
         }
         .padding(.bottom, 28)
+    }
+
+    /// Which gym this route is at, and a way to say so.
+    ///
+    /// Every climb recorded before Trace asked has no gym, and there is no
+    /// honest way to work one out afterwards: the footage shows a wall, not an
+    /// address. So it is asked rather than guessed, once, and answering applies
+    /// to every attempt on the route.
+    private var whereItWas: some View {
+        let gym = store.gyms.first { $0.id == live.latest.gymID }
+        return Button { choosingGym = true } label: {
+            HStack(spacing: 9) {
+                Image(systemName: gym == nil ? "mappin.slash" : "mappin.and.ellipse")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.ink3)
+                Text(gym?.name ?? "Not filed at a gym")
+                    .font(Theme.ui(14, gym == nil ? .regular : .semibold))
+                    .foregroundStyle(gym == nil ? Theme.ink3 : Theme.ink2)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Text(gym == nil ? "Choose" : "Change")
+                    .font(Theme.ui(13, .semibold))
+                    .foregroundStyle(Theme.accentText)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, Theme.gutter)
+        .confirmationDialog("Which gym?", isPresented: $choosingGym, titleVisibility: .visible) {
+            ForEach(store.gyms) { g in
+                Button(g.name) { store.setGym(g.id, for: live.latest) }
+            }
+            if live.latest.gymID != nil {
+                Button("Not at a gym", role: .destructive) { store.setGym(nil, for: live.latest) }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(store.gyms.isEmpty
+                 ? "You have no gyms yet. Add one from Explore or by scanning a route."
+                 : "This applies to every attempt on this route.")
+        }
     }
 
     /// The lowest-entropy attempt Trace could trust, which is the one worth

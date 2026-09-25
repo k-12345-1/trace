@@ -403,6 +403,60 @@ final class Store: ObservableObject {
         return out.sorted { $0.lastClimbed > $1.lastClimbed }
     }
 
+    // The three decisions about filing are pure functions on arrays, so they can
+    // be tested without a singleton that writes to disk. The methods below are
+    // the store applying them to its own state.
+
+    /// Every attempt filmed at one gym, newest first.
+    nonisolated static func climbs(_ all: [Climb], in gymID: UUID) -> [Climb] {
+        all.filter { $0.gymID == gymID }
+            .sorted { $0.recordedAt > $1.recordedAt }
+    }
+
+    /// Filing an attempt applies to every attempt on the same route, because
+    /// attempts on one route are attempts at one gym. An untitled climb has no
+    /// route to spread across, so it files alone.
+    nonisolated static func filing(_ gymID: UUID?, for climb: Climb, in all: [Climb]) -> [Climb] {
+        let key = climb.label.trimmingCharacters(in: .whitespaces).lowercased()
+        return all.map { other in
+            var copy = other
+            let otherKey = other.label.trimmingCharacters(in: .whitespaces).lowercased()
+            if other.id == climb.id || (!key.isEmpty && otherKey == key) {
+                copy.gymID = gymID
+            }
+            return copy
+        }
+    }
+
+    /// The gym to offer by default: wherever you were last time, or the only
+    /// gym there is. Never a guess from your location, because the phone being
+    /// near a gym is not the same as you climbing in it.
+    nonisolated static func likelyGym(climbs: [Climb], gyms: [Gym]) -> Gym? {
+        let recent = climbs.sorted { $0.recordedAt > $1.recordedAt }
+            .compactMap(\.gymID).first
+        if let recent, let gym = gyms.first(where: { $0.id == recent }) { return gym }
+        return gyms.count == 1 ? gyms.first : nil
+    }
+
+    func climbs(in gym: Gym) -> [Climb] { Self.climbs(climbs, in: gym.id) }
+
+    /// The library, narrowed to one gym: one entry per route climbed there.
+    func library(in gym: Gym) -> [LibraryEntry] {
+        let ids = Set(climbs(in: gym).map(\.id))
+        return library()
+            .map { LibraryEntry(attempts: $0.attempts.filter { ids.contains($0.id) }) }
+            .filter { !$0.attempts.isEmpty }
+            .sorted { $0.lastClimbed > $1.lastClimbed }
+    }
+
+    /// Files an attempt at a gym, or removes the association when passed nil.
+    func setGym(_ gymID: UUID?, for climb: Climb) {
+        climbs = Self.filing(gymID, for: climb, in: climbs)
+        persist()
+    }
+
+    var likelyGym: Gym? { Self.likelyGym(climbs: climbs, gyms: gyms) }
+
     /// Marks one attempt as topped out, or un-marks it.
     func toggleSent(_ climb: Climb) {
         guard let i = climbs.firstIndex(where: { $0.id == climb.id }) else { return }

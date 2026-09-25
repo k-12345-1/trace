@@ -173,6 +173,10 @@ struct Climb: Codable, Identifiable {
     /// climbs recorded before the field existed still decode: Swift's synthesized
     /// decoder ignores a property's default and throws on a missing key.
     var sent: Bool?
+    /// The gym you were in. Optional for the same reason, and also because it
+    /// genuinely can be unknown: every climb recorded before this existed has no
+    /// answer, and a climb filmed outdoors never will.
+    var gymID: UUID?
 
     var isSent: Bool { sent == true }
 

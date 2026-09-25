@@ -38,7 +38,26 @@ struct ExploreScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    NavHeader(title: nil) { dismiss() }
+                    HStack {
+                        NavHeader(title: nil) { dismiss() }
+                        Spacer(minLength: 0)
+                        NavigationLink {
+                            GymMapScreen(venues: venues, focus: whereabouts.state.location)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "map")
+                                    .font(.system(size: 13, weight: .medium))
+                                Text("Map")
+                                    .font(Theme.ui(14, .semibold))
+                            }
+                            .foregroundStyle(Theme.accentText)
+                            .padding(.horizontal, 14).padding(.vertical, 9)
+                            .background(Theme.surface, in: Capsule())
+                            .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, Theme.gutter - 4)
+                    }
                     header
                     search
                     locationRow
@@ -248,27 +267,29 @@ struct ExploreScreen: View {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
+    /// The colors you have scanned there once you have scanned any, and the
+    /// gym's mark before that.
     private func face(for venue: Venue) -> some View {
-        ZStack {
-            Theme.surface2
+        Group {
             if let gym = mine(venue), !store.routes(in: gym).isEmpty {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 2),
-                          spacing: 2) {
-                    ForEach(Array(store.routes(in: gym).prefix(4).enumerated()), id: \.offset) { _, r in
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(Color(hexString: r.colorHex))
-                            .frame(height: 18)
+                ZStack {
+                    Theme.surface2
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 2),
+                              spacing: 2) {
+                        ForEach(Array(store.routes(in: gym).prefix(4).enumerated()), id: \.offset) { _, r in
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(Color(hexString: r.colorHex))
+                                .frame(height: 18)
+                        }
                     }
+                    .padding(6)
                 }
-                .padding(6)
+                .frame(width: 54, height: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             } else {
-                Text(initials(venue.name))
-                    .font(Theme.serif(17, .semibold))
-                    .foregroundStyle(Theme.blue.opacity(0.5))
+                GymMark(name: venue.name, seed: venue.id)
             }
         }
-        .frame(width: 54, height: 54)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .allowsHitTesting(false)
     }
 
@@ -319,10 +340,6 @@ struct ExploreScreen: View {
             : "\(Int(miles.rounded())) miles away"
     }
 
-    private func initials(_ name: String) -> String {
-        let letters = name.split(separator: " ").prefix(2).compactMap(\.first)
-        return letters.isEmpty ? "G" : String(letters).uppercased()
-    }
 
     /// Said once, at the bottom, rather than implied nowhere. The credit is not
     /// optional: the data is under the Open Database License, which requires it.

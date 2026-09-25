@@ -186,6 +186,7 @@ struct RoutesScreen: View {
     var body: some View {
         let counts = store.routeCount(in: gym)
         let routes = store.routes(in: gym)
+        let climbed = store.library(in: gym)
         ZStack {
             Theme.ground.ignoresSafeArea()
             ScrollView {
@@ -202,16 +203,26 @@ struct RoutesScreen: View {
                         Text(gym.name)
                             .font(Theme.title(30))
                             .foregroundStyle(Theme.ink)
-                        Text("\(counts.total) scanned · \(counts.sent) sent")
+                        Text(subtitle(counts: counts, climbed: climbed.count))
                             .font(Theme.ui(14))
                             .foregroundStyle(Theme.ink3)
                     }
                     .padding(.horizontal, Theme.gutter)
                     .padding(.top, 12)
 
-                    if routes.isEmpty {
+                    // What you have actually done here comes before what is on
+                    // the walls. The routes are a catalogue; the climbs are the
+                    // reason you opened the gym.
+                    if !climbed.isEmpty {
+                        climbsHere(climbed)
+                    }
+
+                    if routes.isEmpty && climbed.isEmpty {
                         EmptyGym(gym: gym) { scanning = true }
-                    } else {
+                    } else if !routes.isEmpty {
+                        SectionTitle("Routes scanned here")
+                            .padding(.horizontal, Theme.gutter)
+                            .padding(.top, 8)
                         LazyVStack(spacing: 10) {
                             ForEach(routes) { route in
                                 NavigationLink { RouteDetailScreen(route: route) } label: { row(route) }
@@ -245,6 +256,59 @@ struct RoutesScreen: View {
                  ? "Nothing has been scanned here, so nothing else goes with it."
                  : "The \(counts.total) route\(counts.total == 1 ? "" : "s") scanned here, and their photos, go with it. Your climbs and their analysis stay.")
         }
+    }
+
+    private func subtitle(counts: (total: Int, sent: Int), climbed: Int) -> String {
+        var parts: [String] = []
+        if climbed > 0 { parts.append("\(climbed) climb\(climbed == 1 ? "" : "s")") }
+        parts.append("\(counts.total) scanned")
+        parts.append("\(counts.sent) sent")
+        return parts.joined(separator: " · ")
+    }
+
+    /// The routes you have filmed here, newest first.
+    private func climbsHere(_ entries: [LibraryEntry]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle("Climbed here")
+                .padding(.horizontal, Theme.gutter)
+            LazyVStack(spacing: 10) {
+                ForEach(entries) { entry in
+                    NavigationLink { ClimbCardScreen(entry: entry) } label: {
+                        HStack(spacing: 13) {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(entry.name)
+                                    .font(Theme.serif(17, .semibold))
+                                    .foregroundStyle(Theme.ink)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                HStack(spacing: 9) {
+                                    Text("\(entry.attemptCount) attempt\(entry.attemptCount == 1 ? "" : "s")")
+                                        .font(Theme.ui(13))
+                                        .foregroundStyle(Theme.ink3)
+                                    Text(entry.lastClimbed.formatted(date: .abbreviated, time: .omitted))
+                                        .font(Theme.ui(13))
+                                        .foregroundStyle(Theme.ink3)
+                                }
+                            }
+                            Spacer(minLength: 8)
+                            if entry.sendCount > 0 {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 26, height: 26)
+                                    .background(Circle().fill(Theme.blue))
+                            }
+                        }
+                        .padding(14)
+                        .card()
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Theme.gutter)
+        }
+        .padding(.bottom, 6)
     }
 
     /// Removing the gym lives on the gym, where you can see what is in it.

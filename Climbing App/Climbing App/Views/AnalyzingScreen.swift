@@ -5,8 +5,12 @@ struct AnalyzingScreen: View {
     let onClose: () -> Void
 
     @StateObject private var analyzer = ClimbAnalyzer()
+    @ObservedObject private var store = Store.shared
     @State private var label = ""
     @State private var started = false
+    @State private var gymID: UUID?
+    @State private var newGymName = ""
+    @State private var addingGym = false
 
     var body: some View {
         NavigationStack {
@@ -76,10 +80,13 @@ struct AnalyzingScreen: View {
                     MicroLabel(text: "Attempt \(n + 1) on this one", color: Theme.accentText)
                 }
 
+                whichGym
+
                 FlatButton(title: "Analyze", filled: true) {
                     guard !started else { return }
                     started = true
-                    Task { await analyzer.analyze(sourceURL: sourceURL, label: label) }
+                    let gym = gymID
+                    Task { await analyzer.analyze(sourceURL: sourceURL, label: label, gymID: gym) }
                 }
                 .padding(.top, 6)
             }
@@ -87,6 +94,69 @@ struct AnalyzingScreen: View {
 
             Spacer()
         }
+        .onAppear { gymID = gymID ?? store.likelyGym?.id }
+        .alert("New gym", isPresented: $addingGym) {
+            TextField("Name", text: $newGymName)
+            Button("Add") {
+                let name = newGymName.trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty { gymID = store.addGym(named: name).id }
+                newGymName = ""
+            }
+            Button("Cancel", role: .cancel) { newGymName = "" }
+        } message: {
+            Text("Whatever you call it. Trace has no directory to check it against.")
+        }
+    }
+
+    // MARK: Which gym
+
+    /// Where this was filmed, so the climb files itself under the gym.
+    ///
+    /// Offered rather than demanded: a climb with no gym is a perfectly good
+    /// climb, and one filmed outdoors has no right answer. The default is
+    /// wherever you were last time, which is right nearly every session and
+    /// costs one tap when it is not.
+    private var whichGym: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            MicroLabel(text: "Where")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(store.gyms) { gym in
+                        chip(gym.name, on: gymID == gym.id) {
+                            gymID = (gymID == gym.id) ? nil : gym.id
+                        }
+                    }
+                    chip("New gym", on: false, dashed: true) { addingGym = true }
+                }
+                .padding(.horizontal, 1)
+            }
+            Text(gymID == nil
+                 ? "Optional. Without it the climb still gets analyzed, it just will not show up under a gym."
+                 : "This attempt, and the others on this route, will show under that gym.")
+                .font(Theme.body(12))
+                .foregroundStyle(Theme.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func chip(_ text: String, on: Bool, dashed: Bool = false,
+                      action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(Theme.ui(13.5, .medium))
+                .foregroundStyle(on ? .white : Theme.ink2)
+                .lineLimit(1)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(on ? Theme.accent : Theme.surface, in: Capsule())
+                .overlay(
+                    Capsule().stroke(style: StrokeStyle(lineWidth: 1,
+                                                        dash: dashed ? [4, 3] : []))
+                        .foregroundStyle(dashed ? Theme.lineStrong : .clear)
+                )
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Working
