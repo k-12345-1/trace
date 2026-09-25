@@ -31,13 +31,6 @@ struct Account: Codable, Equatable {
         return "Climber"
     }
 
-    /// One or two letters for the masthead.
-    var initials: String {
-        let letters = displayName.split(whereSeparator: { $0 == " " || $0 == "." || $0 == "_" })
-            .prefix(2).compactMap { $0.first }.map(String.init)
-        return letters.isEmpty ? "C" : letters.joined().uppercased()
-    }
-
     static func local(name: String) -> Account {
         Account(id: UUID().uuidString, email: "", name: name)
     }

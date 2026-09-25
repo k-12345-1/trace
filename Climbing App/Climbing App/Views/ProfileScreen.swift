@@ -7,7 +7,7 @@ import SwiftUI
 /// point avatar tile, a full width navy pill, bold sans labels, and round icon
 /// wells, none of which appear anywhere else in Trace.
 ///
-/// So it is a page like the others now: a serif title, a strip of counts
+/// So it is a page like the others now: a serif name at the gutter, a strip of counts
 /// exactly as a route shows its counts, and one card of rows split by
 /// hairlines, the last two of which end something rather than go somewhere.
 /// Everything that was on it is still on it.
@@ -53,32 +53,25 @@ struct ProfileScreen: View {
 
     // MARK: Header
 
-    /// A square of their initials, the name, and when they joined. The square
-    /// is the size a gym's square is, because it is the same idea: a small
-    /// picture of who or what a row is about.
+    /// The name and when they joined, set the way every other page in the app
+    /// sets its title: a serif line at the gutter with a grey one under it.
+    ///
+    /// No initials square. A monogram is a stand-in for a picture on a row in a
+    /// list, which is what it does for a gym, and this is not a row: it is the
+    /// top of the only page that is about you, where the name is enough.
     private var header: some View {
-        HStack(alignment: .center, spacing: 16) {
-            Text(store.account?.initials ?? "C")
-                .font(Theme.serif(24, .semibold))
-                .foregroundStyle(Theme.blue)
-                .frame(width: 62, height: 62)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.rTile * 0.62,
-                                            style: .continuous))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(nameLines.joined(separator: " "))
-                    .font(Theme.title(30))
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(memberText)
-                    .font(Theme.ui(13))
-                    .foregroundStyle(Theme.ink3)
-            }
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(nameLines.joined(separator: " "))
+                .font(Theme.title(30))
+                .foregroundStyle(Theme.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(memberText)
+                .font(Theme.ui(13))
+                .foregroundStyle(Theme.ink3)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 16)
     }
