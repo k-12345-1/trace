@@ -109,7 +109,7 @@ struct ProfileScreen: View {
     private var rows: some View {
         VStack(spacing: 0) {
             NavigationLink { PersonalInfoScreen() } label: {
-                row(icon: AnyView(StrokeIcon(shape: Ic.User(), size: 21, color: Theme.blue)),
+                row(icon: AnyView(StrokeIcon(shape: Ic.User(), size: 24, color: Theme.blue)),
                     label: "Personal info", detail: bodyDetail)
             }
             .buttonStyle(.plain)
@@ -118,7 +118,7 @@ struct ProfileScreen: View {
 
             NavigationLink { SubscriptionScreen() } label: {
                 row(icon: AnyView(Image(systemName: "creditcard")
-                        .font(.system(size: 17, weight: .light))
+                        .font(.system(size: 20, weight: .light))
                         .foregroundStyle(Theme.blue)),
                     label: "Manage subscription", detail: subscriptionDetail)
             }
@@ -128,7 +128,7 @@ struct ProfileScreen: View {
 
             NavigationLink { LegalScreen.privacy() } label: {
                 row(icon: AnyView(Image(systemName: "checkmark.shield")
-                        .font(.system(size: 17, weight: .light))
+                        .font(.system(size: 20, weight: .light))
                         .foregroundStyle(Theme.blue)),
                     label: "Privacy & AI", detail: "On-device analysis · Policy")
             }
@@ -138,7 +138,7 @@ struct ProfileScreen: View {
 
             Button { confirmingSignOut = true } label: {
                 row(icon: AnyView(Image(systemName: "xmark")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)),
                     label: "Sign out", detail: "End your session", leaving: true)
             }
@@ -148,15 +148,15 @@ struct ProfileScreen: View {
 
             Button { confirmingDelete = true } label: {
                 row(icon: AnyView(Image(systemName: "xmark")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)),
                     label: "Delete account", detail: "Permanently remove your data",
                     leaving: true)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 6)
         .card()
         .padding(.horizontal, Theme.gutter)
     }
@@ -170,29 +170,29 @@ struct ProfileScreen: View {
     /// no chevron, because there is nowhere to arrive.
     private func row(icon: AnyView, label: String, detail: String,
                      leaving: Bool = false) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 16) {
             icon
-                .frame(width: 44, height: 44)
+                .frame(width: 52, height: 52)
                 .background(leaving ? Theme.blue : Theme.surface2)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(label)
-                    .font(Theme.serif(17.5, .semibold))
+                    .font(Theme.serif(19, .semibold))
                     .foregroundStyle(Theme.ink)
                 Text(detail)
-                    .font(Theme.ui(12.5))
+                    .font(Theme.ui(13.5))
                     .foregroundStyle(Theme.ink3)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
             if !leaving {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.ink3)
             }
         }
-        .frame(minHeight: 62)
+        .frame(minHeight: 76)
         .contentShape(Rectangle())
     }
 
