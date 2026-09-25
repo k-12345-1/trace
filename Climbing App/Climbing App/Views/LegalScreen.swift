@@ -32,6 +32,20 @@ struct LegalScreen: View {
     /// on its own from the sign-in screen or the paywall.
     var insideApp = true
 
+    /// Set as a document rather than as a screen of interface, which is two
+    /// departures from the rest of the app and both are deliberate.
+    ///
+    /// The type is sized in text styles rather than in fixed points, so these
+    /// two documents are the only place in Trace that grows when someone has
+    /// turned up text size in iOS. Every other screen is a fixed layout holding
+    /// measurements. This one is prose, and prose a person is being asked to
+    /// agree to has to be readable at whatever size they need it.
+    ///
+    /// And the sections are not cards. A card says "separate object", which is
+    /// right for a finding and wrong for a paragraph: nine shadowed boxes down
+    /// a column turn one continuous read into nine separate starts. A rule
+    /// above each heading separates just as well without interrupting, and it
+    /// leaves the paper showing behind the text.
     var body: some View {
         ZStack(alignment: .top) {
             PaperGround()
@@ -42,35 +56,48 @@ struct LegalScreen: View {
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text(title)
-                            .font(Theme.title(30))
+                            .font(.system(.title, design: .serif).weight(.semibold))
                             .foregroundStyle(Theme.ink)
                         Text("Version \(Self.version) · \(updated)")
-                            .font(Theme.ui(12.5))
+                            .font(.footnote)
                             .foregroundStyle(Theme.ink3)
+                        // The lede. Set larger than the body and in the same
+                        // serif, so the first thing read is the easiest thing
+                        // to read.
                         Text(standfirst)
-                            .font(Theme.ui(15.5))
+                            .font(.system(.title3, design: .serif))
                             .foregroundStyle(Theme.ink2)
+                            .lineSpacing(5)
                             .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 4)
+                            .padding(.top, 6)
                     }
                     .padding(.horizontal, Theme.gutter)
                     .padding(.top, 12)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 30)
 
-                    VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 30) {
                         ForEach(sections) { section in
-                            VStack(alignment: .leading, spacing: 9) {
-                                SectionTitle(section.heading)
-                                ForEach(Array(section.body.enumerated()), id: \.offset) { _, p in
-                                    Text(p)
-                                        .font(Theme.ui(14.5))
-                                        .foregroundStyle(Theme.ink2)
-                                        .fixedSize(horizontal: false, vertical: true)
+                            VStack(alignment: .leading, spacing: 13) {
+                                Hairline(color: Theme.lineStrong)
+                                    .padding(.bottom, 4)
+                                Text(section.heading)
+                                    .font(.system(.title3, design: .serif).weight(.semibold))
+                                    .foregroundStyle(Theme.ink)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                // Paragraphs are spaced further apart than the
+                                // lines inside them, which is the whole of what
+                                // makes a paragraph break visible.
+                                VStack(alignment: .leading, spacing: 15) {
+                                    ForEach(Array(section.body.enumerated()), id: \.offset) { _, p in
+                                        Text(p)
+                                            .font(.system(.body, design: .serif))
+                                            .foregroundStyle(Theme.ink)
+                                            .lineSpacing(6)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(17)
-                            .card()
                         }
                     }
                     .padding(.horizontal, Theme.gutter)
@@ -91,7 +118,7 @@ struct LegalScreen: View {
                 .background {
                     // Solid, and carried up through the status bar. Translucent,
                     // the paragraphs scrolling underneath ghost through it.
-                    Theme.ground.ignoresSafeArea(edges: .top)
+                    PaperBand()
                 }
         }
         .toolbar(.hidden, for: .navigationBar)

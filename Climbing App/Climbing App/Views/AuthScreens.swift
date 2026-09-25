@@ -257,13 +257,17 @@ private struct LegalFooter: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
+            // Legible, not fine print. This line is the only notice a person
+            // gets that they are agreeing to something, so setting it at the
+            // smallest size in the app would be the one piece of type where
+            // being hard to read is a convenience to us.
             Text("By continuing you agree to our")
-                .font(Theme.ui(11.5))
-                .foregroundStyle(Theme.ink3)
+                .font(Theme.ui(13))
+                .foregroundStyle(Theme.ink2)
             HStack(spacing: 5) {
                 link("Terms", .terms)
-                Text("and").font(Theme.ui(11.5)).foregroundStyle(Theme.ink3)
+                Text("and").font(Theme.ui(13)).foregroundStyle(Theme.ink2)
                 link("Privacy Policy", .privacy)
             }
         }
@@ -281,7 +285,7 @@ private struct LegalFooter: View {
     private func link(_ title: String, _ which: Document) -> some View {
         Button { showing = which } label: {
             Text(title)
-                .font(Theme.ui(11.5, .semibold))
+                .font(Theme.ui(13, .semibold))
                 .foregroundStyle(Theme.accentText)
                 .underline()
                 .contentShape(Rectangle())

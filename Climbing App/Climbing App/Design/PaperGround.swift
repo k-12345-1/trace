@@ -26,3 +26,22 @@ struct PaperGround: View {
             .ignoresSafeArea()
     }
 }
+
+/// The same paper, for a header that has to be opaque over scrolling text.
+///
+/// A pinned header needs to hide the paragraphs passing under it, so it cannot
+/// be clear, and filling it with the flat ground color leaves a visible panel
+/// of smooth paper against the grained page below it. This is the page's own
+/// surface, tiled from the same origin, so the seam disappears.
+struct PaperBand: View {
+    var body: some View {
+        Theme.ground
+            .overlay {
+                Image("PaperGrain")
+                    .resizable(resizingMode: .tile)
+                    .opacity(0.55)
+                    .blendMode(.multiply)
+            }
+            .ignoresSafeArea(edges: .top)
+    }
+}

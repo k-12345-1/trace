@@ -226,18 +226,19 @@ struct PaywallScreen: View {
     private var smallprint: some View {
         VStack(spacing: 12) {
             Text("Billed through your Apple ID at \(billing.priceText) each \(billing.periodText). It renews on its own until you turn renewal off, which you can do at any time in Settings under your name, then Subscriptions. Turning it off at least a day before the next charge stops that charge. Cancelling never touches anything already on your phone.")
-                .font(Theme.ui(12.5))
-                .foregroundStyle(Theme.ink3)
+                .font(Theme.ui(13.5))
+                .foregroundStyle(Theme.ink2)
+                .lineSpacing(3)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 18) {
                 Button("Terms") { showTerms = true }
-                    .font(Theme.ui(12.5, .semibold))
+                    .font(Theme.ui(13.5, .semibold))
                     .foregroundStyle(Theme.accentText)
                     .buttonStyle(.plain)
                 Button("Privacy Policy") { showPrivacy = true }
-                    .font(Theme.ui(12.5, .semibold))
+                    .font(Theme.ui(13.5, .semibold))
                     .foregroundStyle(Theme.accentText)
                     .buttonStyle(.plain)
             }
