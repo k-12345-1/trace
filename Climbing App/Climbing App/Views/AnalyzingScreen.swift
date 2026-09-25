@@ -165,7 +165,7 @@ struct AnalyzingScreen: View {
         VStack(spacing: 22) {
             Spacer()
             MicroLabel(text: "Watching")
-            Text("Tracking your center of mass")
+            Text("Tracking your movement")
                 .font(Theme.heading(20))
                 .foregroundStyle(Theme.ink)
 

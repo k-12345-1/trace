@@ -55,6 +55,13 @@ struct MainTabs: View {
     @State private var showScan = false
     @State private var showPaywall = false
     @State private var pickerItem: PhotosPickerItem?
+    /// True while a chosen clip is being copied in.
+    ///
+    /// Photos hands back a reference, not a file, so the clip has to be copied
+    /// out of the library before anything can read it. On a long clip, or one
+    /// that has to come down from iCloud first, that is seconds of a screen
+    /// that looks like it ignored the tap.
+    @State private var importing = false
     /// Why an import did not happen. Nil the rest of the time.
     @State private var importProblem: String?
     /// The clip waiting to be analyzed.
@@ -154,6 +161,8 @@ struct MainTabs: View {
             //
             // The pages still get the inset, so a field being typed into is
             // still scrolled clear of the keyboard.
+            if importing { bringingItIn }
+
             VStack(spacing: 0) {
                 // A spacer rather than a clear color. A Color fills the screen
                 // and takes every tap that lands on it, which would make the
@@ -189,6 +198,7 @@ struct MainTabs: View {
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
+            importing = true
             Task { await loadPicked(item) }
         }
         .alert("That clip did not come through",
@@ -199,6 +209,26 @@ struct MainTabs: View {
             Text(importProblem ?? "")
         }
         .preferredColorScheme(.light)
+    }
+
+    /// Shown while a chosen clip is copied out of the photo library.
+    private var bringingItIn: some View {
+        ZStack {
+            Theme.ground.opacity(0.94).ignoresSafeArea()
+            VStack(spacing: 14) {
+                ProgressView().controlSize(.large)
+                Text("Bringing the clip in")
+                    .font(Theme.serif(19, .semibold))
+                    .foregroundStyle(Theme.ink)
+                Text("Copying it out of your photo library. A long clip, or one still in iCloud, takes a moment.")
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink3)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 44)
+            }
+        }
+        .transition(.opacity)
     }
 
     /// Picking a tab. Three things happen here rather than one.
@@ -263,6 +293,7 @@ struct MainTabs: View {
     /// could not open, produced no analysis and no message: the same nothing as
     /// a button that was never pressed.
     private func loadPicked(_ item: PhotosPickerItem) async {
+        defer { importing = false }
         do {
             guard let movie = try await item.loadTransferable(type: PickedMovie.self) else {
                 pickerItem = nil

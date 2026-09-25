@@ -184,6 +184,8 @@ struct RoutesScreen: View {
     @State private var scanning = false
     @State private var confirmingDelete = false
     @State private var pickingImage: PhotosPickerItem?
+    @State private var fetchingLogo = false
+    @State private var logoProblem: String?
 
     var body: some View {
         let counts = store.routeCount(in: gym)
@@ -216,6 +218,8 @@ struct RoutesScreen: View {
                     }
                     .padding(.horizontal, Theme.gutter)
                     .padding(.top, 12)
+
+                    getTheirLogo
 
                     // What you have actually done here comes before what is on
                     // the walls. The routes are a catalogue; the climbs are the
@@ -255,6 +259,13 @@ struct RoutesScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
         .fullScreenCover(isPresented: $scanning) { ScanScreen(gym: gym) }
+        .alert("No logo came back",
+               isPresented: Binding(get: { logoProblem != nil },
+                                    set: { if !$0 { logoProblem = nil } })) {
+            Button("OK", role: .cancel) { logoProblem = nil }
+        } message: {
+            Text(logoProblem ?? "")
+        }
         .alert("Remove \(gym.name)?", isPresented: $confirmingDelete) {
             Button("Remove", role: .destructive) { store.deleteGym(gym); dismiss() }
             Button("Cancel", role: .cancel) { }
@@ -313,6 +324,61 @@ struct RoutesScreen: View {
 
     /// Read back out of the store so a new picture shows at once.
     private var live: Gym? { store.gyms.first { $0.id == gym.id } }
+
+    /// The gym's website, when the directory has one.
+    private var website: String? {
+        guard let id = live?.venueID else { return nil }
+        return GymDirectory.all.first { $0.id == id }?.website
+    }
+
+    /// Asking the gym's own site for its icon.
+    ///
+    /// A button rather than something the app does on its own, and the button
+    /// says what it will do. This is the only thing in Trace that reaches out
+    /// to anyone, it happens once per press, and it goes to the gym's own
+    /// server and nowhere else.
+    @ViewBuilder
+    private var getTheirLogo: some View {
+        if live?.imageFilename == nil, let site = website,
+           let host = URL(string: site)?.host {
+            VStack(alignment: .leading, spacing: 6) {
+                Button {
+                    fetchingLogo = true
+                    Task {
+                        defer { fetchingLogo = false }
+                        do {
+                            let data = try await LogoFetcher.logo(for: gym)
+                            store.setImage(data, for: gym)
+                        } catch {
+                            logoProblem = error.localizedDescription
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if fetchingLogo {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.down.circle")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        Text(fetchingLogo ? "Asking \(host)" : "Get their logo from \(host)")
+                            .font(Theme.ui(14, .semibold))
+                    }
+                    .foregroundStyle(Theme.accentText)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(fetchingLogo)
+
+                Text("Asks that site for its icon, this once. It is the only thing in Trace that leaves your phone, and what comes back is saved here like a photo you took.")
+                    .font(Theme.ui(12))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 4)
+        }
+    }
 
     private func subtitle(counts: (total: Int, sent: Int), climbed: Int) -> String {
         var parts: [String] = []

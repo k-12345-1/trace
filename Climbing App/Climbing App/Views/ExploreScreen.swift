@@ -185,7 +185,7 @@ struct ExploreScreen: View {
     @ViewBuilder
     private var list: some View {
         if venues.isEmpty {
-            Text("No gym here matches that. The list is a starter set, so it is very likely missing yours.")
+            Text("Nothing here matches that. The list is what OpenStreetMap has been told about, so it can be missing yours.")
                 .font(Theme.ui(14))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
