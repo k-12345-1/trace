@@ -84,9 +84,7 @@ struct ProfileScreen: View {
             .init(value: "\(store.climbs.count)",
                   label: store.climbs.count == 1 ? "Climb" : "Climbs"),
             .init(value: "\(store.gyms.count)",
-                  label: store.gyms.count == 1 ? "Gym" : "Gyms"),
-            .init(value: "\(store.routes.count)",
-                  label: store.routes.count == 1 ? "Route" : "Routes")
+                  label: store.gyms.count == 1 ? "Gym" : "Gyms")
         ], alignment: .center)
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 26)
