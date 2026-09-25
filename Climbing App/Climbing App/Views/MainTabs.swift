@@ -409,10 +409,11 @@ private struct AddPanel: View {
             // most of it empty and the sheet reads as having failed to load.
             // No scroll view: three is all there is, and a scroll view that
             // never scrolls is only a way to hide that something was cut off.
-            // Ten, not sixteen. The three cards share whatever the panel has
-            // left, so every point taken out of the gaps goes into them, and
-            // the cards are the thing you came to press.
-            VStack(spacing: 10) {
+            // The same gap everywhere: between the cards, above the first one,
+            // and below the last. One rhythm down the panel rather than a
+            // tighter one in the middle than at the ends, which is what reads
+            // as the stack having been squeezed to fit.
+            VStack(spacing: Self.margin) {
                 row(icon: "record.circle", title: "Record a climb",
                     detail: "Phone on the floor, square to the wall, whole boulder in frame.",
                     action: onRecord)
@@ -441,7 +442,9 @@ private struct AddPanel: View {
             // looked empty is not three cards four hundred points tall with
             // their text floating in the middle of them.
             .frame(maxHeight: .infinity)
-            .padding(.top, 12)
+            // Sixteen of the gap is already under the header, so this is the
+            // rest of it.
+            .padding(.top, Self.margin - 16)
             // The same margin the title has above it. Because the rows absorb
             // whatever is left over, this is the whole of the gap under the
             // last card rather than a minimum it might exceed.
