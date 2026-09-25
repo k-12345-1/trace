@@ -270,7 +270,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Trace;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Trace uses the camera to record your climb and to photograph walls you are scanning. Everything stays on this phone.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Trace uses your location to put the climbing gyms nearest you at the top of the list. Your location is used on this phone and is never sent anywhere.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Trace reads climbing clips and wall photos you already took. Nothing is uploaded or changed in your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -301,7 +300,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Trace;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Trace uses the camera to record your climb and to photograph walls you are scanning. Everything stays on this phone.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Trace uses your location to put the climbing gyms nearest you at the top of the list. Your location is used on this phone and is never sent anywhere.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Trace reads climbing clips and wall photos you already took. Nothing is uploaded or changed in your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
