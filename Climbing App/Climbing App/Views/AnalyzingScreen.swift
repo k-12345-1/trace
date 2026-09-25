@@ -32,10 +32,20 @@ struct AnalyzingScreen: View {
     private var naming: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button("CANCEL") { onClose() }
-                    .font(Theme.mono(11, weight: .medium))
-                    .tracking(1.3)
+                Button(action: onClose) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("Cancel")
+                            .font(Theme.ui(15, .semibold))
+                    }
                     .foregroundStyle(Theme.ink2)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 9)
+                    .background(Theme.surface, in: Capsule())
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
                 Spacer()
             }
             .padding(.horizontal, 20)

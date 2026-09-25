@@ -98,7 +98,7 @@ struct MainTabs: View {
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.
             if entryOpen {
-                Color.black.opacity(0.18)
+                Theme.ground.opacity(0.92)
                     .ignoresSafeArea()
                     .onTapGesture { close() }
                     .transition(.opacity)

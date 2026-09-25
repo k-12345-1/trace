@@ -165,6 +165,7 @@ private struct GymCard: View {
         }
         .frame(width: 92, height: 92)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .allowsHitTesting(false)
     }
 
     private var initials: String {

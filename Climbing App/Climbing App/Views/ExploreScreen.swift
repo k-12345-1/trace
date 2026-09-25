@@ -230,6 +230,7 @@ struct ExploreScreen: View {
         }
         .frame(width: 54, height: 54)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .allowsHitTesting(false)
     }
 
     /// The gym in your own list that is this venue, if you have scanned there.

@@ -156,11 +156,21 @@ struct RecordButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                Circle().stroke(Theme.lineStrong, lineWidth: 2).frame(width: 72, height: 72)
-                RoundedRectangle(cornerRadius: isRecording ? 4 : 26)
+                Circle()
+                    .stroke(.white.opacity(0.9), lineWidth: 3)
+                    .frame(width: 72, height: 72)
+                RoundedRectangle(cornerRadius: isRecording ? 5 : 26, style: .continuous)
                     .fill(Theme.accent)
-                    .frame(width: isRecording ? 30 : 52, height: isRecording ? 30 : 52)
+                    .frame(width: isRecording ? 30 : 58, height: isRecording ? 30 : 58)
             }
+            // The whole circle, and a bit more, is the target.
+            //
+            // A plain button hit-tests what it draws, and what this drew was a
+            // thin ring and a filled square inside it. Tapping the ring, which
+            // is most of what you can see, hit nothing at all, and once
+            // recording the only live target was the thirty point stop square.
+            .frame(width: 84, height: 84)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.18), value: isRecording)

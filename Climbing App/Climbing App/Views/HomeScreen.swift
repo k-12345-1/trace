@@ -123,7 +123,7 @@ struct HomeScreen: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
                     NavigationLink { ExploreScreen() } label: {
-                        GymTile(name: "Explore", sub: "Everything scanned") {
+                        GymTile(name: "Explore") {
                             ZStack {
                                 Theme.blueLight
                                 Image(systemName: "map")
@@ -140,7 +140,7 @@ struct HomeScreen: View {
                     }
 
                     Button { namingGym = true } label: {
-                        GymTile(name: "Add new", sub: "Name a gym") {
+                        GymTile(name: "Add gym") {
                             ZStack {
                                 Theme.accentWash
                                 Image(systemName: "plus")
@@ -261,7 +261,7 @@ struct SectionTitle: View {
 /// name rather than on the tile, so a photograph is never covered by a badge.
 private struct GymTile<Face: View>: View {
     let name: String
-    let sub: String
+    var sub: String? = nil
     var sent: Bool = false
     @ViewBuilder var face: Face
 
@@ -270,6 +270,11 @@ private struct GymTile<Face: View>: View {
             face
                 .frame(width: 128, height: 128)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                // A lazy grid inside a link's label eats the tap that should
+                // reach the link. The gym tiles draw their walls with one and
+                // were dead as a result, while Explore, whose face is a plain
+                // shape, worked. Nothing in the face needs to be touchable.
+                .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
@@ -284,13 +289,16 @@ private struct GymTile<Face: View>: View {
                             .foregroundStyle(Theme.blueLight)
                     }
                 }
-                Text(sub)
-                    .font(Theme.ui(13))
-                    .foregroundStyle(Theme.ink3)
-                    .lineLimit(1)
+                if let sub {
+                    Text(sub)
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink3)
+                        .lineLimit(1)
+                }
             }
         }
         .frame(width: 128, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
