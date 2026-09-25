@@ -438,7 +438,11 @@ private struct AddPanel: View {
             // looked empty is not three cards four hundred points tall with
             // their text floating in the middle of them.
             .frame(maxHeight: .infinity)
-            .padding(.vertical, 18)
+            .padding(.top, 18)
+            // The same margin the title has above it. Because the rows absorb
+            // whatever is left over, this is the whole of the gap under the
+            // last card rather than a minimum it might exceed.
+            .padding(.bottom, Self.margin)
         }
         // Full height, with rows that keep their own size inside it.
         //
@@ -452,6 +456,10 @@ private struct AddPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
+
+    /// The blue showing at either end of the panel: above the title and below
+    /// the last card. One number, used twice, so the sheet is not top heavy.
+    private static let margin: CGFloat = 30
 
     private var header: some View {
         ZStack {
@@ -476,9 +484,12 @@ private struct AddPanel: View {
         // Ten, not eighteen: the ring sits four points inside its tap target,
         // so this is what puts its edge on the same line as the cards below.
         .padding(.horizontal, 10)
-        // Lower than it was, so the room above the title matches the room
-        // between the title and the first card rather than being half of it.
-        .padding(.top, 32)
+        // Four short of the margin, because the ring sits four points inside
+        // its forty-four point tap target. What has to land on the margin is
+        // the ring's edge, not the box around it: the ring is the highest ink
+        // on the panel and the card below is the lowest, so measuring between
+        // those two is what makes the blue at either end the same.
+        .padding(.top, Self.margin - 4)
         .padding(.bottom, 16)
     }
 
@@ -514,7 +525,11 @@ private struct AddPanel: View {
             Spacer(minLength: 0)
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 176, alignment: .leading)
+        // The ceiling is high enough that the three cards still fill the
+        // tallest phone between them. If they stopped short of it, the slack
+        // would be split above and below the stack and the blue under the last
+        // card would no longer match the blue above the title.
+        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 200, alignment: .leading)
         .background(.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
