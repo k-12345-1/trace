@@ -48,7 +48,8 @@ struct PersonalInfoScreen: View {
                         value: $heightCM,
                         field: .height,
                         valid: heightValid,
-                        complaint: "That is outside 90 to 240 cm. Check the units."
+                        complaint: "That is outside 90 to 240 cm. Check the units.",
+                        effect: "Speeds on the overlay read in metres per second instead of body lengths. Trace estimates the scale from the frame where you were most extended, so treat it as close rather than exact."
                     )
                     Hairline().padding(.horizontal, 20)
                     measurement(
@@ -57,12 +58,12 @@ struct PersonalInfoScreen: View {
                         value: $spanCM,
                         field: .span,
                         valid: spanValid,
-                        complaint: "That is outside 90 to 260 cm. Check the units."
+                        complaint: "That is outside 90 to 260 cm. Check the units.",
+                        effect: "The dashed circle on the overlay becomes your actual reach. A hold outside it needs a shift of weight before it needs more strength."
                     )
                     Hairline().padding(.horizontal, 20)
                     weight
                     apeIndex
-                    whatItChanges
                     save
                 }
                 .padding(.bottom, 156)
@@ -86,7 +87,7 @@ struct PersonalInfoScreen: View {
             Text("Personal info")
                 .font(Theme.heading(22))
                 .foregroundStyle(Theme.ink)
-            Text("All three are optional. Trace works without them, it just reports distances in body lengths instead of metres.")
+            Text("All three are optional and Trace works without them.")
                 .font(Theme.body(13.5))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -113,7 +114,8 @@ struct PersonalInfoScreen: View {
 
     @ViewBuilder
     private func measurement(label: String, help: String, value: Binding<Double?>,
-                             field: Field, valid: Bool, complaint: String) -> some View {
+                             field: Field, valid: Bool, complaint: String,
+                             effect: String) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
@@ -140,8 +142,29 @@ struct PersonalInfoScreen: View {
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            buys(on: value.wrappedValue != nil, text: effect)
         }
         .padding(.horizontal, Theme.gutter).padding(.vertical, 18)
+    }
+
+    /// What a measurement buys, under the measurement itself.
+    ///
+    /// These used to be a list at the bottom of the screen, which meant reading
+    /// about height four fields after typing it. A thing is best explained where
+    /// it is asked for.
+    private func buys(on: Bool, text: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: on ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 13))
+                .foregroundStyle(on ? Theme.accent : Theme.ink3.opacity(0.6))
+                .padding(.top, 1)
+            Text(text)
+                .font(Theme.ui(12.5))
+                .foregroundStyle(on ? Theme.ink2 : Theme.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 2)
     }
 
     // MARK: Weight
@@ -169,6 +192,9 @@ struct PersonalInfoScreen: View {
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            buys(on: massKG != nil && heightCM != nil,
+                 text: "With your height as well, the rise and fall of your centre of mass reads in joules rather than as a ratio. It does not move your centre of mass, which is a weighted average of where your limbs are and comes out in the same place whatever you weigh.")
         }
         .padding(.horizontal, Theme.gutter).padding(.vertical, 18)
     }
@@ -196,50 +222,6 @@ struct PersonalInfoScreen: View {
             .background(Theme.blueWash)
             .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
             .padding(.horizontal, Theme.gutter)
-        }
-    }
-
-    // MARK: What it buys
-
-    private var whatItChanges: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitle("What these change")
-            effect(
-                "Height",
-                on: heightCM != nil,
-                text: "Speeds on the overlay read in metres per second instead of body lengths. Trace estimates the scale from the frame where you were most extended, so treat it as close rather than exact."
-            )
-            effect(
-                "Reach",
-                on: spanCM != nil,
-                text: "The dashed circle on the overlay becomes your actual reach. A hold outside it needs a shift of weight before it needs more strength."
-            )
-            effect(
-                "Weight",
-                on: massKG != nil && heightCM != nil,
-                text: "With your height as well, the rise and fall of your centre of mass reads in joules rather than as a ratio. It does not move your centre of mass, which is a weighted average of where your limbs are and comes out in the same place whatever you weigh."
-            )
-        }
-        .padding(.horizontal, Theme.gutter)
-        .padding(.top, 26)
-        .padding(.bottom, 26)
-    }
-
-    private func effect(_ title: String, on: Bool, text: String) -> some View {
-        HStack(alignment: .top, spacing: 11) {
-            Image(systemName: on ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 14))
-                .foregroundStyle(on ? Theme.accent : Theme.ink3)
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(Theme.ui(13.5, .semibold))
-                    .foregroundStyle(on ? Theme.ink : Theme.ink2)
-                Text(text)
-                    .font(Theme.body(12.5))
-                    .foregroundStyle(Theme.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
     }
 

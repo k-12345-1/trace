@@ -15,6 +15,11 @@ enum Ic {
     ///
     /// The doorway is cut out of the outline rather than drawn as a second
     /// shape, which is why it is one continuous path.
+    ///
+    /// Its jambs sit at x 9 and 15, so it is centred on the ridge at 12. The
+    /// first trace of this put the right jamb at 16, which centred the doorway
+    /// on 12.5 and left the whole icon looking very slightly askew without
+    /// anything obviously wrong with it.
     struct Home: Shape {
         func path(in rect: CGRect) -> Path {
             let s = min(rect.width, rect.height) / Ic.box
@@ -25,9 +30,9 @@ enum Ic {
             path.move(to: p(3, 11))
             path.addLine(to: p(12, 4))
             path.addLine(to: p(21, 11))
-            path.addArc(tangent1End: p(21, 22), tangent2End: p(16, 22), radius: 2 * s)
-            path.addLine(to: p(16, 22))
-            path.addLine(to: p(16, 15))
+            path.addArc(tangent1End: p(21, 22), tangent2End: p(15, 22), radius: 2 * s)
+            path.addLine(to: p(15, 22))
+            path.addLine(to: p(15, 15))
             path.addLine(to: p(9, 15))
             path.addLine(to: p(9, 22))
             path.addLine(to: p(5, 22))

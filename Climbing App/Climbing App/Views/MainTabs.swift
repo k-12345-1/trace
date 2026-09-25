@@ -126,7 +126,7 @@ struct MainTabs: View {
                 .transition(.opacity)
             }
 
-            TabBar(tab: $tab, entryOpen: entryOpen, onReselect: popToRoot) {
+            TabBar(tab: $tab, entryOpen: entryOpen, onPick: pick) {
                 withAnimation(.easeOut(duration: 0.18)) { entryOpen.toggle() }
             }
             .padding(.horizontal, 10)
@@ -155,11 +155,21 @@ struct MainTabs: View {
         .preferredColorScheme(.light)
     }
 
-    /// Tapping the tab you are already on empties its stack.
-    private func popToRoot(_ which: Tab) {
-        switch which {
-        case .home:    homeRoot += 1
-        case .profile: profileRoot += 1
+    /// Picking a tab. Three things happen here rather than one.
+    ///
+    /// The add panel closes, because it is not a modal and nothing else would
+    /// dismiss it: tapping a tab underneath it and having it stay put is the
+    /// panel behaving like a sheet that forgot to be one. Tapping the tab you
+    /// are already on empties its stack. And otherwise it just switches.
+    private func pick(_ which: Tab) {
+        if entryOpen { close() }
+        if tab == which {
+            switch which {
+            case .home:    homeRoot += 1
+            case .profile: profileRoot += 1
+            }
+        } else {
+            tab = which
         }
     }
 
@@ -181,7 +191,7 @@ struct MainTabs: View {
 private struct TabBar: View {
     @Binding var tab: MainTabs.Tab
     let entryOpen: Bool
-    let onReselect: (MainTabs.Tab) -> Void
+    let onPick: (MainTabs.Tab) -> Void
     let onCentre: () -> Void
 
     private let height: CGFloat = 64
@@ -205,9 +215,7 @@ private struct TabBar: View {
 
     private func item(_ which: MainTabs.Tab) -> some View {
         let active = tab == which && !entryOpen
-        return Button {
-            if tab == which { onReselect(which) } else { tab = which }
-        } label: {
+        return Button { onPick(which) } label: {
             ZStack(alignment: .bottom) {
                 which.icon(size: 23, color: active ? Theme.blueLight : .white.opacity(0.82))
                 // A short rule, not a pill. It marks the tab without turning
@@ -215,7 +223,7 @@ private struct TabBar: View {
                 Capsule()
                     .fill(Theme.blueLight)
                     .frame(width: active ? 14 : 0, height: 2)
-                    .offset(y: 15)
+                    .offset(y: 13)
             }
             .frame(width: target, height: target)
             .frame(maxWidth: .infinity)

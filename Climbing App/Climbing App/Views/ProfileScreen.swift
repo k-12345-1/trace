@@ -32,6 +32,7 @@ struct ProfileScreen: View {
                 .padding(.bottom, 156)
             }
             .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)

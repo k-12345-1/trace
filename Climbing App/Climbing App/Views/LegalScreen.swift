@@ -74,12 +74,6 @@ struct LegalScreen: View {
                         }
                     }
                     .padding(.horizontal, Theme.gutter)
-
-                    Text("Questions about either document go to hello@traceclimb.co.")
-                        .font(Theme.ui(13))
-                        .foregroundStyle(Theme.ink3)
-                        .padding(.horizontal, Theme.gutter)
-                        .padding(.top, 20)
                 }
                 // Enough to clear the tab bar when this is pushed inside the
                 // app, and no more. The fixed 156 that every screen behind the
@@ -122,6 +116,10 @@ extension LegalScreen {
                 Section(heading: "The analysis", body: [
                     "Pose estimation runs on the device using Apple's Vision framework. No frame of your footage is sent to us or to any other company for analysis.",
                     "Trace does not use a large language model. Nothing you record is used to train anything, ours or anyone else's."
+                ]),
+                Section(heading: "Your location", body: [
+                    "The Explore screen can sort the list of climbing gyms by how near each one is to you. To do that it asks iOS where the phone is.",
+                    "That coordinate is used on the device to sort a list that is already on the device, and it is not stored, not written to disk, and not sent anywhere. Saying no leaves the list in alphabetical order and costs you nothing else."
                 ]),
                 Section(heading: "What does leave the device", body: [
                     "Your account. Signing in sends your email address and password to our authentication provider so we can tell whether the person opening the app is you. We store your email address, when the account was made, and nothing else about you. We do not store your password: the provider holds a hash of it.",

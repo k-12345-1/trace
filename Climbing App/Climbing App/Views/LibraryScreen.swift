@@ -18,7 +18,7 @@ struct LibraryScreen: View {
                     NavHeader(title: nil) { dismiss() }
                     header(count: entries.count)
                     if entries.isEmpty {
-                        Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will tell you where the energy went.")
+                        Text("Nothing yet. Record a boulder or import a clip you already have, and Trace will analyze your movement pattern.")
                             .font(Theme.ui(15))
                             .foregroundStyle(Theme.ink2)
                             .fixedSize(horizontal: false, vertical: true)

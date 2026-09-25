@@ -63,7 +63,7 @@ struct PaywallScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Keep scanning")
+            Text("Keep climbing")
                 .font(Theme.title(32))
                 .foregroundStyle(Theme.ink)
             Text("Your first route was free. Scanning more of the wall, and everything Trace works out from them, is part of Trace Pro.")
@@ -170,10 +170,11 @@ struct PaywallScreen: View {
     /// The disclosures Apple's guidelines require next to the button: what is
     /// charged, how often, that it renews, and how to stop it.
     private var smallprint: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             Text("Billed through your Apple ID at \(billing.priceText) each \(billing.periodText). It renews on its own until you turn renewal off, which you can do at any time in Settings under your name, then Subscriptions. Turning it off at least a day before the next charge stops that charge. Cancelling never touches anything already on your phone.")
                 .font(Theme.ui(12.5))
                 .foregroundStyle(Theme.ink3)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 18) {
@@ -185,8 +186,8 @@ struct PaywallScreen: View {
                     .font(Theme.ui(12.5, .semibold))
                     .foregroundStyle(Theme.accentText)
                     .buttonStyle(.plain)
-                Spacer()
             }
+            .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 20)
