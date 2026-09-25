@@ -18,7 +18,7 @@ struct ProfileScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     header
@@ -224,7 +224,7 @@ struct SubscriptionScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     NavHeader(title: nil) { dismiss() }

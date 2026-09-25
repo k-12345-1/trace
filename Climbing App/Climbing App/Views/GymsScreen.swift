@@ -19,7 +19,7 @@ struct GymsScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     NavHeader(title: nil) { dismiss() }
@@ -192,7 +192,7 @@ struct RoutesScreen: View {
         let routes = store.routes(in: gym)
         let climbed = store.library(in: gym)
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // Back on the left, remove on the right, on the same line.
@@ -499,7 +499,7 @@ struct RouteDetailScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // The photograph is the header: it runs to the very top of

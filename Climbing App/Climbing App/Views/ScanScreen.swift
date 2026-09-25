@@ -64,7 +64,7 @@ struct ScanScreen: View {
     }
 
     /// The photograph, and everything you do to it.
-    private var wallBackground: some View { Theme.ground.ignoresSafeArea() }
+    private var wallBackground: some View { PaperGround() }
 
     private func wall(_ image: UIImage) -> some View {
         NavigationStack {

@@ -28,6 +28,10 @@ struct SuggestedRoutes: View {
                     }
                     .padding(.horizontal, Theme.gutter)
                 }
+            // Only up and down. A row whose contents already fit still
+            // takes a sideways drag and rubber-bands, which on a page that
+            // scrolls vertically reads as the page itself coming loose.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
                 Text(picks[0].reason)
                     .font(Theme.ui(14))
                     .foregroundStyle(Theme.ink3)

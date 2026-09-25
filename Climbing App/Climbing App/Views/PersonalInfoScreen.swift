@@ -40,7 +40,7 @@ struct PersonalInfoScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     NavHeader(title: nil) { dismiss() }

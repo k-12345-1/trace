@@ -73,7 +73,7 @@ private struct AuthShell<Content: View>: View {
         GeometryReader { geo in
             let top = stackTop(geo)
             ZStack(alignment: .top) {
-                Theme.ground.ignoresSafeArea()
+                PaperGround()
 
                 LogoLockup()
                     .scaleEffect(revealed ? Lockup.rest : 1, anchor: .top)
@@ -112,7 +112,10 @@ private struct AuthShell<Content: View>: View {
         .preferredColorScheme(.light)
         .onAppear {
             guard !revealed else { return }
-            withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.7).delay(0.9)) {
+            // The mark holds the screen on its own for a beat before the form
+            // arrives under it. Long enough to read as an opening rather than
+            // a slow load, short enough that it is not in the way.
+            withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.9).delay(1.5)) {
                 revealed = true
             }
         }
@@ -531,7 +534,7 @@ struct StaySignedInScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
 

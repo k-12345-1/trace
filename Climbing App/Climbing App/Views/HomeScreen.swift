@@ -8,7 +8,7 @@ struct HomeScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     masthead
@@ -143,11 +143,18 @@ struct HomeScreen: View {
 
                     Button { namingGym = true } label: {
                         GymTile(name: "Add gym") {
+                            // Paper with a drawn edge, not a filled block. A
+                            // wash of ink over cream composites to a cold
+                            // lavender, and an empty slot should look like an
+                            // empty slot anyway.
                             ZStack {
-                                Theme.accentWash
+                                Theme.surface
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                                    .foregroundStyle(Theme.lineStrong)
                                 Image(systemName: "plus")
                                     .font(.system(size: 30, weight: .light))
-                                    .foregroundStyle(Theme.blue)
+                                    .foregroundStyle(Theme.accent)
                             }
                         }
                     }
@@ -155,6 +162,10 @@ struct HomeScreen: View {
                 }
                 .padding(.horizontal, Theme.gutter)
             }
+            // Only up and down. A row whose contents already fit still
+            // takes a sideways drag and rubber-bands, which on a page that
+            // scrolls vertically reads as the page itself coming loose.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
         .padding(.top, 26)
         .padding(.bottom, 26)

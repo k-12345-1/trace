@@ -79,7 +79,7 @@ struct MainTabs: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
 
             Group {
                 switch tab {
@@ -121,8 +121,7 @@ struct MainTabs: View {
                 // Opaque. At anything less the masthead and the cards behind it
                 // showed through, which made the panel read as a translucent
                 // sheet over a page rather than as its own screen.
-                Theme.ground
-                    .ignoresSafeArea()
+                PaperGround()
                     .onTapGesture { close() }
                     .transition(.opacity)
             }

@@ -15,7 +15,7 @@ struct AnalyzingScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.ground.ignoresSafeArea()
+                PaperGround()
                 switch analyzer.state {
                 case .idle:     naming
                 case .working:  working
@@ -130,6 +130,10 @@ struct AnalyzingScreen: View {
                 }
                 .padding(.horizontal, 1)
             }
+            // Only up and down. A row whose contents already fit still
+            // takes a sideways drag and rubber-bands, which on a page that
+            // scrolls vertically reads as the page itself coming loose.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             Text(gymID == nil
                  ? "Optional. Without it the climb still gets analyzed, it just will not show up under a gym."
                  : "This attempt, and the others on this route, will show under that gym.")

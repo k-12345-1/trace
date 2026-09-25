@@ -84,12 +84,21 @@ struct FindingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let still {
-                Image(uiImage: still)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                // A flexible ground with the image as an overlay, so the clip
+                // happens against the card's width. Clipping a scaledToFill
+                // image directly clips to the image's own natural size, which
+                // is no clipping at all: the frame stays wider than the page
+                // and the scroll view lets you drag it sideways.
+                Theme.surface2
                     .frame(height: 148)
                     .frame(maxWidth: .infinity)
+                    .overlay {
+                        Image(uiImage: still)
+                            .resizable()
+                            .scaledToFill()
+                    }
                     .clipped()
+                    .contentShape(Rectangle())
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -324,5 +333,9 @@ struct FlowOfChips: View {
             }
             .padding(.horizontal, 1)
         }
+            // Only up and down. A row whose contents already fit still
+            // takes a sideways drag and rubber-bands, which on a page that
+            // scrolls vertically reads as the page itself coming loose.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 }

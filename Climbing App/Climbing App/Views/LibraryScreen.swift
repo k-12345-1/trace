@@ -12,7 +12,7 @@ struct LibraryScreen: View {
     var body: some View {
         let entries = store.library()
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     NavHeader(title: nil) { dismiss() }

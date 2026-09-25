@@ -34,7 +34,7 @@ struct LegalScreen: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Space for the pinned header, which is not in this column.

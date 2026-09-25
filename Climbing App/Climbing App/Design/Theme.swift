@@ -10,11 +10,18 @@ enum Theme {
     // dark blue. Everything on screen is one of those, at a weight or an
     // opacity. The gray is given a blue cast so it belongs to the same family
     // rather than sitting beside it as a neutral.
-    static let ground   = Color(hex: 0xFFFFFF)
-    static let surface  = Color(hex: 0xF2F5F9)   // the light gray
-    static let surface2 = Color(hex: 0xE5EBF2)
-    static let line     = Color(hex: 0xE8EDF3)
-    static let lineStrong = Color(hex: 0xCBD6E2)
+    // The ground is the logo's paper, sampled off the artwork rather than
+    // picked: #FAF9F4 is the average of its clean margin. Pure white beside a
+    // cream print makes the print look like a sticker someone put on a screen.
+    //
+    // The grays are warmed to match. They used to carry a blue cast so they
+    // belonged to the blue family; on cream a blue-gray reads as cold and the
+    // page stops being paper, so they carry the paper's cast instead.
+    static let ground   = Color(hex: 0xFAF9F4)
+    static let surface  = Color(hex: 0xF1EFE7)   // the light gray
+    static let surface2 = Color(hex: 0xE6E3D8)
+    static let line     = Color(hex: 0xEAE7DD)
+    static let lineStrong = Color(hex: 0xD2CCBD)
 
     /// Cards are separated by fill and a little lift, not by a drawn border.
     /// A 1 pixel outline on every surface is what makes a layout look ruled
@@ -24,8 +31,11 @@ enum Theme {
     /// The two blues. Dark carries the words and the actions; light carries the
     /// washes, the highlights and the low end of the severity ramp.
     static let blue      = Color(hex: 0x0F2C5C)
-    static let blueLight = Color(hex: 0x5B95D6)
-    static let blueWash  = Color(hex: 0x5B95D6).opacity(0.13)
+    // A tint of the logo's ink rather than a separate sky blue. Two blues that
+    // are nearly the same hue read as a mistake; one hue at two strengths reads
+    // as a choice.
+    static let blueLight = Color(hex: 0x8094D0)
+    static let blueWash  = Color(hex: 0x8094D0).opacity(0.16)
 
     /// Kept so older code that asked for the banner color still compiles.
     static let wine = blue
@@ -42,9 +52,17 @@ enum Theme {
     //
     // The dark blue. Hierarchy comes from weight, size and ground rather than
     // from a second hue, which is what makes a small palette hold together.
-    static let accent     = Color(hex: 0x0F2C5C)
-    static let accentText = Color(hex: 0x1C4C8F)
-    static let accentWash = Color(hex: 0x5B95D6).opacity(0.13)
+    // The ink from the logo, #0128A1, sampled off the solid of the wordmark.
+    // It is what the actions and the links are set in, so the brightest thing
+    // on a page is the same blue as the mark at the top of it.
+    //
+    // Text stays the navy. Body copy in this ultramarine would be shouting, and
+    // an app is mostly body copy. White on the ink measures about twelve to
+    // one, and the ink on the paper about eleven to one, so both are well clear
+    // of what small text needs.
+    static let accent     = Color(hex: 0x0128A1)
+    static let accentText = Color(hex: 0x0128A1)
+    static let accentWash = Color(hex: 0x0128A1).opacity(0.07)
 
     /// Affirmative. The same blue: a cleared focus is told apart from an open
     /// one by its words and its ground, not by its hue.

@@ -113,7 +113,7 @@ struct ResultsScreen: View {
 
     var body: some View {
         ZStack {
-            Theme.ground.ignoresSafeArea()
+            PaperGround()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // The footage is the header. It runs to both edges and to
