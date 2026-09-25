@@ -190,7 +190,14 @@ struct RoutesScreen: View {
             Theme.ground.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    NavHeader(title: nil) { dismiss() }
+                    // Back on the left, remove on the right, on the same line.
+                    // It was a full width button at the foot of the page, which
+                    // is a lot of furniture for something you do once.
+                    HStack {
+                        NavHeader(title: nil) { dismiss() }
+                        Spacer(minLength: 0)
+                        removeGym
+                    }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(gym.name)
                             .font(Theme.title(30))
@@ -222,8 +229,6 @@ struct RoutesScreen: View {
                         }
                         .padding(.horizontal, Theme.gutter)
                     }
-
-                    removeGym
                 }
                 .padding(.bottom, 156)
             }
@@ -243,21 +248,22 @@ struct RoutesScreen: View {
     }
 
     /// Removing the gym lives on the gym, where you can see what is in it.
-    /// It was only ever a long press on the list before this, which is a gesture
-    /// with nothing on screen to suggest it exists.
+    /// Before this it was only a long press on the list, which is a gesture with
+    /// nothing on screen to suggest it exists.
+    ///
+    /// The tap only opens the question. Nothing here deletes anything on its
+    /// own, which is what makes a bare icon an acceptable control for it.
     private var removeGym: some View {
         Button { confirmingDelete = true } label: {
-            Text("Remove this gym")
-                .font(Theme.ui(15, .semibold))
+            Image(systemName: "trash")
+                .font(.system(size: 16, weight: .regular))
                 .foregroundStyle(Theme.ink2)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(Theme.surface, in: Capsule())
-                .contentShape(Capsule())
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, Theme.gutter)
-        .padding(.top, 10)
+        .padding(.trailing, Theme.gutter - 4)
+        .accessibilityLabel("Remove this gym")
     }
 
     private func row(_ route: Route) -> some View {

@@ -21,9 +21,6 @@ struct ExploreScreen: View {
     @StateObject private var whereabouts = Whereabouts()
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
-    /// The row that just changed, so the change is confirmed where the thumb is
-    /// rather than somewhere else on the screen.
-    @State private var justChanged: String?
 
     private var venues: [Venue] {
         let all = GymDirectory.sorted(by: whereabouts.state.location)
@@ -209,12 +206,12 @@ struct ExploreScreen: View {
                             .font(Theme.ui(12.5, .medium)).monospacedDigit()
                             .foregroundStyle(Theme.accentText)
                     }
-                    if gym != nil {
-                        Text(justChanged == venue.id
-                             ? "Added to your gyms"
-                             : (routes == 0
-                                ? "In your gyms. Tap to remove"
-                                : "In your gyms. \(routes) route\(routes == 1 ? "" : "s")"))
+                    // The check says it is yours. A line of prose saying the
+                    // same thing is the check not being trusted to do its job.
+                    // The route count stays, because that is something the mark
+                    // cannot tell you.
+                    if gym != nil, routes > 0 {
+                        Text("\(routes) route\(routes == 1 ? "" : "s")")
                             .font(Theme.ui(12.5, .medium))
                             .foregroundStyle(Theme.blue)
                     }
@@ -229,6 +226,8 @@ struct ExploreScreen: View {
                 .foregroundStyle(gym == nil ? Theme.ink2 : .white)
                 .frame(width: 26, height: 26)
                 .background(Circle().fill(gym == nil ? Theme.surface2 : Theme.blue))
+                // The mark is now the whole confirmation, so it has to move.
+                .animation(.easeOut(duration: 0.18), value: gym != nil)
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -240,21 +239,11 @@ struct ExploreScreen: View {
     private func tap(_ venue: Venue) {
         if let gym = mine(venue) {
             // Only ever a gym with nothing in it. A gym with routes is left
-            // alone here; the Gyms screen deletes, and it asks first.
+            // alone here; the gym's own screen deletes, and it asks first.
             guard store.routes(in: gym).isEmpty else { return }
             store.deleteGym(gym)
-            justChanged = nil
         } else {
             store.addGym(named: venue.name, venueID: venue.id)
-            justChanged = venue.id
-            // The confirmation is for the moment after the tap, not forever.
-            // Left up, it would still be saying "added" on a row you added last
-            // week. The row keeps saying it is yours either way.
-            let id = venue.id
-            Task {
-                try? await Task.sleep(for: .seconds(2.5))
-                if justChanged == id { withAnimation { justChanged = nil } }
-            }
         }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }

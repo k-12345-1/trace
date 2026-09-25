@@ -17,6 +17,7 @@ struct PersonalInfoScreen: View {
     @State private var name = ""
     @State private var place = ""
     @StateObject private var whereabouts = Whereabouts()
+    @StateObject private var places = PlaceSuggest()
     @FocusState private var focus: Field?
 
     enum Field: Hashable { case name, place, height, span, mass }
@@ -139,6 +140,7 @@ struct PersonalInfoScreen: View {
                               prompt: Text("City, state").foregroundStyle(Theme.ink3))
                         .font(Theme.ui(17, .medium))
                         .foregroundStyle(Theme.ink)
+                        .autocorrectionDisabled()
                         .focused($focus, equals: .place)
                         .padding(.horizontal, 16).padding(.vertical, 14)
                         .background(Theme.surface,
@@ -164,25 +166,57 @@ struct PersonalInfoScreen: View {
                     .accessibilityLabel("Use my location")
                 }
 
-                Text(locationHelp)
-                    .font(Theme.ui(12.5))
-                    .foregroundStyle(Theme.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
+                // The guesses, which replace the paragraph that used to explain
+                // what to type here. A list of real places says it better.
+                if focus == .place, !places.results.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(Array(places.results.enumerated()), id: \.offset) { i, guess in
+                            if i > 0 { Hairline() }
+                            Button {
+                                // Focus goes first. The change handler below
+                                // reads it, and picking a guess must not ask
+                                // for guesses about the guess.
+                                focus = nil
+                                place = guess
+                                places.clear()
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Theme.ink3)
+                                    Text(guess)
+                                        .font(Theme.ui(15))
+                                        .foregroundStyle(Theme.ink)
+                                        .lineLimit(1)
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .background(Theme.surface,
+                                in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                }
+
+                if case .denied = whereabouts.state {
+                    Text("Location is off for Trace. Type it instead, or turn it on in Settings.")
+                        .font(Theme.ui(12.5))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .onChange(of: place) { _, typed in
+                // Only while the field has the cursor. Filling it from the
+                // location button, or arriving with it already set, must not
+                // pop a list of alternatives to something nobody is editing.
+                if focus == .place { places.suggest(typed) } else { places.clear() }
             }
         }
         .padding(.horizontal, Theme.gutter)
         .padding(.bottom, 20)
-    }
-
-    private var locationHelp: String {
-        switch whereabouts.state {
-        case .denied:
-            return "Location is off for Trace, so type it instead. You can turn it on in Settings."
-        case .failed:
-            return "Could not work out where you are. Type it instead."
-        default:
-            return "Tap the arrow to fill this in from your phone, or type it. It is a label on your profile: Trace does not track where you are."
-        }
     }
 
     // MARK: Units
