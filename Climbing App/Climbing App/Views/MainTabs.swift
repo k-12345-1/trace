@@ -55,6 +55,8 @@ struct MainTabs: View {
     @State private var showScan = false
     @State private var showPaywall = false
     @State private var pickerItem: PhotosPickerItem?
+    /// Why an import did not happen. Nil the rest of the time.
+    @State private var importProblem: String?
     /// The clip waiting to be analyzed.
     ///
     /// An item rather than a flag beside an optional. A cover driven by
@@ -189,6 +191,13 @@ struct MainTabs: View {
             guard let item else { return }
             Task { await loadPicked(item) }
         }
+        .alert("That clip did not come through",
+               isPresented: Binding(get: { importProblem != nil },
+                                    set: { if !$0 { importProblem = nil } })) {
+            Button("OK", role: .cancel) { importProblem = nil }
+        } message: {
+            Text(importProblem ?? "")
+        }
         .preferredColorScheme(.light)
     }
 
@@ -247,11 +256,26 @@ struct MainTabs: View {
         DispatchQueue.main.async(execute: work)
     }
 
+    /// Copying a chosen clip somewhere Trace can read it.
+    ///
+    /// Every way this can fail now says so. It used to be one `try?` with a bare
+    /// return, so a clip still in iCloud, or one in a container the importer
+    /// could not open, produced no analysis and no message: the same nothing as
+    /// a button that was never pressed.
     private func loadPicked(_ item: PhotosPickerItem) async {
-        guard let movie = try? await item.loadTransferable(type: PickedMovie.self) else { return }
-        pickerItem = nil
-        done()
-        next { pending = PendingClip(url: movie.url) }
+        do {
+            guard let movie = try await item.loadTransferable(type: PickedMovie.self) else {
+                pickerItem = nil
+                importProblem = "That clip could not be read. If it is stored in iCloud, open it in Photos once to bring it down to the phone, then try again."
+                return
+            }
+            pickerItem = nil
+            done()
+            next { pending = PendingClip(url: movie.url) }
+        } catch {
+            pickerItem = nil
+            importProblem = error.localizedDescription
+        }
     }
 }
 
@@ -350,8 +374,15 @@ private struct AddPanel: View {
                     detail: "Phone on the floor, square to the wall, whole boulder in frame.",
                     action: onRecord)
 
-                PhotosPicker(selection: $pickerItem, matching: .videos,
-                             photoLibrary: .shared()) {
+                // No `photoLibrary: .shared()`. That argument asks for the in-process
+                // picker, which needs the person to have granted this app access to
+                // their whole library; without the grant it opens nothing and says
+                // nothing, which is exactly what "I pressed import and nothing
+                // happened" looks like. The plain picker runs out of process, hands
+                // back only the clip that was chosen, and needs no permission. It is
+                // also the more private of the two, which makes it the right default
+                // for this app regardless.
+                PhotosPicker(selection: $pickerItem, matching: .videos) {
                     rowBody(icon: "photo.on.rectangle", title: "Import a clip",
                             detail: "Use something you already filmed.")
                 }

@@ -119,7 +119,7 @@ struct AnalyzingScreen: View {
                 .padding(.horizontal, 40)
             }
 
-            Text("Every frame goes through pose estimation on this phone. Nothing is uploaded.")
+            Text("Every frame goes through movement analysis on this phone. Nothing is uploaded.")
                 .font(Theme.body(13))
                 .foregroundStyle(Theme.ink3)
                 .multilineTextAlignment(.center)

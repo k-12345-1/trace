@@ -117,8 +117,7 @@ struct WallCaptureScreen: View {
                 // a climb you filmed earlier is imported from the panel.
                 HStack {
                     Spacer()
-                    PhotosPicker(selection: $pickerItem, matching: .images,
-                                 photoLibrary: .shared()) {
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
                         VStack(spacing: 5) {
                             Image(systemName: "photo.on.rectangle")
                                 .font(.system(size: 19, weight: .regular))
@@ -168,7 +167,7 @@ struct WallCaptureScreen: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
+            PhotosPicker(selection: $pickerItem, matching: .images) {
                 Text("Choose a photo")
                     .font(Theme.ui(16, .semibold))
                     .foregroundStyle(Theme.blue)
