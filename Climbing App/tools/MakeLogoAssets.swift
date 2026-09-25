@@ -71,12 +71,43 @@ for y in 0..<max(0, wordTop - 6) {
 print("wordmark from row \(wordTop); figure rows \(top)...\(bottom) cols \(left)...\(right)")
 print("clean paper margin: x < \(inkLeft)")
 
+/// Which set in the catalog each file belongs to.
+///
+/// They used to be written loose at the top of the catalog and moved in by
+/// hand, which means a rerun of this tool silently changes nothing until
+/// somebody remembers to move four files.
+let sets = [
+    "icon-1024.png": "AppIcon.appiconset",
+    "mark.png": "TraceMark.imageset",
+    "lockup.png": "TraceLockup.imageset",
+    "wordmark.png": "TraceWordmark.imageset"
+]
+
 func write(_ image: CGImage, _ name: String) {
-    let url = URL(fileURLWithPath: outDir).appendingPathComponent(name)
+    var dir = URL(fileURLWithPath: outDir)
+    if let set = sets[name] {
+        dir = dir.appendingPathComponent(set)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let contents = dir.appendingPathComponent("Contents.json")
+        if !FileManager.default.fileExists(atPath: contents.path) {
+            let json = """
+            {
+              "images" : [
+                { "filename" : "\(name)", "idiom" : "universal", "scale" : "1x" },
+                { "idiom" : "universal", "scale" : "2x" },
+                { "idiom" : "universal", "scale" : "3x" }
+              ],
+              "info" : { "author" : "xcode", "version" : 1 }
+            }
+            """
+            try? json.write(to: contents, atomically: true, encoding: .utf8)
+        }
+    }
+    let url = dir.appendingPathComponent(name)
     let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
     CGImageDestinationAddImage(dest, image, nil)
     CGImageDestinationFinalize(dest)
-    print("wrote \(url.lastPathComponent)")
+    print("wrote \(sets[name] ?? "")/\(url.lastPathComponent)")
 }
 
 /// The ink, lifted off the paper it was printed on.
@@ -90,13 +121,18 @@ func write(_ image: CGImage, _ name: String) {
 let mattePaper = 30.0      // fully transparent at or below this distance
 let matteInk = 150.0       // fully opaque at or above it
 
-func matted(x0: Int, y0: Int, width cw: Int, height ch: Int) -> CGImage {
+/// `keep` is asked about each source pixel, in source coordinates. Anything it
+/// refuses comes out fully transparent, which is how the wordmark drops the
+/// wall it overlaps without cropping the top off its own T.
+func matted(x0: Int, y0: Int, width cw: Int, height ch: Int,
+            keep: (Int, Int) -> Bool = { _, _ in true }) -> CGImage {
     var out = [UInt8](repeating: 0, count: cw * ch * 4)
     for y in 0..<ch {
         for x in 0..<cw {
             let p = px(x0 + x, y0 + y)
             let distance = Double((paper.r - p.r) + (paper.g - p.g)) / 2
-            let a = min(max((distance - mattePaper) / (matteInk - mattePaper), 0), 1)
+            var a = min(max((distance - mattePaper) / (matteInk - mattePaper), 0), 1)
+            if !keep(x0 + x, y0 + y) { a = 0 }
             let i = (y * cw + x) * 4
             // Premultiplied, which is what the bitmap layout below expects.
             out[i]     = UInt8(Double(p.r) * a)
@@ -178,3 +214,43 @@ func lockup(name: String) {
 }
 
 lockup(name: "lockup.png")
+
+/// The word on its own, for the masthead.
+///
+/// Home used to set the name in the system serif beside the mark: the same word
+/// in two different letterforms, six points apart. This is the word as it was
+/// actually drawn.
+///
+/// Cutting it out means separating it from the wall, and the two overlap
+/// vertically: the wall's bottom tail runs down past the top of the T. What
+/// separates them is that in those rows the word is entirely on the left of the
+/// frame and the wall entirely on the right. So the row where the word's second
+/// letter starts is found, and above that row everything on the right is
+/// dropped. Nothing here is a fixed number measured by eye.
+func wordmark(name: String) {
+    let bodyLeft = Int(Double(w) * 0.44)
+    let bodyRight = Int(Double(w) * 0.55)
+    var bodyTop = h
+    for y in wordTop..<h {
+        if (bodyLeft..<bodyRight).contains(where: { isInk($0, y) }) { bodyTop = y; break }
+    }
+    func keep(_ x: Int, _ y: Int) -> Bool { y >= bodyTop || x < bodyLeft }
+
+    var top = h, bottom = 0, left = w, right = 0
+    for y in wordTop..<h {
+        for x in 0..<w where isInk(x, y) && keep(x, y) {
+            top = min(top, y); bottom = max(bottom, y)
+            left = min(left, x); right = max(right, x)
+        }
+    }
+    guard top < bottom, left < right else { fatalError("no wordmark found") }
+
+    let pad = 10
+    let x0 = max(0, left - pad), y0 = max(0, top - pad)
+    let cw = min(w - x0, right - left + 1 + pad * 2)
+    let ch = min(h - y0, bottom - top + 1 + pad * 2)
+    print("wordmark body from row \(bodyTop); rows \(top)...\(bottom) cols \(left)...\(right)")
+    write(matted(x0: x0, y0: y0, width: cw, height: ch, keep: keep), name)
+}
+
+wordmark(name: "wordmark.png")

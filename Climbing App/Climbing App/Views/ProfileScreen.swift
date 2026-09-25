@@ -262,7 +262,7 @@ struct SubscriptionScreen: View {
                                     .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
-                                    .background(Theme.accent)
+                                    .background(Theme.button)
                                     .clipShape(Capsule())
                                     .contentShape(Capsule())
                             }

@@ -50,10 +50,14 @@ struct HomeScreen: View {
                 // forty points the texture stops resolving and the figure turns
                 // into a smudge, so the mark is given the room it needs.
                 MountainMark(inset: 0)
-                    .frame(width: 46, height: 46)
-                Text("Trace")
-                    .font(Theme.serif(24, .semibold))
-                    .foregroundStyle(Theme.blue)
+                    .frame(width: 52, height: 52)
+                // The drawn word, not the system serif. Set in type it was a
+                // second letterform sitting six points from the first.
+                //
+                // Smaller than the figure, as it is in the artwork. The word is
+                // a heavy slab and the figure is a thin stipple, so matching
+                // their heights would let the word swallow the mark.
+                TraceWordmark(height: 25)
                 Spacer()
             }
         }
@@ -149,7 +153,12 @@ struct HomeScreen: View {
                             // empty slot anyway.
                             ZStack {
                                 Theme.surface
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                // The tile's own radius, not a smaller one.
+                                // Drawn at eighteen inside a twenty-two point
+                                // clip, the corner arcs bulged past the clip
+                                // and were cut off, which is why the dashes
+                                // stopped short of all four corners.
+                                RoundedRectangle(cornerRadius: Theme.rTile, style: .continuous)
                                     .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
                                     .foregroundStyle(Theme.lineStrong)
                                 Image(systemName: "plus")
@@ -181,7 +190,14 @@ struct HomeScreen: View {
         ) {
             ZStack {
                 Theme.surface
-                if colors.isEmpty {
+                if let picture = GymPicture.image(for: gym) {
+                    // Their logo, or the photo you took. Fitted, because a
+                    // logo cropped to a square loses the end of the name.
+                    Image(uiImage: picture)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(14)
+                } else if colors.isEmpty {
                     Text(initials(of: gym.name))
                         .font(Theme.serif(34, .semibold))
                         .foregroundStyle(Theme.blue)
@@ -282,7 +298,7 @@ private struct GymTile<Face: View>: View {
         VStack(alignment: .leading, spacing: 9) {
             face
                 .frame(width: 128, height: 128)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Theme.rTile, style: .continuous))
                 // A lazy grid inside a link's label eats the tap that should
                 // reach the link. The gym tiles draw their walls with one and
                 // were dead as a result, while Explore, whose face is a plain

@@ -191,7 +191,7 @@ private struct AuthButton: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
-                .background(enabled ? Theme.accent : Theme.accent.opacity(0.3))
+                .background(enabled ? Theme.button : Theme.button.opacity(0.3))
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -567,7 +567,7 @@ struct StaySignedInScreen: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Theme.accent)
+                            .background(Theme.button)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)

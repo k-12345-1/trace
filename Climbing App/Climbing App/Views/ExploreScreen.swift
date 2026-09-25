@@ -168,7 +168,7 @@ struct ExploreScreen: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
-                        .background(Theme.accent, in: Capsule())
+                        .background(Theme.button, in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -267,11 +267,17 @@ struct ExploreScreen: View {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    /// The colors you have scanned there once you have scanned any, and the
-    /// gym's mark before that.
+    /// The gym's own picture if it has one, then the colors you have scanned
+    /// there, then the mark Trace draws.
+    ///
+    /// The picture wins because it is the one thing here that is actually the
+    /// gym: their logo, fetched from their own site, or a photograph of the
+    /// place. A grid of hold colors is a good stand-in and a poor substitute.
     private func face(for venue: Venue) -> some View {
         Group {
-            if let gym = mine(venue), !store.routes(in: gym).isEmpty {
+            if let picture = GymPicture.image(for: mine(venue)) {
+                GymPictureSquare(image: picture)
+            } else if let gym = mine(venue), !store.routes(in: gym).isEmpty {
                 ZStack {
                     Theme.surface2
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 2),

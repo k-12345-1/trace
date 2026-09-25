@@ -259,7 +259,7 @@ struct ScanScreen: View {
                                     .font(Theme.mono(11, weight: .medium))
                                     .foregroundStyle(grade == g ? Theme.ground : Theme.ink)
                                     .padding(.horizontal, 10).padding(.vertical, 6)
-                                    .background(grade == g ? Theme.accent : Color.clear)
+                                    .background(grade == g ? Theme.button : Color.clear)
                                     .overlay(RoundedRectangle(cornerRadius: Theme.rSmall)
                                         .stroke(grade == g ? Color.clear : Theme.lineStrong, lineWidth: 1))
                             }

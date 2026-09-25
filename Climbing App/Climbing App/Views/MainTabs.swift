@@ -71,6 +71,9 @@ struct MainTabs: View {
     /// nothing in it, and what that draws is a white screen: exactly what you
     /// got after pressing stop.
     @State private var pending: PendingClip?
+    /// Set by whichever screen is showing, if it wants the page to run under
+    /// the floating bar rather than end above it.
+    @State private var fullBleed = false
 
     struct PendingClip: Identifiable {
         let url: URL
@@ -89,13 +92,19 @@ struct MainTabs: View {
                     NavigationStack { ProfileScreen() }.id(profileRoot)
                 }
             }
+            .onPreferenceChange(FullBleedKey.self) { fullBleed = $0 }
 
             // A solid band under the bar, fading in at its top edge.
+            //
+            // Not on a screen that says it runs underneath: a map is not a page
+            // with a bottom, and a hundred and thirty points of cream across it
+            // is a hundred and thirty points of the country missing.
             //
             // The bar floats, so without this the page scrolls through the gaps
             // beside and beneath it and the last card on every screen is shown
             // sliced. Painted in the page's own ground rather than a tint, so it
             // reads as the page ending rather than as a band laid over it.
+            if !fullBleed {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 LinearGradient(
@@ -114,6 +123,7 @@ struct MainTabs: View {
             .allowsHitTesting(false)
             .ignoresSafeArea()
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
 
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.
@@ -399,7 +409,7 @@ private struct AddPanel: View {
             // most of it empty and the sheet reads as having failed to load.
             // No scroll view: three is all there is, and a scroll view that
             // never scrolls is only a way to hide that something was cut off.
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 row(icon: "record.circle", title: "Record a climb",
                     detail: "Phone on the floor, square to the wall, whole boulder in frame.",
                     action: onRecord)
@@ -423,7 +433,12 @@ private struct AddPanel: View {
                     action: onScan)
             }
             .padding(.horizontal, 14)
-            .padding(.bottom, 18)
+            // The rows take the room rather than sitting in the top third of
+            // it. They are still capped, because the fix for a panel that
+            // looked empty is not three cards four hundred points tall with
+            // their text floating in the middle of them.
+            .frame(maxHeight: .infinity)
+            .padding(.vertical, 18)
         }
         // Full height, with rows that keep their own size inside it.
         //
@@ -494,13 +509,34 @@ private struct AddPanel: View {
             Spacer(minLength: 0)
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 176, alignment: .leading)
         .background(.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
             .stroke(.white.opacity(0.10), lineWidth: 1))
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Running under the bar
+
+/// A screen saying it fills the phone.
+///
+/// The bar floats, and the band behind it exists so a scrolling page does not
+/// show through the gaps beside and beneath it. A map has no bottom to show
+/// through: it is the screen, and the band just paints over the part of it
+/// nearest you. So a screen can opt out, and only the map does.
+struct FullBleedKey: PreferenceKey {
+    static let defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+extension View {
+    func runsUnderTheBar(_ on: Bool = true) -> some View {
+        preference(key: FullBleedKey.self, value: on)
     }
 }
 

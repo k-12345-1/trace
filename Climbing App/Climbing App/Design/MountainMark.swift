@@ -25,6 +25,28 @@ struct MountainMark: View {
     }
 }
 
+/// The name, as it was drawn.
+///
+/// Home used to set it in the system serif beside the mark, which put the same
+/// word in two different letterforms six points apart. Nobody would name that
+/// as the problem, and everybody would feel it: the masthead read as a logo
+/// with a caption rather than as one thing.
+struct TraceWordmark: View {
+    /// The artwork's own proportions, measured off the cut file rather than
+    /// guessed, so a height is all a caller ever has to give.
+    static let ratio: CGFloat = 692.0 / 198.0
+
+    var height: CGFloat = 26
+
+    var body: some View {
+        Image("TraceWordmark")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: height * Self.ratio, height: height)
+            .accessibilityLabel("Trace")
+    }
+}
+
 /// The mark over the wordmark, as it was drawn: one piece of artwork rather
 /// than a picture with type set under it.
 struct TraceLockup: View {

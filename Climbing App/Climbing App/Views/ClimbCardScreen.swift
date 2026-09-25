@@ -245,10 +245,11 @@ struct ClimbCardScreen: View {
     private var whereItWas: some View {
         let gym = store.gyms.first { $0.id == live.latest.gymID }
         return Button { choosingGym = true } label: {
+            // No pin glyph in front of it. An icon there pushed the line
+            // twenty points to the right of the route name directly above it,
+            // and the only thing it said was "this is a place", which the
+            // words already say.
             HStack(spacing: 9) {
-                Image(systemName: gym == nil ? "mappin.slash" : "mappin.and.ellipse")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.ink3)
                 Text(gym?.name ?? "Not filed at a gym")
                     .font(Theme.ui(14, gym == nil ? .regular : .semibold))
                     .foregroundStyle(gym == nil ? Theme.ink3 : Theme.ink2)

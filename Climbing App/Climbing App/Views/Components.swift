@@ -84,21 +84,11 @@ struct FindingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let still {
-                // A flexible ground with the image as an overlay, so the clip
-                // happens against the card's width. Clipping a scaledToFill
-                // image directly clips to the image's own natural size, which
-                // is no clipping at all: the frame stays wider than the page
-                // and the scroll view lets you drag it sideways.
-                Theme.surface2
-                    .frame(height: 148)
-                    .frame(maxWidth: .infinity)
-                    .overlay {
-                        Image(uiImage: still)
-                            .resizable()
-                            .scaledToFill()
-                    }
-                    .clipped()
-                    .contentShape(Rectangle())
+                // Cropped to the climber and marked, rather than a wide band of
+                // wall with a small figure somewhere in it. The crop and the
+                // marks are both worked out from the tracking, so what is drawn
+                // lands on what it is describing.
+                FindingStill(image: still, finding: finding, climb: climb)
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -118,6 +108,22 @@ struct FindingCard: View {
                     .font(Theme.body(14))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
+
+                // What to do, in one line, without opening anything. The drill
+                // below is for later; this is for the next move, and it is the
+                // thing somebody looking at a picture of their own mistake
+                // actually wants.
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .padding(.top, 2)
+                    Text(finding.kind.instead)
+                        .font(Theme.ui(14, .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 2)
 
                 if showDrill {
                     Button {
@@ -154,8 +160,7 @@ struct FindingCard: View {
             guard let climb, still == nil else { return }
             // The middle of the window, which is where the thing being
             // described is most likely to be visible.
-            let at = finding.start + min(finding.duration / 2, 0.6)
-            still = await Thumbnails.frame(of: climb, at: at)
+            still = await Thumbnails.frame(of: climb, at: finding.lookAt)
         }
     }
 }
@@ -207,11 +212,17 @@ struct RecordButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
+                // The same ring and the same white disc the scan shutter
+                // draws, because they are the same act: point the phone at the
+                // wall and press the round button. A blue disc here and a white
+                // one there made two screens that do one thing look like two
+                // different apps. What it does differently is what it does
+                // differently: the disc pulls into a square while it records.
                 Circle()
                     .stroke(.white.opacity(0.9), lineWidth: 3)
                     .frame(width: 72, height: 72)
-                RoundedRectangle(cornerRadius: isRecording ? 5 : 26, style: .continuous)
-                    .fill(Theme.accent)
+                RoundedRectangle(cornerRadius: isRecording ? 5 : 29, style: .continuous)
+                    .fill(.white)
                     .frame(width: isRecording ? 30 : 58, height: isRecording ? 30 : 58)
             }
             // The whole circle, and a bit more, is the target.
@@ -247,7 +258,7 @@ struct FlatButton: View {
             .foregroundStyle(filled ? .white : Theme.ink)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(filled ? Theme.accent : Theme.surface)
+            .background(filled ? Theme.button : Theme.surface)
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)

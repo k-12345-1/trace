@@ -152,7 +152,7 @@ struct AnalyzingScreen: View {
                 .lineLimit(1)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)
-                .background(on ? Theme.accent : Theme.surface, in: Capsule())
+                .background(on ? Theme.button : Theme.surface, in: Capsule())
                 .overlay(
                     Capsule().stroke(style: StrokeStyle(lineWidth: 1,
                                                         dash: dashed ? [4, 3] : []))

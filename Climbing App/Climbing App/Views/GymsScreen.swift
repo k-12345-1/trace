@@ -557,7 +557,7 @@ struct RouteDetailScreen: View {
                                 .foregroundStyle(live.sent ? Theme.ink : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
-                                .background(live.sent ? Theme.surface : Theme.accent)
+                                .background(live.sent ? Theme.surface : Theme.button)
                                 .clipShape(Capsule())
                                 .contentShape(Capsule())
                         }
@@ -790,7 +790,7 @@ private struct EmptyGym: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
-                        .background(Theme.accent, in: Capsule())
+                        .background(Theme.button, in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)

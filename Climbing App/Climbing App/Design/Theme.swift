@@ -64,6 +64,16 @@ enum Theme {
     static let accentText = Color(hex: 0x0128A1)
     static let accentWash = Color(hex: 0x0128A1).opacity(0.07)
 
+    /// What a solid control is painted in.
+    ///
+    /// The navy, not the ultramarine. A button is the largest area of color on
+    /// a page, and a large field of the logo's ink next to a bar of navy made
+    /// the two read as two brands rather than one: near the same hue, far
+    /// enough apart to look like a mistake. So the solids are all the navy,
+    /// which the bar already was, and the ultramarine is kept for the small
+    /// things it flatters: links, the words you can tap, a marked value.
+    static let button = blue
+
     /// Affirmative. The same blue: a cleared focus is told apart from an open
     /// one by its words and its ground, not by its hue.
     static let ok = accent
@@ -110,6 +120,9 @@ enum Theme {
     static let rSmall: CGFloat = 9     // chips and small marks
     static let r: CGFloat = 14         // fields and inline controls
     static let rCard: CGFloat = 20     // cards, photos, sheets
+    /// A gym tile. Anything drawn to the edge of one has to use this, or it is
+    /// drawn outside the clip and loses its corners.
+    static let rTile: CGFloat = 22
     static let rPill: CGFloat = 999    // buttons
 
     // MARK: Rhythm

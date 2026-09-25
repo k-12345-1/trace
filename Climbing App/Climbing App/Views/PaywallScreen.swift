@@ -167,7 +167,7 @@ struct PaywallScreen: View {
                             .font(Theme.ui(11, .semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(Theme.accent, in: Capsule())
+                            .background(Theme.button, in: Capsule())
                     }
                 }
             }
@@ -198,7 +198,7 @@ struct PaywallScreen: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 17)
-                .background(Theme.accent)
+                .background(Theme.button)
                 .clipShape(Capsule())
                 .contentShape(Capsule())
             }

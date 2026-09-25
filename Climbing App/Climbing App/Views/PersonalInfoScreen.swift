@@ -159,7 +159,7 @@ struct PersonalInfoScreen: View {
                             }
                         }
                         .frame(width: 50, height: 50)
-                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                        .background(Theme.button, in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                         .contentShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                     }
                     .buttonStyle(.plain)

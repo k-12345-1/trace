@@ -4,8 +4,8 @@
 skeleton drawn over her, a wall beside her, and the wordmark underneath, printed
 blue on cream.
 
-`MakeLogoAssets.swift` cuts three things out of it and writes them into the
-asset catalog. Rerun it whenever the artwork changes:
+`MakeLogoAssets.swift` cuts four things out of it and writes each straight into
+its own set in the asset catalog. Rerun it whenever the artwork changes:
 
 ```
 cd "Climbing App/tools"
@@ -15,6 +15,7 @@ swift MakeLogoAssets.swift logo-source.png "../Climbing App/Assets.xcassets"
 - **icon-1024.png** the figure alone, opaque, on the artwork's own paper.
 - **mark.png** the figure alone with a transparent background.
 - **lockup.png** the whole thing, mark and word, transparent.
+- **wordmark.png** the word alone, transparent, for the Home masthead.
 
 ## Why it measures instead of using fixed numbers
 
@@ -27,6 +28,13 @@ clear band of empty rows between the figure and the word, because the wall's
 bottom and the word's top overlap vertically; what separates them is that below
 the figure's hips she is entirely on the right of the frame, so ink appearing on
 the left of the lower third is the word.
+
+Cutting the word out on its own needs that overlap handled rather than measured
+around: the wall's bottom tail runs down past the top of the T. In those rows the
+word is entirely on the left of the frame and the wall entirely on the right, so
+the tool finds the row where the word's second letter starts and drops everything
+on the right above it. Cropping below the tail instead would take the top off the
+T.
 
 ## Why the ink is matted rather than cropped
 

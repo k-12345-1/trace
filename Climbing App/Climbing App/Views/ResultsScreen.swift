@@ -291,13 +291,6 @@ struct ResultsScreen: View {
             )
             .padding(.horizontal, Theme.gutter)
             .padding(.top, 14)
-
-            Text("The numbers on the climber are joint angles in degrees: elbows, shoulders, hips and knees. 180° is a straight limb hanging off the skeleton. The lower the number, the more of that load a muscle is holding.")
-                .font(Theme.ui(12.5))
-                .foregroundStyle(Theme.ink3)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Theme.gutter)
-                .padding(.top, 10)
         }
     }
 

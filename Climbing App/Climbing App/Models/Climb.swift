@@ -34,6 +34,33 @@ enum LeakKind: String, Codable {
         }
     }
 
+    /// The correction, in one imperative sentence.
+    ///
+    /// The drill below is what to practise later. This is what to do on the
+    /// next move, and it is the thing somebody looking at a picture of their
+    /// own mistake actually wants: not what went wrong, which they can now see,
+    /// but what the right version of it looks like.
+    var instead: String {
+        switch self {
+        case .bentArms:
+            return "Hang off straight arms between moves. Bend them only to pull."
+        case .weightOnArms:
+            return "Turn a hip in and get your weight over your feet before you reach."
+        case .lurchy:
+            return "Keep moving through the sequence instead of stopping on each hold."
+        case .impreciseFeet:
+            return "Look at the foothold until your shoe is on it, then leave it there."
+        case .hesitation:
+            return "Read the next two moves from a rest, not while hanging on."
+        case .wandering:
+            return "Take your hips more directly up the wall."
+        case .mistimedDynamics:
+            return "Catch the hold at the top of the arc, not on the way up to it."
+        case .unopposed:
+            return "Put a foot or a hand out on the other side before you reach."
+        }
+    }
+
     /// A diagnosis with no prescription is a complaint.
     var drill: String {
         switch self {
@@ -70,6 +97,11 @@ struct Finding: Codable, Identifiable {
         return String(format: "%d:%02d", m, s)
     }
     var duration: Double { max(0, end - start) }
+
+    /// The instant worth looking at: the middle of the window, capped so a long
+    /// finding is still illustrated by its beginning. The still and the marks
+    /// drawn on it both come from here, so they can never be a second apart.
+    var lookAt: Double { start + min(duration / 2, 0.6) }
 }
 
 /// Everything the analysis produced for one climb.

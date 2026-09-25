@@ -22,11 +22,16 @@ struct GymMapScreen: View {
     @State private var camera: MapCameraPosition = .automatic
     @State private var selected: Venue?
 
-    /// A cap, because a map with six hundred pins on it is a map of nothing.
-    /// The nearest are the ones worth drawing; the rest are a pan away.
-    static let pinLimit = 250
-
-    private var shown: [Venue] { Array(venues.prefix(Self.pinLimit)) }
+    /// Every gym in the directory, not the nearest few.
+    ///
+    /// This was capped at two hundred and fifty on the reasoning that a map
+    /// with six hundred pins is a map of nothing. That is true of six hundred
+    /// labelled pins, which is what it drew: each one a rounded plaque with a
+    /// name on it, and the country disappearing under them. It is not true of
+    /// six hundred dots. At the scale where they crowd, the crowding is the
+    /// information, which is the map anyone actually wants of where climbing
+    /// gyms are.
+    private var shown: [Venue] { venues }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -35,10 +40,11 @@ struct GymMapScreen: View {
                 set: { id in selected = shown.first { $0.id == id } }
             )) {
                 ForEach(shown) { venue in
-                    Marker(venue.name, systemImage: "figure.climbing",
-                           coordinate: venue.coordinate)
-                        .tint(mine(venue) == nil ? Theme.blueLight : Theme.blue)
-                        .tag(venue.id)
+                    Annotation(venue.name, coordinate: venue.coordinate) {
+                        dot(venue)
+                    }
+                    .annotationTitles(.hidden)
+                    .tag(venue.id)
                 }
                 if focus != nil { UserAnnotation() }
             }
@@ -46,6 +52,13 @@ struct GymMapScreen: View {
                 MapUserLocationButton()
                 MapCompass()
             }
+            // The tiles run to the bottom of the phone; what sits on top of
+            // them does not. Apple's attribution has to stay legible, and the
+            // bar floats over the last ninety points of the screen, so the
+            // map's own furniture is told the screen ends above it. The order
+            // matters: the padding has to reach the map, and ignoring the safe
+            // area afterwards is what lets the tiles still fill the glass.
+            .safeAreaPadding(.bottom, 92)
             .ignoresSafeArea()
 
             topBar
@@ -54,7 +67,32 @@ struct GymMapScreen: View {
             if let selected { card(selected) }
         }
         .toolbar(.hidden, for: .navigationBar)
+        // The map is the screen. Without this the bar's backdrop paints over
+        // its bottom hundred and thirty points.
+        .runsUnderTheBar()
         .onAppear(perform: frame)
+    }
+
+    /// One gym. A dot rather than a pin with a label on it: at country scale
+    /// the label is what makes six hundred of these unreadable, and the name is
+    /// a tap away in the card.
+    ///
+    /// The one you have added is the darker blue, so your own gyms stand out of
+    /// the field without a second hue being introduced to say so.
+    private func dot(_ venue: Venue) -> some View {
+        let isMine = mine(venue) != nil
+        let isOpen = selected?.id == venue.id
+        return Circle()
+            .fill(isMine ? Theme.blue : Theme.blueLight)
+            .frame(width: isOpen ? 17 : 11, height: isOpen ? 17 : 11)
+            .overlay(Circle().stroke(.white, lineWidth: isOpen ? 2.5 : 1.5))
+            .shadow(color: .black.opacity(0.22), radius: 1.5, y: 0.5)
+            // A dot eleven points across is not a target. The shape that takes
+            // the tap is the one drawn here, so it is given the room a finger
+            // needs without being given the ink.
+            .frame(width: 30, height: 30)
+            .contentShape(Circle())
+            .animation(.easeOut(duration: 0.15), value: isOpen)
     }
 
     // MARK: Framing
@@ -91,9 +129,7 @@ struct GymMapScreen: View {
 
             Spacer()
 
-            Text(shown.count < venues.count
-                 ? "\(shown.count) nearest"
-                 : "\(shown.count) gym\(shown.count == 1 ? "" : "s")")
+            Text("\(shown.count) gym\(shown.count == 1 ? "" : "s")")
                 .font(Theme.ui(12.5, .medium))
                 .foregroundStyle(Theme.ink2)
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -108,7 +144,11 @@ struct GymMapScreen: View {
     private func card(_ venue: Venue) -> some View {
         let gym = mine(venue)
         return HStack(spacing: 14) {
-            GymMark(name: venue.name, seed: venue.id, size: 46)
+            if let picture = GymPicture.image(for: gym) {
+                GymPictureSquare(image: picture, size: 46)
+            } else {
+                GymMark(name: venue.name, seed: venue.id, size: 46)
+            }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(venue.name)
@@ -151,7 +191,8 @@ struct GymMapScreen: View {
         .background(Theme.ground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 14, y: 4)
         .padding(.horizontal, 14)
-        .padding(.bottom, 10)
+        // Clear of the floating bar, which this screen now runs underneath.
+        .padding(.bottom, 96)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
