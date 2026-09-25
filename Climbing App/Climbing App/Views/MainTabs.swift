@@ -154,8 +154,11 @@ struct MainTabs: View {
                     pickerItem: $pickerItem
                 )
                 .padding(.horizontal, 12)
-                .padding(.top, 24)
-                .padding(.bottom, 84)
+                // As close to the top of the safe area and to the bar as the
+                // panel can sit. Every point here is a point the three cards
+                // get, and they are the only thing on this screen.
+                .padding(.top, 16)
+                .padding(.bottom, 76)
                 .transition(.opacity)
             }
 
@@ -463,9 +466,19 @@ private struct AddPanel: View {
         .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
 
-    /// The blue showing at either end of the panel: above the title and below
-    /// the last card. One number, used twice, so the sheet is not top heavy.
-    private static let margin: CGFloat = 30
+    /// The gap rhythm: between the cards, above the first and below the last.
+    ///
+    /// One number, used four times. It came down from thirty to twenty four to
+    /// give the cards their height back, because in a panel that cannot grow
+    /// every point of gap is a point taken off the three things you came here
+    /// to press. It is still one rhythm, which is what matters: a tighter gap
+    /// in the middle than at the ends reads as a stack that was squeezed.
+    private static let margin: CGFloat = 24
+
+    /// Where the title and the close ring sit, which is settled and does not
+    /// follow the gap. Tying it to `margin` meant changing the rhythm moved the
+    /// header, and the header had already been put where it belongs.
+    private static let headerTop: CGFloat = 18
 
     private var header: some View {
         ZStack {
@@ -490,13 +503,13 @@ private struct AddPanel: View {
         // Ten, not eighteen: the ring sits four points inside its tap target,
         // so this is what puts its edge on the same line as the cards below.
         .padding(.horizontal, 10)
-        // Higher than the margin below the last card, which is a deliberate
+        // Higher than the gap below the last card, which is a deliberate
         // asymmetry rather than a missed one. Measured, the ring's edge and the
         // card's edge sat the same distance from their ends of the panel and it
         // still read as sitting low, because a ring is mostly air and a card is
         // solid: matching their bounding boxes does not match what the eye
-        // weighs. Eight points up is where it stops looking low.
-        .padding(.top, Self.margin - 12)
+        // weighs.
+        .padding(.top, Self.headerTop)
         .padding(.bottom, 16)
     }
 
