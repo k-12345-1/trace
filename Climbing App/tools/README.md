@@ -1,6 +1,7 @@
 # tools/SeedDemo.swift
 
-Fills the simulator with demo climbs so the app can be shown without a gym.
+Fills the simulator with demo climbs so the app can be shown without a gym, and
+so a layout or a screen can be looked at with something real on it.
 
 It draws a synthetic wall and a synthetic climber, then runs the **real**
 `MetricsEngine`, `FindingEngine` and `PoseTracker.smooth` over the same joint
@@ -13,11 +14,49 @@ solved by traversing around it) and `tidy`. One clip is deliberately generated
 with most frames untrackable, so the demo also shows what the app does when it
 could not see clearly.
 
+## Building it
+
+Two things make the command longer than it looks like it should be. The file
+holds top level code, which Swift only allows in a file called `main.swift`, so
+it is copied under that name. And `Store.swift` is compiled in, so the seeded
+files are written by the same code the app reads them with rather than by a
+second implementation that can drift; `Store` reaches for `Thumbnails`, which is
+UIKit and cannot be built into a macOS tool, so `SeedStubs.swift` stands in.
+
 ```bash
-swiftc -O -o /tmp/seeddemo tools/SeedDemo.swift \
-  Trace/Analysis/*.swift Trace/Models/*.swift Trace/Storage/Store.swift
-/tmp/seeddemo "$(xcrun simctl get_app_container booted co.trace.app data)/Documents"
+cp tools/SeedDemo.swift /tmp/main.swift
+swiftc -O -o /tmp/seeddemo /tmp/main.swift tools/SeedStubs.swift \
+  "Climbing App/Analysis/"*.swift "Climbing App/Models/"*.swift \
+  "Climbing App/Storage/Store.swift" \
+  "Climbing App/Auth/AuthClient.swift" "Climbing App/Auth/Keychain.swift" \
+  "Climbing App/Auth/DemoAccount.swift"
+
+/tmp/seeddemo "$(xcrun simctl get_app_container booted co.traceclimb.app data)/Documents"
 ```
 
-Delete `Documents/climbs.json`, `Documents/focus.json` and `Documents/Clips` to
-clear it. **This is fabricated data. Never ship it.**
+`W` and `H` at the top of `SeedDemo.swift` are the clip's pixel size. They are
+540×960 for portrait footage; swap them for 960×540 to see how a screen holds a
+landscape clip, which is the shape most layout problems show up in.
+
+## Getting past the sign-in screen
+
+The seeded climbs are behind an account, and typing into a simulator is awkward
+to automate. An account is a file, so write one:
+
+```bash
+DOCS="$(xcrun simctl get_app_container booted co.traceclimb.app data)/Documents"
+cat > "$DOCS/account.json" <<'JSON'
+{"id":"demo","email":"","name":"Demo climber","createdAt":"2026-01-01T00:00:00Z","place":"Boston, MA"}
+JSON
+```
+
+`Store` treats an account on disk with no session as signed in and already asked
+about staying signed in, so the app opens straight onto Home. This is the same
+state the demo credentials produce, reached without the keyboard.
+
+## Clearing it
+
+Delete `Documents/climbs.json`, `Documents/focus.json`, `Documents/account.json`,
+`Documents/Clips` and `Documents/Thumbs`.
+
+**This is fabricated data. Never ship it.**
