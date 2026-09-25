@@ -55,7 +55,7 @@ struct AnalyzingScreen: View {
             VStack(alignment: .leading, spacing: 18) {
                 SectionHeader(micro: "Before we look", title: "What were you on?")
 
-                Text("Anything you will recognise next time. Trace never checks this against a route list, it only uses it to group your attempts.")
+                Text("Anything you will recognize next time. Trace never checks this against a route list, it only uses it to group your attempts.")
                     .font(Theme.body(14))
                     .foregroundStyle(Theme.ink2)
 
@@ -75,7 +75,7 @@ struct AnalyzingScreen: View {
                     MicroLabel(text: "Attempt \(n + 1) on this one", color: Theme.accentText)
                 }
 
-                FlatButton(title: "Analyse", filled: true) {
+                FlatButton(title: "Analyze", filled: true) {
                     guard !started else { return }
                     started = true
                     Task { await analyzer.analyse(sourceURL: sourceURL, label: label) }
@@ -94,7 +94,7 @@ struct AnalyzingScreen: View {
         VStack(spacing: 22) {
             Spacer()
             MicroLabel(text: "Watching")
-            Text("Tracking your centre of mass")
+            Text("Tracking your center of mass")
                 .font(Theme.heading(20))
                 .foregroundStyle(Theme.ink)
 
@@ -129,7 +129,7 @@ struct AnalyzingScreen: View {
 
     private func failure(_ message: String) -> some View {
         VStack(spacing: 16) {
-            MicroLabel(text: "Could not analyse")
+            MicroLabel(text: "Could not analyze")
             Text(message)
                 .font(Theme.body(15))
                 .foregroundStyle(Theme.ink2)

@@ -84,7 +84,7 @@ struct RouteScannerTests {
         #expect(found.holds.count == 4, "found \(found.holds.count)")
     }
 
-    @Test("The sampled colour is reported back for the route swatch")
+    @Test("The sampled color is reported back for the route swatch")
     func reportsColour() {
         let found = RouteScanner.detectHolds(in: Wall.image(),
                                              sample: Wall.point(of: Wall.blue),
@@ -97,7 +97,7 @@ struct RouteScannerTests {
         #expect(b > r, "expected a blue-dominant sample, got \(found.colorHex)")
     }
 
-    @Test("A wide colour range starts pulling in other holds")
+    @Test("A wide color range starts pulling in other holds")
     func toleranceWidens() {
         let tight = RouteScanner.detectHolds(in: Wall.image(),
                                               sample: Wall.point(of: Wall.red), tolerance: 14)
@@ -125,10 +125,10 @@ struct RouteScannerTests {
     }
 }
 
-@Suite("Colour")
+@Suite("Color")
 struct ColourTests {
 
-    @Test("Identical colours are zero apart")
+    @Test("Identical colors are zero apart")
     func identity() {
         let a = Lab(r: 200, g: 60, b: 45)
         #expect(a.distance(to: a) < 0.0001)

@@ -255,7 +255,7 @@ struct SubscriptionScreen: View {
                     VStack(spacing: 12) {
                         if !billing.isPro {
                             card("What the free plan includes",
-                                 "One route scan, and every climb you record or import analysed in full. Nothing you have already done is ever taken away.")
+                                 "One route scan, and every climb you record or import analyzed in full. Nothing you have already done is ever taken away.")
                             Button { showPaywall = true } label: {
                                 Text("See Trace Pro")
                                     .font(Theme.ui(16, .semibold))

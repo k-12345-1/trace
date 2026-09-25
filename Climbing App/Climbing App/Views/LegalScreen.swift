@@ -128,7 +128,7 @@ extension LegalScreen {
                 ]),
                 Section(heading: "Filming other people", body: [
                     "A gym is full of people who did not agree to be in your video. Because Trace never uploads footage, filming in a busy gym does not put a stranger's image on anyone's server. It remains your responsibility to film in line with your gym's rules and the law where you are.",
-                    "When more than one person is in frame, Trace measures the largest tracked body and ignores the rest. It does not recognise faces and cannot identify anyone."
+                    "When more than one person is in frame, Trace measures the largest tracked body and ignores the rest. It does not recognize faces and cannot identify anyone."
                 ]),
                 Section(heading: "Children", body: [
                     "Trace is not directed at children under 13 and we do not knowingly create accounts for them. If you believe a child has made an account, write to us and we will delete it."
@@ -160,11 +160,11 @@ extension LegalScreen {
             standfirst: "The agreement between you and Trace. It is short because the app does little on your behalf: it measures your own climbing on your own phone.",
             sections: [
                 Section(heading: "What Trace is", body: [
-                    "Trace records or imports a video of you climbing, estimates where your joints were in each frame, and reports measurements of how you moved. It also photographs a wall and picks out holds by colour.",
+                    "Trace records or imports a video of you climbing, estimates where your joints were in each frame, and reports measurements of how you moved. It also photographs a wall and picks out holds by color.",
                     "Trace is a measuring instrument and a training aid. It is not a coach, a physiotherapist, or a medical device, and nothing it says is medical advice."
                 ]),
                 Section(heading: "Climbing is dangerous", body: [
-                    "You climb at your own risk. Trace cannot see the ground, your pads, your spotter, whether a hold is loose, or whether you are too tired to be on the wall. Never let a drill or a suggestion from this app override your own judgement, your gym's rules, or your partner's.",
+                    "You climb at your own risk. Trace cannot see the ground, your pads, your spotter, whether a hold is loose, or whether you are too tired to be on the wall. Never let a drill or a suggestion from this app override your own judgment, your gym's rules, or your partner's.",
                     "Do not use this app while you are on the wall. Set the phone down, climb, then look at it.",
                     "To the fullest extent the law allows, we are not liable for injury, loss or damage arising from your climbing or from your use of Trace."
                 ]),
@@ -181,11 +181,11 @@ extension LegalScreen {
                     "Your first route scan is free. Scanning further routes, and the recommendations built from them, require a Trace Pro subscription.",
                     "Trace Pro is sold through the App Store and billed to your Apple ID at the price shown before you confirm. It renews each period until you turn renewal off, which you do in Settings under your name, then Subscriptions. Turning it off at least 24 hours before the next renewal stops that charge.",
                     "Refunds are handled by Apple, not by us, under Apple's own policy.",
-                    "If your subscription ends, everything you have already scanned and analysed stays on your phone and stays readable. You simply cannot scan new routes until you subscribe again.",
+                    "If your subscription ends, everything you have already scanned and analyzed stays on your phone and stays readable. You simply cannot scan new routes until you subscribe again.",
                     "If the price changes, Apple will ask you to agree before charging the new amount."
                 ]),
                 Section(heading: "Your content is yours", body: [
-                    "Your clips, photographs and measurements belong to you. We claim no licence over them, which is easy for us to promise because we never receive them.",
+                    "Your clips, photographs and measurements belong to you. We claim no license over them, which is easy for us to promise because we never receive them.",
                     "Do not record someone who has asked you not to, and do not use Trace to film anyone in a place where they would expect privacy."
                 ]),
                 Section(heading: "Fair use of the app", body: [

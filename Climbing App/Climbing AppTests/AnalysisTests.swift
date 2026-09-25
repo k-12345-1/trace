@@ -84,10 +84,10 @@ struct MovementMetricsTests {
 
 // MARK: - Centre of mass
 
-@Suite("Centre of mass")
+@Suite("Center of mass")
 struct CentreOfMassTests {
 
-    @Test("A symmetric body has its centre of mass on the midline")
+    @Test("A symmetric body has its center of mass on the midline")
     func symmetric() {
         let joints = Fixture.straightAscent()[0].joints
         let com = CenterOfMass.estimate(joints: joints)

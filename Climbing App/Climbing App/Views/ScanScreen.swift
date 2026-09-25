@@ -176,7 +176,7 @@ struct ScanScreen: View {
                 } else if holds.isEmpty {
                     MicroLabel(text: sample == nil
                                ? "Tap a hold on the route"
-                               : "Nothing found. Try a wider colour range.")
+                               : "Nothing found. Try a wider color range.")
                 } else {
                     HStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 2)
@@ -195,7 +195,7 @@ struct ScanScreen: View {
             if sample != nil {
                 VStack(alignment: .leading, spacing: 7) {
                     HStack {
-                        MicroLabel(text: "Colour range")
+                        MicroLabel(text: "Color range")
                         Spacer()
                         Text(String(format: "%.0f", tolerance))
                             .font(Theme.mono(10.5)).foregroundStyle(Theme.ink3)

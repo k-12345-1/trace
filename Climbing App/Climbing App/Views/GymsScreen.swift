@@ -332,7 +332,7 @@ struct RouteDetailScreen: View {
                         }
                         .buttonStyle(.plain)
 
-                        Text("Trace found these holds by colour, not by reading the setter's intent. Anything it got wrong was dropped when you saved it.")
+                        Text("Trace found these holds by color, not by reading the setter's intent. Anything it got wrong was dropped when you saved it.")
                             .font(Theme.ui(13))
                             .foregroundStyle(Theme.ink3)
                             .fixedSize(horizontal: false, vertical: true)
@@ -386,7 +386,7 @@ struct RouteDetailScreen: View {
                 Text("The photo for this route is gone")
                     .font(Theme.serif(17, .semibold))
                     .foregroundStyle(Theme.ink2)
-                Text("Its holds and colour are still here.")
+                Text("Its holds and color are still here.")
                     .font(Theme.ui(13))
                     .foregroundStyle(Theme.ink3)
             }

@@ -55,11 +55,11 @@ enum FocusEngine {
     static func meaning(for kind: LeakKind) -> String {
         switch kind {
         case .bentArms:      return "Mean elbow angle while you are not moving. Higher is straighter."
-        case .wandering:     return "How much further your hips travelled than the straight line. Lower is tidier."
-        case .lurchy:        return "Smoothness of your centre of mass. Lower is more continuous."
+        case .wandering:     return "How much further your hips traveled than the straight line. Lower is tidier."
+        case .lurchy:        return "Smoothness of your center of mass. Lower is more continuous."
         case .hesitation:    return "Share of each climb spent not moving. Lower means more reading from the ground."
         case .impreciseFeet: return "Foot placements you had to correct, per climb. Lower is more precise."
-        case .weightOnArms:  return "How far your centre of mass sits sideways of your feet while resting, in torso lengths. Lower means your legs are carrying you."
+        case .weightOnArms:  return "How far your center of mass sits sideways of your feet while resting, in torso lengths. Lower means your legs are carrying you."
         case .mistimedDynamics: return "How far your hand lands from the top of your arc on dynamic moves. Lower is better timed."
         }
     }

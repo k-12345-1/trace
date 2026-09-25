@@ -79,10 +79,10 @@ struct PaywallScreen: View {
     private var included: some View {
         VStack(spacing: 10) {
             line("Unlimited route scans",
-                 "Photograph a wall, tap one hold, and Trace picks out the rest by colour.")
+                 "Photograph a wall, tap one hold, and Trace picks out the rest by color.")
             line("Recommended climbs",
                  "Routes off your own walls chosen for the thing you are working on.")
-            line("Unlimited climbs analysed",
+            line("Unlimited climbs analyzed",
                  "Every clip measured on this phone, with the attempt-against-attempt history that makes the numbers mean anything.")
             line("Everything stays on the phone",
                  "Paying changes what Trace does, not where your footage goes. It still uploads nothing.")

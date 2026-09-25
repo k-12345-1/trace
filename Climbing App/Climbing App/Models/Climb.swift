@@ -47,7 +47,7 @@ enum LeakKind: String, Codable {
         case .hesitation:
             return "Read the whole sequence from the ground, then climb it without stopping."
         case .wandering:
-            return "Climb it again and try to keep your hips travelling in one line."
+            return "Climb it again and try to keep your hips traveling in one line."
         case .mistimedDynamics:
             return "Deadpoint isolation. Pick one dynamic move and repeat it, catching the hold at the exact top of the arc rather than on the way up or the way down."
         }

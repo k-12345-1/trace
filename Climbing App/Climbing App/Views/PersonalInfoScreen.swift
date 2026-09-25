@@ -49,7 +49,7 @@ struct PersonalInfoScreen: View {
                         field: .height,
                         valid: heightValid,
                         complaint: "That is outside 90 to 240 cm. Check the units.",
-                        effect: "Speeds on the overlay read in metres per second instead of body lengths. Trace estimates the scale from the frame where you were most extended, so treat it as close rather than exact."
+                        effect: "Speeds on the overlay read in meters per second instead of body lengths. Trace estimates the scale from the frame where you were most extended, so treat it as close rather than exact."
                     )
                     Hairline().padding(.horizontal, 20)
                     measurement(
@@ -194,7 +194,7 @@ struct PersonalInfoScreen: View {
             }
 
             buys(on: massKG != nil && heightCM != nil,
-                 text: "With your height as well, the rise and fall of your centre of mass reads in joules rather than as a ratio. It does not move your centre of mass, which is a weighted average of where your limbs are and comes out in the same place whatever you weigh.")
+                 text: "With your height as well, the rise and fall of your center of mass reads in joules rather than as a ratio. It does not move your center of mass, which is a weighted average of where your limbs are and comes out in the same place whatever you weigh.")
         }
         .padding(.horizontal, Theme.gutter).padding(.vertical, 18)
     }

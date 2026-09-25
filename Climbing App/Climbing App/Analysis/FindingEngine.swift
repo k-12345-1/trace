@@ -48,7 +48,7 @@ enum FindingEngine {
                 kind: .weightOnArms,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Over the stretches where you were barely moving, your centre of mass sat about \(percent) percent of a torso length out from over your feet. That load is going through your fingers instead of your legs."
+                message: "Over the stretches where you were barely moving, your center of mass sat about \(percent) percent of a torso length out from over your feet. That load is going through your fingers instead of your legs."
             ))
         }
 
@@ -87,7 +87,7 @@ enum FindingEngine {
                 kind: .wandering,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Your hips travelled \(extra) percent further than the straight line up this climb. Some of that is the sequence, and some of it is drift you can take out on the next go."
+                message: "Your hips traveled \(extra) percent further than the straight line up this climb. Some of that is the sequence, and some of it is drift you can take out on the next go."
             ))
         }
 

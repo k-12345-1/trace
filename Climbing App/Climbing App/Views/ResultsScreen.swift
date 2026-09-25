@@ -535,7 +535,7 @@ struct ResultsScreen: View {
                     }
                 }
 
-                Text("Grouped by the shape of your centre-of-mass path, not by the holds. Trace never sees the wall.")
+                Text("Grouped by the shape of your center-of-mass path, not by the holds. Trace never sees the wall.")
                     .font(Theme.body(12.5))
                     .foregroundStyle(Theme.ink3)
                     .fixedSize(horizontal: false, vertical: true)

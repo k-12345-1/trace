@@ -250,7 +250,7 @@ struct ExploreScreen: View {
         }
     }
 
-    private static let filler: Set<String> = ["gym", "the", "climbing", "center", "centre", "co"]
+    private static let filler: Set<String> = ["gym", "the", "climbing", "center", "center", "co"]
 
     private static func words(_ name: String) -> Set<String> {
         Set(name.lowercased()
