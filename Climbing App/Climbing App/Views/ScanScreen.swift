@@ -102,7 +102,7 @@ struct ScanScreen: View {
                         .stroke(Theme.lineStrong, lineWidth: 1))
             }
 
-            Text("Stand back far enough to get the whole route in one frame. Even light helps: Trace separates holds by colour, so a photo half in shadow will split one colour into two.")
+            Text("Stand back far enough to get the whole route in one frame. Even light helps: Trace separates holds by color, so a photo half in shadow will split one color into two.")
                 .font(Theme.body(13))
                 .foregroundStyle(Theme.ink3)
                 .fixedSize(horizontal: false, vertical: true)

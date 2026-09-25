@@ -98,7 +98,10 @@ struct MainTabs: View {
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.
             if entryOpen {
-                Theme.ground.opacity(0.92)
+                // Opaque. At anything less the masthead and the cards behind it
+                // showed through, which made the panel read as a translucent
+                // sheet over a page rather than as its own screen.
+                Theme.ground
                     .ignoresSafeArea()
                     .onTapGesture { close() }
                     .transition(.opacity)
