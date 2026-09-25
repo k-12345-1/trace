@@ -66,6 +66,7 @@ struct ExploreScreen: View {
                     footnote
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)

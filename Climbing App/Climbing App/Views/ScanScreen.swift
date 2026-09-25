@@ -78,6 +78,7 @@ struct ScanScreen: View {
                         controls
                         if !kept.isEmpty { Hairline(); details }
                     }
+                    .holdsThePageWidth()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)

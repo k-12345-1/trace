@@ -140,6 +140,7 @@ struct ResultsScreen: View {
                         untrustworthy
                     }
                 }
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)

@@ -54,6 +54,7 @@ struct GymsScreen: View {
                     }
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
         }
@@ -252,6 +253,7 @@ struct RoutesScreen: View {
                     }
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
         }
@@ -516,6 +518,7 @@ struct RouteDetailScreen: View {
                     .padding(.top, 22)
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)

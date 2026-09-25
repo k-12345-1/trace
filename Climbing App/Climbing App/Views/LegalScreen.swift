@@ -108,6 +108,7 @@ struct LegalScreen: View {
                 // paragraph when the document opens on its own, where there is
                 // no bar to clear.
                 .padding(.bottom, insideApp ? 156 : 32)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
 

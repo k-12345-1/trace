@@ -42,6 +42,7 @@ struct LibraryScreen: View {
                     }
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
         }

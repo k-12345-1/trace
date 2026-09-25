@@ -20,6 +20,7 @@ struct HomeScreen: View {
                 }
                 // Clear of the tab bar.
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
             .scrollBounceBehavior(.basedOnSize)

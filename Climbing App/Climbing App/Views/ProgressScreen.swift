@@ -34,6 +34,7 @@ struct ProgressScreen: View {
                         signature
                     }
                 }
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
         }

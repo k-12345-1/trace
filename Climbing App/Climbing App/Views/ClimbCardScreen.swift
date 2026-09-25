@@ -44,6 +44,7 @@ struct ClimbCardScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .padding(.top, -28)
                 }
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
             // Without this the photo stops at the safe area and the clock and
@@ -389,11 +390,14 @@ struct ClimbCardScreen: View {
 /// one line and it is the part worth remembering.
 /// One thing Trace saw, and the mechanics that make it worth changing.
 ///
-/// The observation is the headline. Closed, the card says what happened and
-/// names the idea it rests on. Opened, it gives the mechanics, the relationship
-/// they come from, and what was actually measured to say any of it. The
-/// formula used to sit on the front of the card, which made every finding look
-/// like a physics lesson with a climb attached.
+/// The observation is the headline. Closed, the card is a title and a line: as
+/// much as anyone wants while they are still looking at the photograph of
+/// themselves. Opened, it gives the mechanics in two sentences, the
+/// relationship they come from, and what was measured to say any of it.
+///
+/// It has been cut twice, and both cuts were the same mistake: a finding
+/// arriving as a paragraph. Everything that survived is either the one thing to
+/// do about it or the proof that it is true.
 private struct ObservationCard: View {
     let title: String
     let note: PhysicsNote
@@ -441,17 +445,16 @@ private struct ObservationCard: View {
             .buttonStyle(.plain)
 
             if open {
-                Text(note.concept)
-                    .font(Theme.ui(13, .medium))
-                    .foregroundStyle(Theme.blueLight)
-
                 Text(note.why)
                     .font(Theme.ui(14.5))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
 
+                // The named idea labels the formula rather than sitting on a
+                // line of its own. It was a fourth block saying in three words
+                // what the box under it says in symbols.
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("The relationship")
+                    Text(note.concept)
                         .font(Theme.ui(13, .semibold))
                         .foregroundStyle(Theme.ink2)
                     Text(note.law)
@@ -464,15 +467,10 @@ private struct ObservationCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("What Trace measured")
-                        .font(Theme.ui(13, .semibold))
-                        .foregroundStyle(Theme.ink2)
-                    Text(note.measured)
-                        .font(Theme.ui(13.5))
-                        .foregroundStyle(Theme.ink3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(note.measured)
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)

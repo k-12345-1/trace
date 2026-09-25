@@ -35,6 +35,7 @@ struct PaywallScreen: View {
                     smallprint
                 }
                 .padding(.bottom, 40)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
         }

@@ -159,6 +159,24 @@ struct LayoutTests {
                 "measured \(measured.map(\.content.width)) in \(measured.map(\.bounds.width))")
     }
 
+    /// The guard every page now wears, tested on the thing it exists to stop.
+    ///
+    /// The control test above proves an oversized child makes a page draggable.
+    /// This one puts the same oversized child inside the same kind of page with
+    /// `holdsThePageWidth()` on it and shows there is nowhere left to drag to,
+    /// which is what makes the modifier worth having on screens whose own tests
+    /// already pass: it holds for the view somebody adds next year too.
+    @Test("A page that holds its width cannot be dragged sideways")
+    func theGuardHolds() {
+        let guarded = ScrollView {
+            VStack { Color.red.frame(width: 700, height: 4000) }
+                .holdsThePageWidth()
+        }
+        let measured = Layout.scrollers(guarded)
+        #expect(measured.allSatisfy { $0.overhang == 0 },
+                "measured \(measured.map(\.content.width)) in \(measured.map(\.bounds.width))")
+    }
+
     @Test("A route from the library does not drag sideways")
     func theRouteScreenFitsThePhone() {
         check("the route screen", ClimbCardScreen(entry: route()))

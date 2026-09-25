@@ -31,6 +31,7 @@ struct ProfileScreen: View {
                     rows
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
             .scrollBounceBehavior(.basedOnSize)
@@ -303,6 +304,7 @@ struct SubscriptionScreen: View {
                     .padding(.top, 22)
                 }
                 .padding(.bottom, 156)
+                .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
         }
