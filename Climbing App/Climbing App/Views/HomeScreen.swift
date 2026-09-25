@@ -186,8 +186,10 @@ struct HomeScreen: View {
         let counts = store.routeCount(in: gym)
         let colors = store.routes(in: gym).prefix(9).map { Color(hexString: $0.colorHex) }
         return GymTile(
+            // No count under the name. A tile is a way into a gym, and how
+            // many routes have been scanned there is a fact about the gym's
+            // own screen, not a label the row needs to carry.
             name: gym.name,
-            sub: "\(counts.total) route\(counts.total == 1 ? "" : "s")",
             sent: counts.sent > 0
         ) {
             ZStack {

@@ -211,7 +211,7 @@ struct RoutesScreen: View {
                                 .font(Theme.title(26))
                                 .foregroundStyle(Theme.ink)
                                 .fixedSize(horizontal: false, vertical: true)
-                            Text(subtitle(counts: counts, climbed: climbed.count))
+                            Text(subtitle(routes: routes, climbed: climbed))
                                 .font(Theme.ui(14))
                                 .foregroundStyle(Theme.ink3)
                         }
@@ -326,18 +326,21 @@ struct RoutesScreen: View {
     /// Read back out of the store so a new picture shows at once.
     private var live: Gym? { store.gyms.first { $0.id == gym.id } }
 
-    private func subtitle(counts: (total: Int, sent: Int), climbed: Int) -> String {
-        var parts: [String] = []
-        if climbed > 0 { parts.append("\(climbed) climb\(climbed == 1 ? "" : "s")") }
-        parts.append("\(counts.total) scanned")
-        parts.append("\(counts.sent) sent")
-        return parts.joined(separator: " · ")
+    /// The line under the gym's name, counting the things this page shows.
+    ///
+    /// Sent used to count scanned routes marked sent, while the list below it
+    /// shows climbs, each with a tick on it. A gym with three ticked climbs and
+    /// nothing scanned therefore read "0 sent" under a page full of check
+    /// marks. Now it counts the ticks, and scanning is mentioned only when
+    /// something has been scanned.
+    private func subtitle(routes: [Route], climbed: [LibraryEntry]) -> String {
+        GymSummary.line(routes: routes, climbed: climbed)
     }
 
     /// The routes you have filmed here, newest first.
     private func climbsHere(_ entries: [LibraryEntry]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle("Climbed here")
+            SectionTitle("Climbs attempted")
                 .padding(.horizontal, Theme.gutter)
             LazyVStack(spacing: 10) {
                 ForEach(entries) { entry in
@@ -726,7 +729,7 @@ private struct EmptyGym: View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 10) {
                 SectionTitle("Nothing scanned here yet")
-                Text("Photograph a wall and tap one hold. Trace picks out every hold that color and saves the route to \(gym.name).")
+                Text("Photograph a wall. Trace reads the route colors on it and saves the one you pick to \(gym.name).")
                     .font(Theme.ui(14.5))
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)

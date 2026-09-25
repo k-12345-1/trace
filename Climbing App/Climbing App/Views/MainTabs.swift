@@ -154,8 +154,8 @@ struct MainTabs: View {
                     pickerItem: $pickerItem
                 )
                 .padding(.horizontal, 12)
-                .padding(.top, 30)
-                .padding(.bottom, 92)
+                .padding(.top, 24)
+                .padding(.bottom, 84)
                 .transition(.opacity)
             }
 
@@ -409,7 +409,10 @@ private struct AddPanel: View {
             // most of it empty and the sheet reads as having failed to load.
             // No scroll view: three is all there is, and a scroll view that
             // never scrolls is only a way to hide that something was cut off.
-            VStack(spacing: 16) {
+            // Ten, not sixteen. The three cards share whatever the panel has
+            // left, so every point taken out of the gaps goes into them, and
+            // the cards are the thing you came to press.
+            VStack(spacing: 10) {
                 row(icon: "record.circle", title: "Record a climb",
                     detail: "Phone on the floor, square to the wall, whole boulder in frame.",
                     action: onRecord)
@@ -438,7 +441,7 @@ private struct AddPanel: View {
             // looked empty is not three cards four hundred points tall with
             // their text floating in the middle of them.
             .frame(maxHeight: .infinity)
-            .padding(.top, 18)
+            .padding(.top, 12)
             // The same margin the title has above it. Because the rows absorb
             // whatever is left over, this is the whole of the gap under the
             // last card rather than a minimum it might exceed.
@@ -530,7 +533,7 @@ private struct AddPanel: View {
         // tallest phone between them. If they stopped short of it, the slack
         // would be split above and below the stack and the blue under the last
         // card would no longer match the blue above the title.
-        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 200, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 220, alignment: .leading)
         .background(.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
