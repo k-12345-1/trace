@@ -166,9 +166,17 @@ struct ClimbCardScreen: View {
                             .font(Theme.ui(15, .medium))
                             .foregroundStyle(Theme.ink)
                         if climb.metrics.isTrustworthy {
-                            Text("H \(String(format: "%.2f", climb.metrics.entropy)) · \(Int(climb.metrics.staticElbowAngle.rounded()))° elbows")
-                                .font(Theme.ui(13))
-                                .foregroundStyle(Theme.ink3)
+                            // The grade rather than the raw numbers. Comparing
+                            // two attempts on one route is the reason this list
+                            // exists, and an entropy figure does not do that at
+                            // a glance.
+                            if let reading = EfficiencyEngine.read(climb) {
+                                EfficiencyBadge(reading: reading, compact: true)
+                            } else {
+                                Text("H \(String(format: "%.2f", climb.metrics.entropy))")
+                                    .font(Theme.ui(13))
+                                    .foregroundStyle(Theme.ink3)
+                            }
                         } else {
                             Text("Low tracking")
                                 .font(Theme.ui(13))

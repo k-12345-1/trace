@@ -130,6 +130,7 @@ struct ResultsScreen: View {
                     header
                     Hairline()
                     if climb.metrics.isTrustworthy {
+                        efficiency
                         ending
                         wasted
                         headline
@@ -406,6 +407,17 @@ struct ResultsScreen: View {
     }
 
     // MARK: One thing at a time
+
+    /// The grade, at the top, because it is the one thing a climber will look
+    /// for first and the rest of the page is why it came out that way.
+    @ViewBuilder
+    private var efficiency: some View {
+        if let reading = EfficiencyEngine.read(climb) {
+            EfficiencyCard(reading: reading)
+                .padding(.horizontal, Theme.gutter)
+                .padding(.bottom, 20)
+        }
+    }
 
     /// The movement that went nowhere, with the moments it happened.
     ///

@@ -15,23 +15,72 @@ import SwiftUI
 // MARK: - Shared shell
 
 /// The splash geometry. Everything on either screen sits in this frame.
+/// The lockup's drawn size on the auth screens, and the gap under it.
+///
+/// Its own type because `AuthShell` is generic and a generic type may not hold
+/// stored statics. The artwork is 728 by 1009, so at 162 wide it stands 224.5
+/// tall, and the 0.86 it settles to after the reveal makes that 193. Written
+/// out rather than measured, because the layout has to know it before the view
+/// is drawn.
+private enum Lockup {
+    static let width: CGFloat = 162
+    static let rest: CGFloat = 0.86
+    static var full: CGFloat { width * (1009.0 / 728.0) }
+    static var height: CGFloat { full * rest }
+    static let gapBelow: CGFloat = 54
+
+    /// How far down to nudge the centered stack so the **ink** is centered.
+    ///
+    /// The form's measured height runs a little past its last line of text, so
+    /// centering the frames leaves that invisible slack as extra white below
+    /// the visible bottom, and the artwork's top edge is a thin wisp of wall so
+    /// the ink starts a little after the frame does. Both push the same way.
+    ///
+    /// Tuned against screenshots rather than derived: the stack moves point for
+    /// point with this, and twelve is where the white above and below the ink
+    /// came out equal.
+    static let opticalShift: CGFloat = 12
+}
+
 private struct AuthShell<Content: View>: View {
     @Binding var revealed: Bool
     @ViewBuilder var content: Content
 
-    /// Where the mark settles, and where the form column starts.
-    static var markTop: CGFloat { 84 }
-    static var formTop: CGFloat { 288 }
+    /// How tall the form turned out to be, so the whole stack can be centered.
+    @State private var formHeight: CGFloat = 0
+
+    /// Where the stack starts, with the leftover split evenly above and below.
+    ///
+    /// It used to be two fixed numbers, which put the lockup under the status
+    /// bar with three hundred points of nothing beneath the form. Centering it
+    /// needs the form's height, and the form's height depends on which of the
+    /// two screens is in it, so it is measured rather than guessed.
+    private func stackTop(_ geo: GeometryProxy) -> CGFloat {
+        let stack = Lockup.height + Lockup.gapBelow + formHeight
+        let free = geo.size.height - stack
+        // The safe areas are white too.
+        //
+        // `geo` measures the space between the status bar and the home
+        // indicator, so splitting `free` in half evens out the layout and not
+        // the page: the status bar's sixty points sit above the result and the
+        // home indicator's thirty below it, leaving the stack visibly high.
+        // Carrying the difference here balances what is actually seen.
+        let lean = (geo.safeAreaInsets.bottom - geo.safeAreaInsets.top) / 2
+        return max(12, free / 2 + lean + Lockup.opticalShift)
+    }
 
     var body: some View {
         GeometryReader { geo in
+            let top = stackTop(geo)
             ZStack(alignment: .top) {
                 Theme.ground.ignoresSafeArea()
 
                 LogoLockup()
-                    .scaleEffect(revealed ? 0.86 : 1, anchor: .top)
+                    .scaleEffect(revealed ? Lockup.rest : 1, anchor: .top)
                     .position(x: geo.size.width / 2,
-                              y: revealed ? Self.markTop + 58 : geo.size.height / 2)
+                              y: revealed
+                                 ? top + Lockup.full / 2
+                                 : geo.size.height / 2)
                     .allowsHitTesting(false)
 
                 // A ScrollView, but one that only scrolls when it has to.
@@ -45,7 +94,10 @@ private struct AuthShell<Content: View>: View {
                 ScrollView {
                     content
                         .frame(width: min(320, geo.size.width - 44))
-                        .padding(.top, Self.formTop)
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                            formHeight = $0
+                        }
+                        .padding(.top, top + Lockup.height + Lockup.gapBelow)
                         .padding(.bottom, 40)
                         .frame(maxWidth: .infinity)
                 }
@@ -74,7 +126,7 @@ private struct LogoLockup: View {
         // together rather than assembled out of a picture and a typeface that
         // is not the one the word was set in.
         TraceLockup()
-            .frame(width: 162)
+            .frame(width: Lockup.width)
     }
 }
 

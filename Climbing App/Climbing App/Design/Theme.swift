@@ -60,6 +60,27 @@ enum Theme {
         Color(hex: 0x2E639F), Color(hex: 0x0F2C5C)
     ]
 
+    /// Efficiency, worst to best, in five steps.
+    ///
+    /// The one place in Trace that uses hue to carry meaning. Everything else
+    /// is one blue running light to dark, deliberately, and this breaks that
+    /// rule because red through green is the one scale a climber already reads
+    /// without being taught it.
+    ///
+    /// Breaking the rule costs something, and it is paid for rather than
+    /// ignored. Red and green are the pair most commonly confused, so the ramp
+    /// is stepped in lightness as well as hue: the worst end is dark and the
+    /// best end is light, which survives being seen in greyscale. And the color
+    /// never carries the meaning on its own. Every place it appears, the word
+    /// and the position on a five step scale appear with it.
+    static let efficiency: [Color] = [
+        Color(hex: 0xA3212B),   // 1, darkest
+        Color(hex: 0xCE6A1E),
+        Color(hex: 0xD9A409),
+        Color(hex: 0x7FA53A),
+        Color(hex: 0x4E9B5B)    // 5, lightest
+    ]
+
     /// Overlay ink on footage, where the ground is a gym wall rather than a page.
     static let chalk = Color(hex: 0xFFFFFF)
 
