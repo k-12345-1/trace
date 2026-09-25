@@ -45,21 +45,23 @@ final class CameraController: NSObject, ObservableObject {
         }
         session.addInput(input)
 
-        // 60fps where the device offers it. Jerk is a third derivative and
-        // deadpoint timing is measured in tens of milliseconds, so frame rate matters.
+        // 60fps where the device offers it at full quality, and 1080p30 where
+        // it does not. Jerk is a third derivative and deadpoint timing is
+        // measured in tens of milliseconds, so frame rate matters; it does not
+        // matter enough to film a gym through a worse sensor readout.
         //
-        // Capped at 1080p and at 60, rather than simply taking the last format
-        // that can reach 60. The list runs low to high, so the last match on a
-        // recent iPhone is 4K or a 240fps slow motion format: far more data than
-        // pose tracking can use, and a slow motion format is not a format this
-        // output records the way you would expect.
-        if let format = device.formats.last(where: { f in
-            let size = CMVideoFormatDescriptionGetDimensions(f.formatDescription)
-            guard size.width <= 1920, size.height <= 1920 else { return false }
-            return f.videoSupportedFrameRateRanges.contains {
-                $0.maxFrameRate >= 60 && $0.minFrameRate <= 60
-            }
-        }) {
+        // The trap is binning. Most iPhones reach 60 and 120 by reading the
+        // sensor at half resolution and combining pixels, and a binned format
+        // is visibly noisier indoors, which is the only place this app is ever
+        // used. Taking the last format that could manage 60 walked straight
+        // into one: on a recent iPhone that is a 4K or 240fps slow motion
+        // format, and those are binned.
+        //
+        // So: full readout only, 60fps, as close to 1080p as offered. If the
+        // device has no such format, no override happens at all and the
+        // session's own 1080p preset stands. Thirty good frames beat sixty
+        // grainy ones.
+        if let format = best60Format(on: device) {
             try? device.lockForConfiguration()
             device.activeFormat = format
             device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 60)
@@ -77,6 +79,31 @@ final class CameraController: NSObject, ObservableObject {
 
         isAvailable = true
         Task.detached { [session] in session.startRunning() }
+    }
+
+    /// The best full-readout format that reaches 60fps, at or below 1080p.
+    ///
+    /// Nil when the device has none, which is the signal to leave the session's
+    /// preset alone rather than to settle for a binned one.
+    nonisolated static func best60(among formats: [AVCaptureDevice.Format]) -> AVCaptureDevice.Format? {
+        let candidates = formats.filter { f in
+            let size = CMVideoFormatDescriptionGetDimensions(f.formatDescription)
+            guard size.width <= 1920, size.height <= 1920 else { return false }
+            guard !f.isVideoBinned else { return false }
+            return f.videoSupportedFrameRateRanges.contains {
+                $0.maxFrameRate >= 60 && $0.minFrameRate <= 60
+            }
+        }
+        // Largest of them, which is 1080p wherever 1080p is offered unbinned.
+        return candidates.max { a, b in
+            let x = CMVideoFormatDescriptionGetDimensions(a.formatDescription)
+            let y = CMVideoFormatDescriptionGetDimensions(b.formatDescription)
+            return Int(x.width) * Int(x.height) < Int(y.width) * Int(y.height)
+        }
+    }
+
+    private func best60Format(on device: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        Self.best60(among: device.formats)
     }
 
     func start(completion: @escaping (URL?) -> Void) {

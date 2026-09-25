@@ -194,39 +194,6 @@ private struct AuthMessageSlot: View {
     }
 }
 
-/// The way in while there is no authentication server.
-///
-/// Shown only when nothing is configured, and it names the credentials rather
-/// than hiding them behind a button, so it reads as a demo account rather than
-/// as a secret way past the sign-in screen.
-private struct DemoHint: View {
-    let onUse: () -> Void
-
-    var body: some View {
-        if !AuthClient.isConfigured {
-            VStack(spacing: 8) {
-                Hairline()
-                Text("No sign-in server yet")
-                    .font(Theme.ui(12.5, .semibold))
-                    .foregroundStyle(Theme.ink2)
-                Text("\(DemoAccount.email) · \(DemoAccount.password)")
-                    .font(Theme.ui(12)).monospacedDigit()
-                    .foregroundStyle(Theme.ink3)
-                Button(action: onUse) {
-                    Text("Use the demo account")
-                        .font(Theme.ui(13.5, .semibold))
-                        .foregroundStyle(Theme.accentText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Theme.accentWash, in: Capsule())
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.top, 6)
-        }
-    }
-}
 
 /// Agreeing to something you cannot read is not agreeing. Both documents open
 /// from here, before the account exists.
@@ -352,12 +319,6 @@ struct SignInScreen: View {
                 .disabled(busy)
 
                 CrossLink(question: "New to Trace?", action: "Sign up →", onTap: goSignUp)
-
-                DemoHint {
-                    email = DemoAccount.email
-                    password = DemoAccount.password
-                    submit()
-                }
 
                 LegalFooter()
             }

@@ -50,9 +50,6 @@ struct HomeScreen: View {
                     .font(Theme.serif(24, .semibold))
                     .foregroundStyle(Theme.blue)
                 Spacer()
-                Text("\(store.climbs.count) climb\(store.climbs.count == 1 ? "" : "s")")
-                    .font(Theme.ui(13.5))
-                    .foregroundStyle(Theme.ink3)
             }
         }
         .padding(.horizontal, Theme.gutter)

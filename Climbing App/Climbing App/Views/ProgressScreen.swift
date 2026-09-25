@@ -22,6 +22,11 @@ struct ProgressScreen: View {
                     if tracked.count < 2 {
                         notEnoughYet
                     } else {
+                        // Strengths and weaknesses first. The focus is one thing
+                        // to fix; this is the shape of your climbing, and it is
+                        // what the rest of the screen is detail on.
+                        PatternSection()
+                        Hairline()
                         focusSection
                         Hairline()
                         entropyTrend

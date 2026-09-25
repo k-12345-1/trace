@@ -126,8 +126,8 @@ struct MainTabs: View {
                     pickerItem: $pickerItem
                 )
                 .padding(.horizontal, 12)
-                .padding(.top, 26)
-                .padding(.bottom, 108)
+                .padding(.top, 8)
+                .padding(.bottom, 92)
                 .transition(.opacity)
             }
 
