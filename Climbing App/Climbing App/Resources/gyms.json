@@ -70,6 +70,16 @@
 "longitude": -94.331252
 },
 {
+"id": "w266253175",
+"name": "Horseshoe Canyon Ranch Trading Company",
+"city": "Newton County",
+"state": "AR",
+"street": null,
+"website": "https://horseshoecanyonduderanch.com/",
+"latitude": 36.004732,
+"longitude": -93.292796
+},
+{
 "id": "w266456065",
 "name": "Idaho Boulders",
 "city": "Newton County",
@@ -78,6 +88,16 @@
 "website": null,
 "latitude": 36.001002,
 "longitude": -93.292821
+},
+{
+"id": "n12832186102",
+"name": "Rock climb on wall",
+"city": "Newton County",
+"state": "AR",
+"street": null,
+"website": null,
+"latitude": 36.034555,
+"longitude": -93.34425
 },
 {
 "id": "w758184215",
@@ -280,6 +300,16 @@
 "longitude": -118.565195
 },
 {
+"id": "n4722877089",
+"name": "Diablo Rock, Touchstone Climbing",
+"city": "Concord",
+"state": "CA",
+"street": null,
+"website": null,
+"latitude": 37.964776,
+"longitude": -122.053127
+},
+{
 "id": "w391219445",
 "name": "The Cliffs of Id",
 "city": "Culver City",
@@ -348,6 +378,26 @@
 "website": "https://thepadclimbing.org/santa-barbara/",
 "latitude": 34.436817,
 "longitude": -119.804013
+},
+{
+"id": "n2654787143",
+"name": "Hangar 18 Southbay Rock Climbing Gym",
+"city": "Hawthorne",
+"state": "CA",
+"street": null,
+"website": null,
+"latitude": 33.900511,
+"longitude": -118.364518
+},
+{
+"id": "n6794429203",
+"name": "Elevation Sierra Adventure",
+"city": "Lone Pine",
+"state": "CA",
+"street": "150 South Main Street",
+"website": "https://sierraelevation.com/",
+"latitude": 36.605068,
+"longitude": -118.062861
 },
 {
 "id": "n13973677803",
@@ -420,6 +470,26 @@
 "longitude": -122.032244
 },
 {
+"id": "n13907673201",
+"name": "Hangar 18 Climbing",
+"city": "Mission Viejo",
+"state": "CA",
+"street": "23812 Via Fabricante",
+"website": "https://climbhangar18.com/",
+"latitude": 33.617205,
+"longitude": -117.682288
+},
+{
+"id": "n13685475332",
+"name": "Hangar 18 Climbing Gym",
+"city": "Mission Viejo",
+"state": "CA",
+"street": null,
+"website": null,
+"latitude": 33.617235,
+"longitude": -117.682238
+},
+{
 "id": "w36978729",
 "name": "Great Western Power Company",
 "city": "Oakland",
@@ -470,6 +540,16 @@
 "longitude": -117.043415
 },
 {
+"id": "n14109901702",
+"name": "Hyperion Climbing",
+"city": "Redwood City",
+"state": "CA",
+"street": "801 Willow Street",
+"website": "http://touchstoneclimbing.com",
+"latitude": 37.484079,
+"longitude": -122.214645
+},
+{
 "id": "w1316582078",
 "name": "Alpine Climbing Adventure Fitness",
 "city": "Ripon",
@@ -478,6 +558,16 @@
 "website": "https://climbatalpine.com",
 "latitude": 37.748319,
 "longitude": -121.13849
+},
+{
+"id": "n1243811366",
+"name": "Hangar 18 - East Riverside",
+"city": "Riverside",
+"state": "CA",
+"street": "2111, Unit A Iowa Avenue",
+"website": "https://climbhangar18.com/east-riverside/",
+"latitude": 33.991456,
+"longitude": -117.341068
 },
 {
 "id": "n5413591527",
@@ -490,6 +580,16 @@
 "longitude": -117.446153
 },
 {
+"id": "n13198451301",
+"name": "Vital Climbing Gym",
+"city": "Riverside County",
+"state": "CA",
+"street": "29990 Technology Drive",
+"website": null,
+"latitude": 33.561087,
+"longitude": -117.136447
+},
+{
 "id": "n6956599073",
 "name": "Quarry Park Adventures",
 "city": "Rocklin",
@@ -498,6 +598,16 @@
 "website": "https://quarrypark.com/adventures/",
 "latitude": 38.788724,
 "longitude": -121.235706
+},
+{
+"id": "n4722881689",
+"name": "Sacramento Pipeworks, Touchstone Climbing",
+"city": "Sacramento",
+"state": "CA",
+"street": "119 North 16th Street",
+"website": "https://touchstoneclimbing.com/pipeworks/",
+"latitude": 38.588989,
+"longitude": -121.48127
 },
 {
 "id": "w179852265",
@@ -700,6 +810,36 @@
 "longitude": -122.006511
 },
 {
+"id": "n10303560609",
+"name": "Session Climbing Center",
+"city": "Santa Rosa",
+"state": "CA",
+"street": "965 South A Street",
+"website": "https://www.sessionclimbing.com/",
+"latitude": 38.429077,
+"longitude": -122.714396
+},
+{
+"id": "n13812194501",
+"name": "Vertex Climbing Center",
+"city": "Santa Rosa",
+"state": "CA",
+"street": "3358a Coffey Lane",
+"website": "https://climbvertex.com/",
+"latitude": 38.472201,
+"longitude": -122.74367
+},
+{
+"id": "n8744600141",
+"name": "Hangar 18 Climbing Gym",
+"city": "Signal Hill",
+"state": "CA",
+"street": null,
+"website": null,
+"latitude": 33.805154,
+"longitude": -118.161639
+},
+{
 "id": "w582650891",
 "name": "Class 5 Fitness 24/7",
 "city": "Sonora",
@@ -870,6 +1010,16 @@
 "longitude": -104.958484
 },
 {
+"id": "n9784527418",
+"name": "Denver Bouldering Club",
+"city": "Denver",
+"state": "CO",
+"street": "2485 West 2nd Avenue",
+"website": "https://www.denverboulderingclub.com/",
+"latitude": 39.720605,
+"longitude": -105.016769
+},
+{
 "id": "w337137454",
 "name": "Movement Baker",
 "city": "Denver",
@@ -910,6 +1060,16 @@
 "longitude": -105.000734
 },
 {
+"id": "w533480583",
+"name": "Ascent Climbing Studio",
+"city": "Fort Collins",
+"state": "CO",
+"street": null,
+"website": null,
+"latitude": 40.559073,
+"longitude": -105.04113
+},
+{
 "id": "n10603076450",
 "name": "Grit",
 "city": "Fort Collins",
@@ -918,6 +1078,16 @@
 "website": "https://www.gritfoco.com/",
 "latitude": 40.585161,
 "longitude": -105.076739
+},
+{
+"id": "n14152660788",
+"name": "Whetstone (climbing • connecting • community)",
+"city": "Fort Collins",
+"state": "CO",
+"street": null,
+"website": null,
+"latitude": 40.507053,
+"longitude": -105.074134
 },
 {
 "id": "w362326383",
@@ -980,6 +1150,26 @@
 "longitude": -107.86053
 },
 {
+"id": "n9087788117",
+"name": "Mountain Strong Denver Climbing and CrossFit",
+"city": "North Washington",
+"state": "CO",
+"street": "1805 East 58th Avenue",
+"website": "https://mountainstrongdenver.com/",
+"latitude": 39.804032,
+"longitude": -104.966254
+},
+{
+"id": "n13779005601",
+"name": "Rifle Climbing Center",
+"city": "Rifle",
+"state": "CO",
+"street": "229 West Avenue",
+"website": "https://www.rifleclimbingcenter.com/",
+"latitude": 39.531333,
+"longitude": -107.784813
+},
+{
 "id": "n13140031455",
 "name": "The Spot Thorton",
 "city": "Thornton",
@@ -988,6 +1178,16 @@
 "website": "https://www.thespotgym.com/locations/thornton/",
 "latitude": 39.868077,
 "longitude": -104.979774
+},
+{
+"id": "n13850766701",
+"name": "Rock Climb Fairfield",
+"city": "Fairfield",
+"state": "CT",
+"street": "85 Mill Plain Rd",
+"website": "https://www.rockclimbfairfield.com/",
+"latitude": 41.141711,
+"longitude": -73.268003
 },
 {
 "id": "n11667621941",
@@ -1100,6 +1300,16 @@
 "longitude": -80.276968
 },
 {
+"id": "n13421436212",
+"name": "Lloyd Clarke Sports",
+"city": "Gainesville",
+"state": "FL",
+"street": "1504 Northwest 13th Street",
+"website": "https://www.lloydclarkesports.com",
+"latitude": 29.665881,
+"longitude": -82.339485
+},
+{
 "id": "n13413871275",
 "name": "The Knot - Climbing Gym",
 "city": "Gainesville",
@@ -1108,6 +1318,16 @@
 "website": "https://climbtheknot.com",
 "latitude": 29.645548,
 "longitude": -82.325301
+},
+{
+"id": "n14080539202",
+"name": "Blocker Boulders",
+"city": "Jacksonville",
+"state": "FL",
+"street": "100 Bowden Road",
+"website": "https://www.blockerboulders.com/",
+"latitude": 30.263957,
+"longitude": -81.596257
 },
 {
 "id": "w519270759",
@@ -1138,6 +1358,16 @@
 "website": "https://ontheedgerockclimbing.com/",
 "latitude": 28.105499,
 "longitude": -80.691529
+},
+{
+"id": "n12335926701",
+"name": "Velocity Climbing",
+"city": "Miami",
+"state": "FL",
+"street": "2280 Northwest 41st Street",
+"website": "https://www.velocityclimbing.com/",
+"latitude": 25.81284,
+"longitude": -80.233947
 },
 {
 "id": "n10290261309",
@@ -1350,6 +1580,16 @@
 "longitude": -116.202908
 },
 {
+"id": "n4365293496",
+"name": "Asana Climbing Gym",
+"city": "Garden City",
+"state": "ID",
+"street": "4977 North Glenwood Street",
+"website": null,
+"latitude": 43.650795,
+"longitude": -116.281406
+},
+{
 "id": "w1113524774",
 "name": "Vertical View",
 "city": "Meridian",
@@ -1488,6 +1728,16 @@
 "website": "https://www.chicagoparkdistrict.com/parks-facilities/steelworkersparkclimbingwall",
 "latitude": 41.739498,
 "longitude": -87.530472
+},
+{
+"id": "w558639598",
+"name": "Climb On",
+"city": "Homewood",
+"state": "IL",
+"street": "18120 Harwood Avenue",
+"website": "https://climbonrockgym.com/",
+"latitude": 41.560444,
+"longitude": -87.668585
 },
 {
 "id": "n13005813698",
@@ -1648,6 +1898,16 @@
 "website": "https://www.warehouseclimbingco.com",
 "latitude": 41.586327,
 "longitude": -85.825441
+},
+{
+"id": "n9434248956",
+"name": "Epic Climbing and Fitness",
+"city": "Indianapolis",
+"state": "IN",
+"street": "1931 Stout W Dr",
+"website": "https://climbepic.com/",
+"latitude": 39.738743,
+"longitude": -86.232895
 },
 {
 "id": "n10688533981",
@@ -2270,6 +2530,16 @@
 "longitude": -87.393615
 },
 {
+"id": "w281203890",
+"name": "Gym & Indoor Climbing Wall",
+"city": "Onekama Township",
+"state": "MI",
+"street": null,
+"website": null,
+"latitude": 44.353898,
+"longitude": -86.220171
+},
+{
 "id": "n3268760961",
 "name": "Planet Rock",
 "city": "Scio Township",
@@ -2338,6 +2608,16 @@
 "website": "http://verticalendeavors.com/minneapolis/",
 "latitude": 44.95615,
 "longitude": -93.278489
+},
+{
+"id": "n12752661501",
+"name": "Big Island Bouldering Climbing Gym",
+"city": "Plymoth",
+"state": "MN",
+"street": "161 Cheshire Lane",
+"website": "https://www.bigislandbouldering.com/",
+"latitude": 44.981286,
+"longitude": -93.457144
 },
 {
 "id": "w372271229",
@@ -2500,6 +2780,16 @@
 "longitude": -90.9307
 },
 {
+"id": "n13165985685",
+"name": "Back Forty",
+"city": "Grenada",
+"state": "MS",
+"street": "2055 Sunset Drive",
+"website": "https://backfortyoutdoors.com/",
+"latitude": 33.785671,
+"longitude": -89.851203
+},
+{
 "id": "w202623197",
 "name": "Sanderson Center",
 "city": "Sheely Hills",
@@ -2570,6 +2860,16 @@
 "longitude": -111.296574
 },
 {
+"id": "w624969217",
+"name": "Stonetree Climbing Center",
+"city": "Helena",
+"state": "MT",
+"street": null,
+"website": null,
+"latitude": 46.600004,
+"longitude": -112.019295
+},
+{
 "id": "n7706366333",
 "name": "Freestone Climbing Center",
 "city": "Missoula",
@@ -2598,6 +2898,16 @@
 "website": "https://kerseyvalley.com/",
 "latitude": 35.930176,
 "longitude": -79.935757
+},
+{
+"id": "n13705778701",
+"name": "Cultivate Climbing",
+"city": "Asheville",
+"state": "NC",
+"street": "45 South French Broad Avenue",
+"website": null,
+"latitude": 35.591917,
+"longitude": -82.559259
 },
 {
 "id": "n11148611383",
@@ -3230,6 +3540,16 @@
 "longitude": -73.940195
 },
 {
+"id": "n4689622089",
+"name": "Movement LIC",
+"city": "Long Island City",
+"state": "NY",
+"street": "11-11 44th Drive",
+"website": "https://movementgyms.com/lic/",
+"latitude": 40.748631,
+"longitude": -73.948795
+},
+{
 "id": "w660796645",
 "name": "Bouldering Project",
 "city": "New York",
@@ -3430,6 +3750,16 @@
 "longitude": -84.386844
 },
 {
+"id": "n9837441317",
+"name": "Kendall Cliffs Climbing Gym",
+"city": "Boston Township",
+"state": "OH",
+"street": null,
+"website": null,
+"latitude": 41.219535,
+"longitude": -81.492682
+},
+{
 "id": "w157499954",
 "name": "Climb Cincy",
 "city": "Cincinnati",
@@ -3530,6 +3860,16 @@
 "longitude": -84.40861
 },
 {
+"id": "n14178069901",
+"name": "Adventus Climbing",
+"city": "Sylvania Township",
+"state": "OH",
+"street": "2900 North Reynolds Road",
+"website": "https://www.adventusclimbing.com/",
+"latitude": 41.673884,
+"longitude": -83.669438
+},
+{
 "id": "w1233940677",
 "name": "ASCEND Youngstown",
 "city": "Youngstown",
@@ -3590,6 +3930,16 @@
 "longitude": -95.921141
 },
 {
+"id": "n12770670303",
+"name": "Stoneworks Climbing Gym",
+"city": "Beaverton",
+"state": "OR",
+"street": "6775 Southwest 111th Avenue",
+"website": "https://belay.com/",
+"latitude": 45.471945,
+"longitude": -122.790758
+},
+{
 "id": "n4831946930",
 "name": "Bend Rock Gym",
 "city": "Bend",
@@ -3630,6 +3980,16 @@
 "longitude": -123.263005
 },
 {
+"id": "n10568560537",
+"name": "Bouldering practice",
+"city": "Deschutes County",
+"state": "OR",
+"street": null,
+"website": null,
+"latitude": 44.365365,
+"longitude": -121.137941
+},
+{
 "id": "n2878945012",
 "name": "Crux Rock Room - Climbing & Fitness",
 "city": "Eugene",
@@ -3658,6 +4018,16 @@
 "website": null,
 "latitude": 45.511167,
 "longitude": -122.398438
+},
+{
+"id": "n13141574644",
+"name": "Beyond The Wall Climbing",
+"city": "Hillsboro",
+"state": "OR",
+"street": null,
+"website": null,
+"latitude": 45.51158,
+"longitude": -122.971596
 },
 {
 "id": "w596698631",
@@ -3780,6 +4150,16 @@
 "longitude": -122.653508
 },
 {
+"id": "n12294706913",
+"name": "Student Recreation Center",
+"city": "Portland",
+"state": "OR",
+"street": "1800 Southwest 6th Avenue",
+"website": "https://www.pdx.edu/recreation/",
+"latitude": 45.511403,
+"longitude": -122.68216
+},
+{
 "id": "n3112315363",
 "name": "The Circuit",
 "city": "Portland",
@@ -3818,6 +4198,16 @@
 "website": "https://thejugrockgym.com",
 "latitude": 44.251943,
 "longitude": -121.170492
+},
+{
+"id": "n6136264985",
+"name": "The Rock Boxx Climbing Gym",
+"city": "Salem",
+"state": "OR",
+"street": null,
+"website": null,
+"latitude": 44.899594,
+"longitude": -123.005847
 },
 {
 "id": "n10565253050",
@@ -3930,6 +4320,16 @@
 "longitude": -80.091521
 },
 {
+"id": "w657882217",
+"name": "Bilger's Rocks",
+"city": "Grampian",
+"state": "PA",
+"street": "1921 Bilgers Rocks Road",
+"website": "https://www.thebilgersrocks.com/",
+"latitude": 40.994147,
+"longitude": -78.591935
+},
+{
 "id": "w1561095155",
 "name": "Philadelphia Rock Gyms - Malvern",
 "city": "Malvern",
@@ -3968,6 +4368,16 @@
 "website": null,
 "latitude": 41.119643,
 "longitude": -75.355706
+},
+{
+"id": "n2699315988",
+"name": "Go Vertical - Indoor Rock Climbing Gym",
+"city": "Philadelphia",
+"state": "PA",
+"street": "950 Penn Street",
+"website": "http://www.govertical.com/",
+"latitude": 39.962975,
+"longitude": -75.134985
 },
 {
 "id": "n9380749033",
@@ -4110,6 +4520,26 @@
 "longitude": -77.502143
 },
 {
+"id": "n5160211552",
+"name": "Gravity Vault Climbing Gym",
+"city": "Whitehall",
+"state": "PA",
+"street": null,
+"website": null,
+"latitude": 40.635707,
+"longitude": -75.481796
+},
+{
+"id": "n6103589414",
+"name": "Wilkes-Barre Indoor Rock Climbing",
+"city": "Wilkes-Barre",
+"state": "PA",
+"street": null,
+"website": null,
+"latitude": 41.243596,
+"longitude": -75.885516
+},
+{
 "id": "w463517251",
 "name": "Grumbacher Sport and Fitness Center",
 "city": "York",
@@ -4118,6 +4548,16 @@
 "website": null,
 "latitude": 39.945156,
 "longitude": -76.736042
+},
+{
+"id": "n13070103656",
+"name": "Rock Spot Climbing: Lincoln",
+"city": "Lincoln",
+"state": "RI",
+"street": null,
+"website": null,
+"latitude": 41.886285,
+"longitude": -71.40843
 },
 {
 "id": "n12838477101",
@@ -4270,6 +4710,16 @@
 "longitude": -85.302039
 },
 {
+"id": "n4332710393",
+"name": "High Point Climbing and Fitness",
+"city": "Cleveland",
+"state": "TN",
+"street": "2499 Keith Street Northwest",
+"website": "https://www.highpointclimbing.com/cleveland/cleveland-main",
+"latitude": 35.182381,
+"longitude": -84.873877
+},
+{
 "id": "r15313406",
 "name": "Marc L. Burnett Student Recreation and Fitness Center",
 "city": "Cookeville",
@@ -4340,6 +4790,36 @@
 "longitude": -86.39687
 },
 {
+"id": "n12585946601",
+"name": "Climb Nashville East",
+"city": "Nashville",
+"state": "TN",
+"street": "1900 Eastland Avenue",
+"website": null,
+"latitude": 36.181698,
+"longitude": -86.735552
+},
+{
+"id": "n12585946602",
+"name": "Climb Nashville Kraft",
+"city": "Nashville",
+"state": "TN",
+"street": "2926 Kraft Drive",
+"website": null,
+"latitude": 36.108862,
+"longitude": -86.757443
+},
+{
+"id": "n11778973371",
+"name": "Climb West",
+"city": "Nashville",
+"state": "TN",
+"street": "3600 Charlotte Avenue",
+"website": null,
+"latitude": 36.153045,
+"longitude": -86.828046
+},
+{
 "id": "n13252592238",
 "name": "Cinergy Skywalker",
 "city": "Amarillo",
@@ -4388,6 +4868,16 @@
 "website": "https://www.cruxclimbingcenter.com/central-austin/",
 "latitude": 30.326056,
 "longitude": -97.717082
+},
+{
+"id": "w134837993",
+"name": "Crux Climbing Center Fitness Barn",
+"city": "Austin",
+"state": "TX",
+"street": "3612 South Congress Avenue",
+"website": "https://www.cruxclimbingcenter.com/south-austin/",
+"latitude": 30.227583,
+"longitude": -97.761868
 },
 {
 "id": "n10815594105",
@@ -4540,6 +5030,16 @@
 "longitude": -95.377462
 },
 {
+"id": "n14068782202",
+"name": "Momentum Indoor Climbing Memorial",
+"city": "Houston",
+"state": "TX",
+"street": null,
+"website": null,
+"latitude": 29.78628,
+"longitude": -95.558761
+},
+{
 "id": "w361929130",
 "name": "Momentum Rock Climbing",
 "city": "Houston",
@@ -4548,6 +5048,16 @@
 "website": "https://momentumclimbing.com/silver-street/",
 "latitude": 29.771091,
 "longitude": -95.37774
+},
+{
+"id": "n13354400401",
+"name": "Momentum Indoor Climbing",
+"city": "Katy",
+"state": "TX",
+"street": "25410 Katy Mills Parkway",
+"website": "https://momentumclimbing.com/katy/",
+"latitude": 29.775128,
+"longitude": -95.816161
 },
 {
 "id": "n13668349701",
@@ -4598,6 +5108,16 @@
 "website": "https://www.thedistrictsa.com/",
 "latitude": 29.449078,
 "longitude": -98.47421
+},
+{
+"id": "w493029486",
+"name": "Armadillo Boulders",
+"city": "San Marcos",
+"state": "TX",
+"street": "211 South Stagecoach Trail",
+"website": null,
+"latitude": 29.86254,
+"longitude": -97.962142
 },
 {
 "id": "n14204276511",
@@ -4980,6 +5500,16 @@
 "longitude": -76.13461
 },
 {
+"id": "n11558611774",
+"name": "Mountain Trails",
+"city": "Winchester",
+"state": "VA",
+"street": "115 North Loudoun Street",
+"website": "https://www.mountain-trails.com/",
+"latitude": 39.185,
+"longitude": -78.16539
+},
+{
 "id": "w370113555",
 "name": "Victory Family YMCA",
 "city": "York County",
@@ -5098,6 +5628,26 @@
 "website": null,
 "latitude": 48.748003,
 "longitude": -122.47712
+},
+{
+"id": "n13347402201",
+"name": "Insight Climbing & Movement",
+"city": "Bremerton",
+"state": "WA",
+"street": "2315 Burwell Street",
+"website": "https://www.insightclimbing.com/bremerton/view-1",
+"latitude": 47.565328,
+"longitude": -122.649649
+},
+{
+"id": "n12232165801",
+"name": "Endurance Climbing",
+"city": "Burlington",
+"state": "WA",
+"street": "1625 South Walnut Street",
+"website": "https://www.enduranceclimbing.com/",
+"latitude": 48.456347,
+"longitude": -122.33195
 },
 {
 "id": "n13863583106",
@@ -5328,6 +5878,16 @@
 "website": null,
 "latitude": 47.71928,
 "longitude": -117.406368
+},
+{
+"id": "n11860942069",
+"name": "Wild Walls Climbing Gym",
+"city": "Spokane",
+"state": "WA",
+"street": "202 West 2nd Avenue",
+"website": "https://wildwalls.com/",
+"latitude": 47.654663,
+"longitude": -117.415286
 },
 {
 "id": "n5653311621",
