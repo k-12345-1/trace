@@ -134,6 +134,18 @@ struct Metrics: Codable {
     /// with too few moves to read and a climb with no detours in it are
     /// different answers and only one of them is good news.
     var moveWaste: Double?
+    /// Smoothness measured between the rests, the middle value of the spans.
+    ///
+    /// This replaced `logJerk` for every comparison Trace makes. Log
+    /// dimensionless jerk over a whole climb multiplies by the fifth power of
+    /// the duration and divides by the path length squared, so a rest, which
+    /// adds duration and no length, makes the same movement score as far
+    /// jerkier. Two findings then came off one behaviour.
+    ///
+    /// Optional, and old climbs have none. A number measured the old way is not
+    /// comparable with one measured this way, and quietly mixing them is
+    /// exactly the mistake this field exists to stop.
+    var movingJerk: Double?
 
     /// Below this we do not draw and we do not coach. Confidently wrong feedback
     /// is the failure mode that kills the product.
@@ -178,6 +190,7 @@ struct Metrics: Codable {
         // Nil rather than zero when it is missing. A climb analyzed before this
         // existed has no reading, and zero would mean a perfect one.
         moveWaste          = try c.decodeIfPresent(Double.self, forKey: .moveWaste)
+        movingJerk         = try c.decodeIfPresent(Double.self, forKey: .movingJerk)
     }
 
     init(entropy: Double, logJerk: Double, pathRatio: Double, staticElbowAngle: Double,
@@ -185,11 +198,13 @@ struct Metrics: Codable {
          comOffsetFromFeet: Double = 0, deadpointOffsets: [Double] = [],
          comPath: [CGPoint], duration: Double, trackingConfidence: Double,
          bracketedFraction: Double = 0, compressionFraction: Double = 0,
-         swingTotal: Double = 0, moveWaste: Double? = nil) {
+         swingTotal: Double = 0, moveWaste: Double? = nil,
+         movingJerk: Double? = nil) {
         self.bracketedFraction = bracketedFraction
         self.compressionFraction = compressionFraction
         self.swingTotal = swingTotal
         self.moveWaste = moveWaste
+        self.movingJerk = movingJerk
         self.entropy = entropy
         self.logJerk = logJerk
         self.pathRatio = pathRatio

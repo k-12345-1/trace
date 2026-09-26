@@ -20,7 +20,7 @@ struct StrengthTests {
                 comOffsetFromFeet: offset, deadpointOffsets: deadpoints,
                 comPath: Fixture.straightPath(), duration: duration,
                 trackingConfidence: 0.9, bracketedFraction: bracketed,
-                moveWaste: waste)
+                moveWaste: waste, movingJerk: jerk)
     }
 
     private func kinds(_ s: [StrengthEngine.Strength]) -> [StrengthEngine.Kind] {

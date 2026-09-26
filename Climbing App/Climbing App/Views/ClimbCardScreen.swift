@@ -249,8 +249,10 @@ struct ClimbCardScreen: View {
                 ReadoutGrid {
                     Readout(label: "Entropy", value: String(format: "%.2f", best.metrics.entropy),
                             unit: "H", hint: "lower is tidier")
-                    Readout(label: "Smoothness", value: String(format: "%.1f", best.metrics.logJerk),
-                            unit: "log jerk", hint: "lower is smoother")
+                    Readout(label: "Smoothness",
+                            value: best.metrics.movingJerk.map { String(format: "%.1f", $0) } ?? "—",
+                            unit: best.metrics.movingJerk == nil ? "too few moves" : "per move",
+                            hint: "lower is smoother")
                     Readout(label: "Static elbows",
                             value: "\(Int(best.metrics.staticElbowAngle.rounded()))",
                             unit: "deg", hint: "180 is straight")

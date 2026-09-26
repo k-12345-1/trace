@@ -100,13 +100,19 @@ enum Fixture {
                         jerk: Double = 5, ratio: Double = 1.2, feet: Int = 0,
                         offset: Double = 0, deadpoints: [Double] = [],
                         confidence: Double = 0.9,
-                        moveWaste: Double? = nil) -> Metrics {
+                        moveWaste: Double? = nil,
+                        movingJerk: Double? = nil) -> Metrics {
         Metrics(entropy: entropy, logJerk: jerk, pathRatio: ratio,
                 staticElbowAngle: elbow, pauseCount: 0, pauseTotal: 0,
                 footAdjustments: feet, comOffsetFromFeet: offset,
                 deadpointOffsets: deadpoints, comPath: path,
                 duration: 20, trackingConfidence: confidence,
-                moveWaste: moveWaste)
+                moveWaste: moveWaste,
+                // Smoothness is judged per move now, so a fixture that wants to
+                // be judged on it has to carry the per-move number. Defaulting
+                // it to the whole-climb one would put the two back in the same
+                // pot, which is the thing that went wrong.
+                movingJerk: movingJerk)
     }
 
     static func climb(path: [CGPoint], entropy: Double, kind: LeakKind? = nil,

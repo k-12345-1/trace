@@ -31,9 +31,11 @@ final class ClimbAnalyzer: ObservableObject {
             let metrics = MetricsEngine.compute(frames: frames)
             // Smoothness is judged against this climber's own earlier tracked
             // attempts, so the history has to come in with the frames.
+            // Only the attempts measured the same way. A history that mixes
+            // whole-climb jerk with per-move jerk is not a history.
             let priorJerk = Store.shared.climbs
                 .filter { $0.metrics.isTrustworthy }
-                .map(\.metrics.logJerk)
+                .compactMap { $0.metrics.movingJerk }
             let findings = FindingEngine.findings(from: metrics, frames: climbing,
                                                   priorJerk: priorJerk)
 

@@ -10,9 +10,11 @@ import Foundation
 ///      you cannot check is one you have to take on faith.
 enum FindingEngine {
 
-    /// - Parameter priorJerk: log dimensionless jerk from this climber's own
-    ///   earlier tracked attempts. Smoothness has no defensible absolute scale,
-    ///   so it is judged against their own history or not at all.
+    /// - Parameter priorJerk: per-move smoothness from this climber's own
+    ///   earlier tracked attempts, and only from the ones measured that way.
+    ///   Smoothness has no defensible absolute scale, so it is judged against
+    ///   their own history or not at all, and a history measured two different
+    ///   ways is not a history.
     static func findings(from m: Metrics, frames: [PoseFrame],
                          priorJerk: [Double] = []) -> [Finding] {
         guard m.isTrustworthy else { return [] }
@@ -106,7 +108,10 @@ enum FindingEngine {
         // clip. A climber with no history yet gets no finding here, which is the
         // correct answer: you cannot call someone's movement lurchy before you
         // know what their normal looks like.
-        if let excess = jerkExcess(m.logJerk, over: priorJerk) {
+        // Judged on the per-move number when it is there, because the
+        // whole-climb one counts a rest as roughness and this app already has
+        // a finding for resting.
+        if let value = m.movingJerk, let excess = jerkExcess(value, over: priorJerk) {
             let severity: Severity = excess > 1.5 ? .costly : excess > 0.9 ? .moderate : .minor
             let w = worstJerkWindow(frames: frames) ?? whole
             out.append(Finding(

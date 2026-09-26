@@ -116,8 +116,19 @@ enum MoveEngine {
         let speeds = MetricsEngine.speedSeries(path: path, times: times)
         guard speeds.count == path.count, path.count >= 3 else { return [] }
 
+        // The climber's own speed while moving, not their average including
+        // rests.
+        //
+        // A plain median over every frame is dragged to zero by a long rest:
+        // ninety still frames in a two hundred frame clip and the median IS
+        // zero, so nothing is slower than a fraction of it, no boundaries are
+        // found, and the climb has no moves in it at all. The climbers that
+        // silently disabled were the ones who rest, which is to say the ones
+        // with the most to learn from being told about it.
         let sorted = speeds.sorted()
-        let median = sorted[sorted.count / 2]
+        let high = sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.9))]
+        let moving = speeds.filter { $0 > high * 0.05 }.sorted()
+        let median = moving.isEmpty ? sorted[sorted.count / 2] : moving[moving.count / 2]
         guard median > 1e-6 else { return [] }
         let ceiling = median * restFraction
 

@@ -140,12 +140,38 @@ enum PoseTracker {
                          meanConfidence: usable.count >= 6 ? mean : 0)
     }
 
-    /// A light 5-tap moving average on the COM. Vision jitters a few pixels frame to
-    /// frame, and jerk is a third derivative, so raw noise would swamp the signal.
+    /// How much of a second the moving average covers, either side.
+    ///
+    /// A duration, not a number of frames, and that is the whole point of it.
+    /// Vision jitters a few pixels frame to frame and jerk is a third
+    /// derivative, so the centre of mass has to be filtered before anything is
+    /// derived from it. A five tap window does that over sixty six
+    /// milliseconds at thirty frames a second and over thirty three at sixty:
+    /// the same climb, filmed on the same phone, came out measurably jerkier at
+    /// the higher frame rate, because half as much of the jitter had been taken
+    /// out before the third derivative amplified what was left.
+    ///
+    /// That matters here more than it would elsewhere. Trace films at sixty
+    /// where the camera offers an unbinned format and thirty where it does not,
+    /// and an imported clip is whatever the climber's phone recorded, so one
+    /// library holds both. Smoothness is only ever compared against the
+    /// climber's own earlier climbs, which is exactly the comparison this
+    /// silently broke.
+    static let smoothingSeconds = 0.066
+
+    /// A moving average on the COM over a fixed slice of time.
     static func smooth(_ frames: [PoseFrame]) -> [PoseFrame] {
         guard frames.count > 5 else { return frames }
         var out = frames
-        let window = 2
+
+        // From the clip's own timestamps rather than from an assumed rate.
+        var gaps: [Double] = []
+        for (a, b) in zip(frames, frames.dropFirst()) where b.time > a.time {
+            gaps.append(b.time - a.time)
+        }
+        let step = gaps.isEmpty ? 1.0 / 30.0 : gaps.sorted()[gaps.count / 2]
+        let window = max(1, Int((smoothingSeconds / max(step, 1e-6)).rounded()))
+
         for i in frames.indices {
             var sx = 0.0, sy = 0.0, n = 0.0
             for k in max(0, i - window)...min(frames.count - 1, i + window) {

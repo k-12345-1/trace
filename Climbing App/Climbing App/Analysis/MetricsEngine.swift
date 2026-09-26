@@ -109,7 +109,8 @@ enum MetricsEngine {
             bracketedFraction: ForceEngine.bracketedFraction(frames: tracked),
             compressionFraction: ForceEngine.compressionFraction(frames: tracked),
             swingTotal: ForceEngine.swingTotal(frames: tracked),
-            moveWaste: MoveEngine.read(frames: tracked)?.waste
+            moveWaste: MoveEngine.read(frames: tracked)?.waste,
+            movingJerk: movingJerk(frames: tracked)
         )
     }
 
@@ -351,6 +352,46 @@ enum MetricsEngine {
 
         let dimensionless = pow(T, 5) / (length * length) * integral
         return log(max(dimensionless, 1e-9))
+    }
+
+    /// Smoothness measured one move at a time.
+    ///
+    /// Log dimensionless jerk multiplies the jerk integral by the fifth power
+    /// of the duration and divides by the square of the path length. A rest
+    /// adds to the duration and nothing to the length, so the same movement
+    /// with a pause dropped into the middle of it scored as far rougher than
+    /// the same movement without one. Trace then raised two findings off one
+    /// behaviour: start-stop movement, because the number was high, and
+    /// reading the route while hanging on it, because of the rest that made it
+    /// high. One flaw, counted twice, and the second count was an artefact of
+    /// the formula.
+    ///
+    /// The measure was built for a single discrete movement, so it is applied
+    /// to single movements: each of the moves Trace already splits the climb
+    /// into, with the middle value taken. Cutting at the rests instead was not
+    /// enough, because a rest then splits one long span into two short ones and
+    /// the measure is sensitive to duration in exactly that way. The move is
+    /// the only unit that stays the same size whether somebody rested or not.
+    ///
+    /// Nil when there were too few moves to read, which is not the same as a
+    /// climb that flowed.
+    static func movingJerk(frames: [PoseFrame]) -> Double? {
+        guard let reading = MoveEngine.read(frames: frames) else { return nil }
+        let usable = frames.filter { $0.com != nil }
+        var values: [Double] = []
+        for move in reading.moves {
+            let slice = usable.filter { $0.time >= move.start && $0.time <= move.end }
+            let path = slice.compactMap { $0.com }
+            guard path.count > 6 else { continue }
+            let value = logDimensionlessJerk(path: path, times: slice.map(\.time),
+                                             length: pathLength(path))
+            // Zero is the guard inside that function saying the move was too
+            // short to read, not a perfectly smooth one.
+            if value != 0 { values.append(value) }
+        }
+        guard values.count >= 3 else { return nil }
+        let sorted = values.sorted()
+        return sorted[sorted.count / 2]
     }
 
     /// Linear resampling of a path onto an even grid.

@@ -665,7 +665,7 @@ struct ResultsScreen: View {
     private var priorJerk: [Double] {
         store.climbs
             .filter { $0.id != climb.id && $0.metrics.isTrustworthy }
-            .map(\.metrics.logJerk)
+            .compactMap { $0.metrics.movingJerk }
     }
 
     private var headline: some View {
@@ -718,8 +718,11 @@ struct ResultsScreen: View {
             ReadoutGrid {
                 Readout(label: "Entropy", value: String(format: "%.2f", climb.metrics.entropy),
                         unit: "nats", delta: entropyDelta)
-                Readout(label: "Smoothness", value: String(format: "%.1f", climb.metrics.logJerk),
-                        unit: "ldlj")
+                // Per move, and a dash when there were too few moves to read.
+                // The whole-climb number counted a rest as roughness.
+                Readout(label: "Smoothness",
+                        value: climb.metrics.movingJerk.map { String(format: "%.1f", $0) } ?? "—",
+                        unit: climb.metrics.movingJerk == nil ? "too few moves" : "per move")
                 // Zero means MetricsEngine declined: the climb ended near where
                 // it started, so there is no straight line to compare against.
                 // Printing "0.00" would read as a measurement rather than as a

@@ -144,14 +144,14 @@ enum StrengthEngine {
         // Smoothness has no defensible absolute scale, so it is only ever a
         // strength against this climber's own earlier climbs, and only once
         // there are enough of them to have a usual.
-        if priorJerk.count >= 3 {
+        if let value = m.movingJerk, priorJerk.count >= 3 {
             let sorted = priorJerk.sorted()
             let median = sorted[sorted.count / 2]
-            if m.logJerk <= median - smootherBy {
+            if value <= median - smootherBy {
                 out.append(Strength(
                     kind: .smoothForYou,
-                    margin: scaled(median - smootherBy - m.logJerk, over: 1),
-                    detail: String(format: "%.1f against your usual %.1f", m.logJerk, median)))
+                    margin: scaled(median - smootherBy - value, over: 1),
+                    detail: String(format: "%.1f against your usual %.1f", value, median)))
             }
         }
 
