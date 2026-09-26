@@ -328,3 +328,115 @@ struct BaseOfSupportTests {
         #expect(offset > 0, "the offset stopped being measurable")
     }
 }
+
+/// Technique that can be named without knowing where the holds are.
+@Suite("Named technique")
+struct TechniqueTests {
+
+    private func realClimb() throws -> [PoseFrame] {
+        let bundle = Bundle(for: BundleToken.self)
+        let url = try #require(bundle.url(forResource: "realclimb", withExtension: "json"))
+        let frames = try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
+        // The fixture was tracked before the speed gate existed, so it carries
+        // the raw joints the app used to keep.
+        return PoseTracker.rejectingImpossibleMoves(frames)
+    }
+
+    // MARK: Joints that moved impossibly fast
+
+    /// A limb that crossed two metres in a sixtieth of a second did not.
+    @Test("An impossible move is dropped, not smoothed")
+    func impossibleMovesAreDropped() throws {
+        let bundle = Bundle(for: BundleToken.self)
+        let url = try #require(bundle.url(forResource: "realclimb", withExtension: "json"))
+        let raw = try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
+        let torso = try #require(MetricsEngine.medianTorso(raw))
+
+        func worstStep(_ frames: [PoseFrame], _ id: JointID) -> Double {
+            var worst = 0.0
+            var last: (Double, CGPoint)?
+            for f in frames {
+                guard let p = f.pt(id) else { continue }
+                if let (t, q) = last {
+                    worst = max(worst, hypot(Double(p.x - q.x), Double(p.y - q.y))
+                                / max(f.time - t, 0.0005) / torso)
+                }
+                last = (f.time, p)
+            }
+            return worst
+        }
+
+        let before = worstStep(raw, .leftAnkle)
+        let after = worstStep(PoseTracker.rejectingImpossibleMoves(raw), .leftAnkle)
+        #expect(before > 100, "the fixture read \(before), so this proves nothing")
+        #expect(after <= PoseTracker.impossibleSpeed)
+    }
+
+    /// It throws away the wrong answers and almost nothing else.
+    @Test("Hardly any real data is lost")
+    func hardlyAnythingIsLost() throws {
+        let bundle = Bundle(for: BundleToken.self)
+        let url = try #require(bundle.url(forResource: "realclimb", withExtension: "json"))
+        let raw = try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
+        let gated = PoseTracker.rejectingImpossibleMoves(raw)
+
+        func kept(_ frames: [PoseFrame], _ id: JointID) -> Int {
+            frames.filter { $0.pt(id) != nil }.count
+        }
+        let before = kept(raw, .leftAnkle), after = kept(gated, .leftAnkle)
+        #expect(Double(after) / Double(before) > 0.9,
+                "kept only \(after) of \(before) ankle samples")
+
+        // And the reading it feeds is unchanged.
+        let a = try #require(ReachEngine.read(frames: raw)).reaches.count
+        let b = try #require(ReachEngine.read(frames: gated)).reaches.count
+        #expect(abs(a - b) <= 1, "reaches went from \(a) to \(b)")
+    }
+
+    /// A thrown hand is fast, and must survive.
+    @Test("A real throw is not mistaken for an error")
+    func arealThrowSurvives() throws {
+        let clip = try realClimb()
+        let reading = try #require(ReachEngine.read(frames: clip))
+        #expect(reading.reaches.count >= 7)
+        #expect(reading.reaches.contains { $0.travelled > 2 },
+                "the long reaches were thrown away")
+    }
+
+    // MARK: Lock-offs
+
+    /// Bent and held while the other hand moves. Both halves matter: bent alone
+    /// catches an arm that was itself moving, held alone catches a straight-arm
+    /// hang, which is the opposite of a lock-off.
+    @Test("A lock-off is bent and held, not one or the other")
+    func aLockOffIsBothThings() throws {
+        let reading = try #require(ReachEngine.read(frames: try realClimb()))
+        let locked = reading.lockOffs
+        #expect(!locked.isEmpty, "no lock-off found in a climb that contains one")
+
+        for reach in locked {
+            let e = try #require(reach.supportingElbow)
+            #expect(e.angle < ReachEngine.lockOffAngle)
+            #expect(e.spread < ReachEngine.lockOffSteadiness)
+        }
+
+        // The straight-arm hangs are not counted. On this climb the supporting
+        // arm sits near 150 degrees on three reaches, rock steady, and steady is
+        // exactly what would fool a one-sided test.
+        let steadyAndStraight = reading.reaches.filter {
+            ($0.supportingElbow?.angle ?? 0) > 140 && ($0.supportingElbow?.spread ?? 99) < 25
+        }
+        #expect(!steadyAndStraight.isEmpty, "the fixture has no straight-arm hang in it")
+        #expect(steadyAndStraight.allSatisfy { !$0.isLockOff })
+    }
+
+    /// An arm that is bent because it is in the middle of its own move is not
+    /// locked off.
+    @Test("An arm that is moving is not locked off")
+    func aMovingArmIsNotLockedOff() throws {
+        let reading = try #require(ReachEngine.read(frames: try realClimb()))
+        let busy = reading.reaches.filter { ($0.supportingElbow?.spread ?? 0) > 50 }
+        #expect(!busy.isEmpty)
+        #expect(busy.allSatisfy { !$0.isLockOff })
+    }
+}

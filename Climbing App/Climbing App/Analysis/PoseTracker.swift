@@ -107,7 +107,7 @@ enum PoseTracker {
         if reader.status == .failed {
             throw TrackingError.readerFailed(reader.error?.localizedDescription ?? "read failed")
         }
-        return smooth(frames)
+        return smooth(rejectingImpossibleMoves(frames))
     }
 
     /// Body pose observations carry no bounding box, so the climber's apparent size
@@ -160,6 +160,59 @@ enum PoseTracker {
     static let smoothingSeconds = 0.066
 
     /// A moving average on the COM over a fixed slice of time.
+    /// A limb cannot move faster than this, in torso lengths per second.
+    ///
+    /// A torso is roughly half a metre, so this is about ten metres a second at
+    /// the wrist: far beyond a thrown hand, which peaks near seven torso lengths
+    /// a second on real footage, and far below the nonsense. Anything above it
+    /// is the tracker having put a joint somewhere it is not.
+    static let impossibleSpeed = 20.0
+
+    /// Throws away joint samples that arrived impossibly fast.
+    ///
+    /// `smooth` averages the centre of mass and has never touched the
+    /// individual joints, so every angle, every foot placement and every reach
+    /// has been computed on raw output. On real footage that output contains
+    /// occasional gross errors: on the fixture clip an ankle moves 4.56 torso
+    /// lengths inside one sixtieth of a second, which is two metres, and the
+    ///97th percentile frame-to-frame ankle speed is 27 torso lengths a second.
+    ///
+    /// These are not jitter and a filter does not fix them. A median over five
+    /// frames leaves the 97th percentile at 16, because the joint does not
+    /// flicker for one frame, it jumps somewhere wrong and stays for several.
+    /// Nor is it left and right being confused, which accounts for 1.5% of
+    /// ankle frames and no more. It is simply a wrong answer, and the honest
+    /// thing to do with a wrong answer is drop it: confidence goes to zero, and
+    /// every reader in the app already knows how to skip a joint it cannot see.
+    ///
+    /// Measured on the fixture: 3.5% of ankle samples go, the worst frame-to-
+    /// frame speed falls from 138 to 20, and the reach reading is unchanged.
+    static func rejectingImpossibleMoves(_ frames: [PoseFrame]) -> [PoseFrame] {
+        guard let torso = MetricsEngine.medianTorso(frames), torso > 0.01 else { return frames }
+        var out = frames
+
+        for id in JointID.allCases {
+            // The last sample believed, which a rejected one never becomes:
+            // otherwise one bad frame drags the reference with it and the good
+            // frame that follows looks like the impossible move.
+            var believed: (time: Double, point: CGPoint)?
+            for i in frames.indices {
+                guard let p = frames[i].pt(id) else { continue }
+                if let last = believed {
+                    let dt = max(frames[i].time - last.time, 0.0005)
+                    let speed = hypot(Double(p.x - last.point.x),
+                                      Double(p.y - last.point.y)) / dt / torso
+                    if speed > impossibleSpeed {
+                        out[i].joints[id]?.confidence = 0
+                        continue
+                    }
+                }
+                believed = (frames[i].time, p)
+            }
+        }
+        return out
+    }
+
     static func smooth(_ frames: [PoseFrame]) -> [PoseFrame] {
         guard frames.count > 5 else { return frames }
         var out = frames

@@ -57,6 +57,24 @@ enum ReachEngine {
         /// square to the camera and 0.4 is well turned. Nil when the hips were
         /// not visible.
         let hipOpenness: Double?
+        /// The other arm's elbow angle while this hand was moving: what it
+        /// averaged, and how much the middle half of the readings spanned. Nil
+        /// when that arm was not visible for long enough to say.
+        let supportingElbow: (angle: Double, spread: Double)?
+
+        /// The other arm held bent and steady while this hand was thrown, which
+        /// is what a lock-off is.
+        ///
+        /// Both halves are needed. Bent on its own catches an arm that happened
+        /// to be mid-bend while it too was moving; steady on its own catches a
+        /// straight-arm hang, which is the opposite of a lock-off and the
+        /// cheapest thing in climbing. On the fixture clip the two conditions
+        /// pick out one reach of nine and correctly leave the three straight-arm
+        /// hangs alone.
+        var isLockOff: Bool {
+            guard let e = supportingElbow else { return false }
+            return e.angle < lockOffAngle && e.spread < lockOffSteadiness
+        }
 
         var id: Double { start }
         var isLeft: Bool { hand == .leftWrist }
@@ -91,6 +109,9 @@ enum ReachEngine {
 
         /// Worth showing only when there is a difference to show.
         var spread: Double { (bodyLed?.share ?? 0) - (armLed?.share ?? 0) }
+
+        /// The reaches made off a locked-off arm.
+        var lockOffs: [Reach] { reaches.filter(\.isLockOff) }
     }
 
     // MARK: The judgements
@@ -137,6 +158,16 @@ enum ReachEngine {
     /// An elbow angle below this is the tracker confusing a wrist with an
     /// elbow rather than an arm folded double, so it is not reported.
     static let plausibleElbow = 35.0
+
+    /// The supporting arm counts as locked off below this angle, in degrees.
+    /// Above it the arm is carrying the body on bone rather than muscle, which
+    /// is a hang.
+    static let lockOffAngle = 120.0
+    /// And it has to be held: the middle half of the readings over the reach
+    /// may span no more than this many degrees. The middle half rather than the
+    /// full range, because one bad frame at either end of a reach should not
+    /// decide what the arm was doing throughout it.
+    static let lockOffSteadiness = 25.0
 
     static let caveat = "Neither is a mistake. A lock-off is an arm move on purpose, and a climber who never extends an arm is not climbing. This says where the effort went on each one."
 
@@ -227,8 +258,29 @@ enum ReachEngine {
                          share: carried / travelled,
                          catchElbow: angle(of: b, shoulder, elbow, hand)
                             .flatMap { $0 >= plausibleElbow ? $0 : nil },
-                         hipOpenness: openness(of: a, square: square))
+                         hipOpenness: openness(of: a, square: square),
+                         supportingElbow: supportingElbow(in: frames, from: span.from,
+                                                          to: span.to, reaching: hand))
         }
+    }
+
+    /// What the other arm was doing while this hand moved.
+    static func supportingElbow(in frames: [PoseFrame], from: Int, to: Int,
+                                reaching: JointID) -> (angle: Double, spread: Double)? {
+        let other: JointID = reaching == .leftWrist ? .rightWrist : .leftWrist
+        let shoulder: JointID = reaching == .leftWrist ? .rightShoulder : .leftShoulder
+        let elbow: JointID = reaching == .leftWrist ? .rightElbow : .leftElbow
+
+        var angles: [Double] = []
+        for i in from...min(to, frames.count - 1) {
+            if let a = angle(of: frames[i], shoulder, elbow, other), a >= plausibleElbow {
+                angles.append(a)
+            }
+        }
+        guard angles.count >= 4 else { return nil }
+        let sorted = angles.sorted()
+        return (angles.reduce(0, +) / Double(angles.count),
+                sorted[sorted.count * 3 / 4] - sorted[sorted.count / 4])
     }
 
     // MARK: Hips

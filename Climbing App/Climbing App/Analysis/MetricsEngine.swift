@@ -206,8 +206,26 @@ enum MetricsEngine {
     /// for a frame where neither foot is on anything, which is not a frame with
     /// a base of support in it at all.
     static func plantedBase(frames: [PoseFrame]) -> [Double?] {
+        let planted = plantedFeet(frames: frames)
+        return frames.indices.map { i in
+            var xs: [Double] = []
+            for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
+                if planted[i].contains(ankle), let p = frames[i].pt(ankle) { xs.append(Double(p.x)) }
+            }
+            guard !xs.isEmpty else { return nil }
+            return xs.reduce(0, +) / Double(xs.count)
+        }
+    }
+
+    /// Which feet are on something, per frame.
+    ///
+    /// The same plant test `footAdjustmentTimes` uses, exposed on its own
+    /// because which foot is on a hold is the question behind a flag: a flag is
+    /// one foot planted and the other held deliberately in the air, and the only
+    /// leg position that can be named without knowing where the holds are.
+    static func plantedFeet(frames: [PoseFrame]) -> [Set<JointID>] {
         guard let torso = medianTorso(frames), torso > 0.01 else {
-            return Array(repeating: nil, count: frames.count)
+            return Array(repeating: [], count: frames.count)
         }
         var planted: [JointID: [Bool]] = [:]
         for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
@@ -230,12 +248,11 @@ enum MetricsEngine {
         }
 
         return frames.indices.map { i in
-            var xs: [Double] = []
-            for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
-                if planted[ankle]?[i] == true, let p = frames[i].pt(ankle) { xs.append(Double(p.x)) }
+            var on: Set<JointID> = []
+            for ankle in [JointID.leftAnkle, JointID.rightAnkle] where planted[ankle]?[i] == true {
+                on.insert(ankle)
             }
-            guard !xs.isEmpty else { return nil }
-            return xs.reduce(0, +) / Double(xs.count)
+            return on
         }
     }
 
