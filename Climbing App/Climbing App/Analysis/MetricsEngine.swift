@@ -164,12 +164,13 @@ enum MetricsEngine {
         let path = frames.compactMap { $0.com }
         let speeds = speedSeries(path: path, times: times)
         let still = stillSpeed(of: frames)
+        let bases = plantedBase(frames: frames)
         var samples: [Double] = []
 
         for (i, frame) in frames.enumerated() {
             guard i < speeds.count, speeds[i] < still,
                   let com = frame.com,
-                  let base = baseOfSupport(frame),
+                  i < bases.count, let base = bases[i],
                   let torso = torsoLength(frame), torso > 0.02 else { continue }
             samples.append(abs(Double(com.x) - base) / torso)
         }
@@ -188,6 +189,54 @@ enum MetricsEngine {
         let ankles = [f.pt(.leftAnkle), f.pt(.rightAnkle)].compactMap { $0 }
         guard !ankles.isEmpty else { return nil }
         return ankles.reduce(0.0) { $0 + Double($1.x) } / Double(ankles.count)
+    }
+
+    /// The base of support, per frame, made of the feet that are actually on
+    /// something.
+    ///
+    /// A body is held up by the feet that are on holds. `baseOfSupport` above
+    /// averages whichever ankles the tracker can see, planted or not, so a foot
+    /// hanging in space drags the base across with it and the climber is told
+    /// their weight is somewhere it is not: on the first real clip it reported
+    /// the centre of mass sitting 1.17 torso lengths to the side of "the feet",
+    /// a position nobody was in, because one foot was off the wall and swinging.
+    ///
+    /// Planted means the same thing it means to `footAdjustmentTimes`: the ankle
+    /// stayed inside `footPlantRadius` across `footPlantWindow` either side. Nil
+    /// for a frame where neither foot is on anything, which is not a frame with
+    /// a base of support in it at all.
+    static func plantedBase(frames: [PoseFrame]) -> [Double?] {
+        guard let torso = medianTorso(frames), torso > 0.01 else {
+            return Array(repeating: nil, count: frames.count)
+        }
+        var planted: [JointID: [Bool]] = [:]
+        for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
+            var flags = [Bool](repeating: false, count: frames.count)
+            // Indices where this ankle is visible, with their times.
+            let seen = frames.enumerated().compactMap { i, f -> (Int, Double, CGPoint)? in
+                f.pt(ankle).map { (i, f.time, $0) }
+            }
+            var lo = 0, hi = 0
+            for k in seen.indices {
+                while lo < k && seen[k].1 - seen[lo].1 > Self.footPlantWindow { lo += 1 }
+                while hi < seen.count - 1 && seen[hi + 1].1 - seen[k].1 <= Self.footPlantWindow {
+                    hi += 1
+                }
+                var worst = 0.0
+                for j in lo...hi { worst = max(worst, distance(seen[j].2, seen[k].2)) }
+                flags[seen[k].0] = worst / torso <= Self.footPlantRadius
+            }
+            planted[ankle] = flags
+        }
+
+        return frames.indices.map { i in
+            var xs: [Double] = []
+            for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
+                if planted[ankle]?[i] == true, let p = frames[i].pt(ankle) { xs.append(Double(p.x)) }
+            }
+            guard !xs.isEmpty else { return nil }
+            return xs.reduce(0, +) / Double(xs.count)
+        }
     }
 
     /// Shoulder midpoint to hip midpoint. The body-scale reference.

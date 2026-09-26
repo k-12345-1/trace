@@ -240,3 +240,91 @@ extension ReachTests {
         return try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
     }
 }
+
+/// The base of support is the feet that are on something.
+@Suite("Base of support")
+struct BaseOfSupportTests {
+
+    private func realClimb() throws -> [PoseFrame] {
+        let bundle = Bundle(for: BundleToken.self)
+        let url = try #require(bundle.url(forResource: "realclimb", withExtension: "json"))
+        return try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
+    }
+
+    /// A foot swinging in space is not holding anybody up, and averaging it into
+    /// the base drags the base across the frame with it.
+    @Test("A swinging foot is not part of the base")
+    func aSwingingFootIsNotPartOfTheBase() {
+        var frames: [PoseFrame] = []
+        for i in 0..<90 {
+            let t = Double(i) / 30
+            // The left ankle is bolted to a hold. The right swings through half a
+            // torso length and back, twice a second.
+            let swing = 0.10 * sin(t * 4 * .pi)
+            var joints: [JointID: Joint] = [
+                .leftShoulder: Joint(x: 0.46, y: 0.50, confidence: 0.9),
+                .rightShoulder: Joint(x: 0.54, y: 0.50, confidence: 0.9),
+                .leftHip: Joint(x: 0.47, y: 0.70, confidence: 0.9),
+                .rightHip: Joint(x: 0.53, y: 0.70, confidence: 0.9),
+                .leftAnkle: Joint(x: 0.45, y: 0.93, confidence: 0.9),
+                .rightAnkle: Joint(x: 0.65 + swing, y: 0.93, confidence: 0.9)
+            ]
+            joints[.leftKnee] = Joint(x: 0.46, y: 0.82, confidence: 0.9)
+            joints[.rightKnee] = Joint(x: 0.58, y: 0.82, confidence: 0.9)
+            frames.append(PoseFrame(time: t, joints: joints,
+                                    com: CenterOfMass.estimate(joints: joints),
+                                    meanConfidence: 0.9))
+        }
+
+        let bases = MetricsEngine.plantedBase(frames: frames)
+        let found = bases.compactMap { $0 }
+        #expect(!found.isEmpty)
+        // Every base sits on the planted foot, not between it and the swinging one.
+        #expect(found.allSatisfy { abs($0 - 0.45) < 0.02 },
+                "bases ranged \(found.min() ?? 0) to \(found.max() ?? 0)")
+
+        // The old rule averaged both ankles, so the base moved with the swing.
+        let old = frames.compactMap { MetricsEngine.baseOfSupport($0) }
+        #expect((old.max() ?? 0) - (old.min() ?? 0) > 0.05,
+                "the old base did not move, so this proves nothing")
+    }
+
+    /// Both feet on holds is a base between them.
+    @Test("Two planted feet make a base between them")
+    func twoPlantedFeet() {
+        let frames = (0..<90).map { i -> PoseFrame in
+            let joints: [JointID: Joint] = [
+                .leftShoulder: Joint(x: 0.46, y: 0.50, confidence: 0.9),
+                .rightShoulder: Joint(x: 0.54, y: 0.50, confidence: 0.9),
+                .leftHip: Joint(x: 0.47, y: 0.70, confidence: 0.9),
+                .rightHip: Joint(x: 0.53, y: 0.70, confidence: 0.9),
+                .leftAnkle: Joint(x: 0.40, y: 0.93, confidence: 0.9),
+                .rightAnkle: Joint(x: 0.60, y: 0.93, confidence: 0.9)
+            ]
+            return PoseFrame(time: Double(i) / 30, joints: joints,
+                             com: CenterOfMass.estimate(joints: joints), meanConfidence: 0.9)
+        }
+        let bases = MetricsEngine.plantedBase(frames: frames).compactMap { $0 }
+        #expect(bases.allSatisfy { abs($0 - 0.50) < 0.01 })
+    }
+
+    /// And on the real climb the stricter rule has not thrown the measurement
+    /// away.
+    ///
+    /// A base is found in 43% of frames, which is lower than it sounds: ankles
+    /// are the noisiest joint in the clip, with 97th percentile speeds above 20
+    /// torso lengths per second, and the plant test rejects a frame whose ankle
+    /// is jittering wider than the radius whether or not the foot is on a hold.
+    /// What matters is not the share but whether enough still frames survive to
+    /// measure, so that is what is asserted.
+    @Test("The real climb still has a base under it")
+    func therealClimbStillHasABase() throws {
+        let clip = try realClimb().filter { $0.com != nil }
+        let bases = MetricsEngine.plantedBase(frames: clip)
+        let share = Double(bases.compactMap { $0 }.count) / Double(bases.count)
+        #expect(share > 0.3, "a base was found in only \(share) of frames")
+
+        let offset = MetricsEngine.comOffsetFromFeet(frames: clip, times: clip.map(\.time))
+        #expect(offset > 0, "the offset stopped being measurable")
+    }
+}
