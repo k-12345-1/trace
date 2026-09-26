@@ -113,6 +113,17 @@ enum ReachEngine {
     /// what separates a reach from an adjustment and this floor only has to
     /// exclude a hand that went nowhere at all.
     static var minimumTravel: Double { MetricsEngine.reachTorsoDistance }
+
+    /// And a separate, higher bar before the share is worth quoting.
+    ///
+    /// The share divides the shoulder's travel by the hand's, so a hand that
+    /// barely moved has a denominator near zero and the ratio runs away. On the
+    /// real climb a 0.27 torso shuffle came out at "389% carried by the body",
+    /// which is not a sentence anyone should read. Detecting that contact is
+    /// still right, because a deadpoint is timed at the moment a hand lands
+    /// however far it came; attributing it between body and arm is not. Two
+    /// different questions, two floors.
+    static let comparableTravel = 0.7
     /// Fewer reaches than this is not a climb with a pattern in it.
     static let minimumReaches = 3
     /// The two ends have to be this far apart in share before they are two
@@ -142,6 +153,9 @@ enum ReachEngine {
         for hand in [JointID.leftWrist, JointID.rightWrist] {
             out += reaches(of: hand, in: usable, torso: torso, square: square)
         }
+        // Only the reaches big enough to attribute. A shuffle on the hold is a
+        // contact, not a reach with a body-versus-arm story in it.
+        out = out.filter { $0.travelled >= comparableTravel }
         out.sort { $0.start < $1.start }
         guard out.count >= minimumReaches else { return nil }
         return Reading(reaches: out)

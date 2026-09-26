@@ -80,14 +80,24 @@ struct ReachTests {
     }
 
     /// One definition of a hand move in the app, not two.
-    @Test("The deadpoint detector and the reach reading agree")
+    ///
+    /// Not the same count: the contact list includes hands that shuffled on the
+    /// hold, because a deadpoint is timed at the moment a hand lands however far
+    /// it came, and those are left out of the attribution. But every reach has
+    /// to be one of the contacts, or the two are finding different events.
+    @Test("The deadpoint detector and the reach reading find the same events")
     func oneDefinitionOfAMove() throws {
         let clip = try realClimb().filter { $0.com != nil }
         let times = clip.map(\.time)
         let contacts = MetricsEngine.handContacts(frames: clip, times: times, joint: .leftWrist)
         let reading = try #require(ReachEngine.read(frames: clip))
         let left = reading.reaches.filter(\.isLeft)
-        #expect(contacts.count == left.count)
+
+        #expect(contacts.count >= left.count)
+        for reach in left {
+            #expect(contacts.contains { abs($0 - reach.end) < 0.001 },
+                    "the reach ending at \(reach.end) is not in the contact list")
+        }
     }
 
     // MARK: Who did the reaching
@@ -194,5 +204,39 @@ struct ReachTests {
     private func shift(_ f: PoseFrame, by seconds: Double) -> PoseFrame {
         PoseFrame(time: f.time + seconds, joints: f.joints, com: f.com,
                   meanConfidence: f.meanConfidence)
+    }
+}
+
+/// The share divides by how far the hand went, so a hand that barely went
+/// anywhere makes the ratio meaningless. It is a separate question from whether
+/// the hand landed at all.
+extension ReachTests {
+
+    @Test("A shuffle on the hold is not attributed to body or arm")
+    func aShuffleIsNotAReach() throws {
+        let reading = try #require(ReachEngine.read(frames: try realClimbFrames()))
+        for reach in reading.reaches {
+            #expect(reach.travelled >= ReachEngine.comparableTravel,
+                    "a \(reach.travelled) torso move was given a share")
+            #expect(reach.share < 2.0, "share of \(reach.share) at \(reach.timecode)")
+        }
+    }
+
+    /// And the contact itself is still found, because a deadpoint is timed at
+    /// the moment a hand lands however far it came.
+    @Test("A small hand move is still a contact")
+    func aSmallMoveIsStillAContact() throws {
+        let clip = try realClimbFrames().filter { $0.com != nil }
+        let contacts = MetricsEngine.handContacts(frames: clip, times: clip.map(\.time),
+                                                  joint: .rightWrist)
+        let reaches = try #require(ReachEngine.read(frames: clip)).reaches.filter { !$0.isLeft }
+        #expect(contacts.count > reaches.count,
+                "contacts \(contacts.count), reaches \(reaches.count)")
+    }
+
+    private func realClimbFrames() throws -> [PoseFrame] {
+        let bundle = Bundle(for: BundleToken.self)
+        let url = try #require(bundle.url(forResource: "realclimb", withExtension: "json"))
+        return try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
     }
 }
