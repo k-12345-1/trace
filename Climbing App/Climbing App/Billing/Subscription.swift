@@ -152,7 +152,7 @@ final class Subscription: ObservableObject {
     /// The price as the App Store formats it, in the person's own currency.
     /// The hard-coded fallbacks are only ever seen offline.
     func price(_ plan: Plan) -> String {
-        products[plan]?.displayPrice ?? (plan == .yearly ? "$10.00" : "$1.99")
+        products[plan]?.displayPrice ?? (plan == .yearly ? "$30.00" : "$4.99")
     }
 
     func period(_ plan: Plan) -> String {
@@ -166,7 +166,7 @@ final class Subscription: ObservableObject {
     /// rather than a claim. Nil when the two prices are not comparable.
     var yearlySaving: Int? {
         guard let m = products[.monthly]?.price, let y = products[.yearly]?.price else {
-            return 58   // 1.99 × 12 = 23.88 against 10.00, offline fallback
+            return 50   // 4.99 × 12 = 59.88 against 30.00, offline fallback
         }
         let full = m * 12
         guard full > y, full > 0 else { return nil }
@@ -175,7 +175,7 @@ final class Subscription: ObservableObject {
 
     /// The yearly price said per month, which is how people compare the two.
     var yearlyPerMonth: String? {
-        guard let y = products[.yearly] else { return "$0.83" }
+        guard let y = products[.yearly] else { return "$2.50" }
         return y.priceFormatStyle.format(y.price / 12)
     }
 }
