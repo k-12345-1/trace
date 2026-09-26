@@ -276,44 +276,18 @@ enum MetricsEngine {
     }
 
     /// Times at which a hand was thrown somewhere new and then settled.
+    ///
+    /// One threshold used to decide both halves, so a single throw crossed it
+    /// several times and was reported as several reaches: thirty-six of them in
+    /// a thirty-second climb containing nine, six inside half a second of each
+    /// other. That inflated the deadpoint count and made per-move readings
+    /// meaningless. `ReachEngine` owns the definition now, with a launch speed,
+    /// a lower settle speed, and a settle that has to hold, so the app has one
+    /// idea of what a hand move is rather than two.
     static func handContacts(frames: [PoseFrame], times: [Double], joint: JointID) -> [Double] {
-        // Scaled against the body, with the same fallback as stillness for a
-        // fixture or a stretch of clip with no hips in it.
-        let scale = stillSpeed(of: frames) / stillTorsoPerSecond
-        let reachSpeed = scale * reachTorsoPerSecond
-        let reachDistance = scale * reachTorsoDistance
-        var out: [Double] = []
-        var moving = false
-        var launchedFrom: CGPoint?
-        var previous: CGPoint?
-        var previousTime = times.first ?? 0
-
-        for (i, frame) in frames.enumerated() {
-            guard i < times.count, let p = frame.pt(joint) else {
-                previous = nil
-                continue
-            }
-            let t = times[i]
-            defer { previous = p; previousTime = t }
-
-            guard let last = previous else { continue }
-            let dt = max(t - previousTime, 0.0005)
-            let speed = distance(p, last) / dt
-
-            if speed > reachSpeed {
-                if !moving {
-                    moving = true
-                    launchedFrom = last
-                }
-            } else if moving {
-                moving = false
-                if let origin = launchedFrom, distance(p, origin) > reachDistance {
-                    out.append(t)
-                }
-                launchedFrom = nil
-            }
-        }
-        return out
+        guard let torso = medianTorso(frames), torso > 0.02 else { return [] }
+        return ReachEngine.settles(of: joint, in: frames, torso: torso)
+            .compactMap { $0.to < times.count ? times[$0.to] : nil }
     }
 
     // MARK: - Geometric entropy

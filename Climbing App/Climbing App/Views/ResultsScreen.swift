@@ -157,6 +157,7 @@ struct ResultsScreen: View {
                         wasted
                         headline
                         wentWell
+                        reaches
                         Hairline()
                         readouts
                         comparison
@@ -496,6 +497,91 @@ struct ResultsScreen: View {
             .padding(.bottom, 20)
         }
     }
+
+    // MARK: Each reach
+
+    /// Which moves the body made, and which the arm made on its own.
+    ///
+    /// The two ends of the climber's own range, rather than a score. "Keep your
+    /// hips close to the wall" is true of climbing and useless on a move; this
+    /// says which second of this climb to look at and what was different about
+    /// it, and then the climber watches both and sees it.
+    ///
+    /// Only shown when the two ends are actually far apart. A climb where every
+    /// reach was made the same way has nothing to compare, and picking a best
+    /// and a worst out of nine numbers a few points apart is picking noise.
+    @ViewBuilder
+    private var reaches: some View {
+        if let reading = ReachEngine.read(frames: MetricsEngine.ascent(climb.frames)),
+           let body = reading.bodyLed, let arm = reading.armLed,
+           reading.spread >= ReachEngine.worthShowing {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle("How you made each reach")
+
+                Text("A reach covers the gap between two holds two ways: your body travelling, and your arm extending. Across \(reading.reaches.count) reaches on this climb your body did \(percent(reading.medianShare)) of the work in the middle one, and these two were the extremes.")
+                    .font(Theme.body(14))
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                reachRow(arm, title: "Your arm did this one",
+                         detail: "\(arm.handTitle), \(torsoLengths(arm.travelled)) to the next hold and your shoulder followed \(torsoLengths(arm.carried)) of it.")
+                reachRow(body, title: "Your body did this one",
+                         detail: "\(body.handTitle), \(torsoLengths(body.travelled)) to the next hold and your shoulder came \(torsoLengths(body.carried)) with it.")
+
+                if let armHips = arm.hipOpenness, let bodyHips = body.hipOpenness,
+                   abs(armHips - bodyHips) >= ReachEngine.hipDifferenceWorthNaming {
+                    Text(bodyHips < armHips
+                         ? "Your hips were turned in for that second one and square to the wall for the first. Watch them back and see whether that is what did it."
+                         : "Your hips were square for that second one and turned in for the first, which is the opposite of what a coach would predict. Worth watching.")
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text(ReachEngine.caveat)
+                    .font(Theme.ui(12))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .card()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.bottom, 20)
+        }
+    }
+
+    private func reachRow(_ reach: ReachEngine.Reach, title: String, detail: String) -> some View {
+        Button { playback.seek(to: reach.lookAt) } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Text(reach.timecode)
+                    .font(Theme.ui(12, .semibold)).monospacedDigit()
+                    .foregroundStyle(Theme.accentText)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(Theme.accentWash, in: Capsule())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(Theme.serif(16, .semibold))
+                        .foregroundStyle(Theme.ink)
+                    Text(detail)
+                        .font(Theme.ui(13.5))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Torso lengths, said the way the rest of the app says them.
+    private func torsoLengths(_ x: Double) -> String {
+        String(format: "%.1f body lengths", x)
+    }
+
+    private func percent(_ x: Double) -> String { "\(Int((x * 100).rounded()))%" }
 
     /// How the attempt ended, and if it ended on the mat, what was already
     /// going wrong when it did.
