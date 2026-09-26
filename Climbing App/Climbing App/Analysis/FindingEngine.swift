@@ -296,7 +296,8 @@ enum FindingEngine {
         let times = frames.map { $0.time }
         let path = frames.compactMap { $0.com }
         guard path.count == times.count else { return nil }
-        let stops = MetricsEngine.pauses(path: path, times: times)
+        let stops = MetricsEngine.pauses(path: path, times: times,
+                                         torso: MetricsEngine.medianTorso(frames) ?? 0.2)
         guard let longest = stops.max(by: { ($0.end - $0.start) < ($1.end - $1.start) })
         else { return nil }
         return (longest.start, longest.end)

@@ -37,15 +37,19 @@ enum MovementPhase: String, Codable, CaseIterable {
 
 enum PhaseTimeline {
 
-    /// Speeds below this count as stopped, matching MetricsEngine.
-    private static let stillSpeed = 0.035
+    // Both thresholds are in torso lengths per second and both are
+    // MetricsEngine's, rather than a second copy of the same numbers that can
+    // drift from them. An image unit is a fraction of the frame and not a
+    // length, so a climber filmed from further away is not a slower climber.
     private static let restSeconds = 0.8
-    private static let reachSpeed = 0.25
     private static let deadpointWindow = 0.18
 
     /// One phase per tracked frame, in the same order the frames come in.
     static func build(frames: [PoseFrame]) -> [MovementPhase] {
         guard !frames.isEmpty else { return [] }
+        let stillSpeed = MetricsEngine.stillSpeed(of: frames)
+        let reachSpeed = stillSpeed * (MetricsEngine.reachTorsoPerSecond
+                                       / MetricsEngine.stillTorsoPerSecond)
         let times = frames.map { $0.time }
         let path = frames.map { $0.com }
 
@@ -84,7 +88,8 @@ enum PhaseTimeline {
             // labelling a motionless frame "Deadpoint" is the single most obviously
             // wrong thing the readout can say.
             if com < stillSpeed {
-                out.append(isResting(at: t, comSpeeds: comSpeeds, times: times) ? .resting : .still)
+                out.append(isResting(at: t, comSpeeds: comSpeeds, times: times,
+                                     stillSpeed: stillSpeed) ? .resting : .still)
             } else if apexes.contains(where: { abs($0 - t) <= deadpointWindow }) {
                 out.append(.deadpoint)
             } else if max(leftWrist[i], rightWrist[i]) > reachSpeed {
@@ -99,7 +104,8 @@ enum PhaseTimeline {
     }
 
     /// True when the stillness around this instant lasts long enough to be a rest.
-    private static func isResting(at t: Double, comSpeeds: [Double], times: [Double]) -> Bool {
+    private static func isResting(at t: Double, comSpeeds: [Double], times: [Double],
+                                  stillSpeed: Double) -> Bool {
         var start = t, end = t
         if let i = times.firstIndex(of: t) {
             var j = i

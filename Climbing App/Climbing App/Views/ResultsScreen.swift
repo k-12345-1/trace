@@ -790,7 +790,8 @@ struct ResultsScreen: View {
     /// The rise and fall of the center of mass. Computed here rather than stored,
     /// because it is a reading of a path the climb already carries.
     private var lift: BodyScale.Lift? {
-        BodyScale.lift(path: climb.metrics.comPath)
+        guard let torso = MetricsEngine.medianTorso(climb.frames) else { return nil }
+        return BodyScale.lift(path: climb.metrics.comPath, torso: torso)
     }
 
     private var work: (net: Double, gross: Double)? {

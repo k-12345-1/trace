@@ -117,12 +117,22 @@ enum EfficiencyEngine {
                 detail: "\(Int((waste.share * 100).rounded()))% of your travel ended where it began"))
         }
 
-        if let lift = BodyScale.lift(path: m.comPath), lift.net > 0.0001 {
+        // The torso comes from the frames rather than the path, because the
+        // path is a line of points and a line has no scale on it.
+        if let torso = MetricsEngine.medianTorso(climb.frames),
+           let lift = BodyScale.lift(path: m.comPath, torso: torso),
+           lift.net > 0.0001 {
             parts.append(Component(
                 name: "Re-lifting",
                 cost: clamp((lift.ratio - 1) / liftCeiling),
                 weight: liftWeight,
-                detail: "\(Int(((lift.ratio - 1) * 100).rounded()))% of your height was gained twice"))
+                // A climb with no drop in it can come out a hair under 1.0,
+                // because the net rise is measured between the lowest and
+                // highest points of the path and the gross between the turns.
+                // "-2% of your height was gained twice" is not a sentence.
+                detail: lift.ratio <= 1.005
+                    ? "none of your height was gained twice"
+                    : "\(Int(((lift.ratio - 1) * 100).rounded()))% of your height was gained twice"))
         }
 
         // Nil means there were not enough moves to read, not a perfect line.

@@ -8,14 +8,50 @@ import CoreGraphics
 /// or the sequence. It measures how well you executed whatever you chose to do.
 enum MetricsEngine {
 
-    /// COM speed below this (normalized units per second) counts as "still".
-    private static let stillSpeed = 0.035
+    /// COM speed below this counts as "still", in torso lengths per second.
+    ///
+    /// Body-relative, because a normalized unit is a fraction of the frame and
+    /// not a length. The same climber filmed from twice as far away moves at
+    /// half the speed in image units, and a fixed threshold therefore calls
+    /// them still twice as often. On the first real clip Trace was shown, a
+    /// climber filling a fifth of the frame, the old absolute 0.035 units per
+    /// second counted 28% of the ascent as standing still; the same number
+    /// expressed against their own torso counts 11%, which is what a person
+    /// watching the clip would say.
+    ///
+    /// The value is what the old constant worked out to at the scale everything
+    /// was tuned against: the fixtures put a 0.20 torso in frame, and
+    /// 0.035 / 0.20 is 0.175. So this changes nothing about a climber filmed
+    /// the way the synthetic ones were, and fixes every other distance.
+    static let stillTorsoPerSecond = 0.175
+
+    /// The threshold in image units for a climber of this torso length.
+    static func stillSpeed(torso: Double) -> Double { torso * stillTorsoPerSecond }
+
+    /// What to use when there is no torso to measure against.
+    ///
+    /// Only a frame with no hips in it lands here, which on a real clip means
+    /// the tracker lost the body, and in a test means a fixture built out of
+    /// one limb. It is the old absolute constant: not right, but the thing that
+    /// was there before, and better than treating a scaleless body as still or
+    /// as moving by fiat.
+    static let stillSpeedWithoutABody = 0.035
+
+    static func stillSpeed(of frames: [PoseFrame]) -> Double {
+        medianTorso(frames).map { $0 > 0.02 ? stillSpeed(torso: $0) : stillSpeedWithoutABody }
+            ?? stillSpeedWithoutABody
+    }
     /// A still stretch longer than this is a pause worth mentioning.
     private static let pauseSeconds = 0.8
-    /// Wrist speed above this counts as a hand being thrown rather than adjusted.
-    private static let reachSpeed = 0.25
+    /// Wrist speed above this counts as a hand being thrown rather than
+    /// adjusted, in torso lengths per second. Body-relative for the same reason
+    /// `stillTorsoPerSecond` is, and the same value the old absolute 0.25 came
+    /// to at the scale the fixtures are drawn at.
+    static let reachTorsoPerSecond = 1.25
     /// A hand has to travel this far to count as having gone to a new hold.
-    private static let reachDistance = 0.05
+    /// And it has to end up somewhere: this far from where it set off, in torso
+    /// lengths.
+    static let reachTorsoDistance = 0.25
     /// A hand contact further than this from any apex was not a dynamic move.
     private static let deadpointWindow = 0.6
 
@@ -87,7 +123,7 @@ enum MetricsEngine {
         let length = pathLength(path)
         let straight = (path.first != nil && path.last != nil)
             ? distance(path.first!, path.last!) : 0
-        let stops = pauses(path: path, times: times)
+        let stops = pauses(path: path, times: times, torso: medianTorso(tracked) ?? 0.2)
 
         return Metrics(
             entropy: geometricEntropy(path: path, length: length),
@@ -127,10 +163,11 @@ enum MetricsEngine {
     static func comOffsetFromFeet(frames: [PoseFrame], times: [Double]) -> Double {
         let path = frames.compactMap { $0.com }
         let speeds = speedSeries(path: path, times: times)
+        let still = stillSpeed(of: frames)
         var samples: [Double] = []
 
         for (i, frame) in frames.enumerated() {
-            guard i < speeds.count, speeds[i] < stillSpeed,
+            guard i < speeds.count, speeds[i] < still,
                   let com = frame.com,
                   let base = baseOfSupport(frame),
                   let torso = torsoLength(frame), torso > 0.02 else { continue }
@@ -240,6 +277,11 @@ enum MetricsEngine {
 
     /// Times at which a hand was thrown somewhere new and then settled.
     static func handContacts(frames: [PoseFrame], times: [Double], joint: JointID) -> [Double] {
+        // Scaled against the body, with the same fallback as stillness for a
+        // fixture or a stretch of clip with no hips in it.
+        let scale = stillSpeed(of: frames) / stillTorsoPerSecond
+        let reachSpeed = scale * reachTorsoPerSecond
+        let reachDistance = scale * reachTorsoDistance
         var out: [Double] = []
         var moving = false
         var launchedFrom: CGPoint?
@@ -446,10 +488,11 @@ enum MetricsEngine {
 
     static func staticElbow(frames: [PoseFrame], times: [Double]) -> Double {
         let speeds = speedSeries(path: frames.compactMap { $0.com }, times: times)
+        let still = stillSpeed(of: frames)
         var angles: [Double] = []
 
         for (i, frame) in frames.enumerated() {
-            guard i < speeds.count, speeds[i] < stillSpeed else { continue }
+            guard i < speeds.count, speeds[i] < still else { continue }
             for side in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
                          (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
                 guard let s = frame.pt(side.0), let e = frame.pt(side.1), let w = frame.pt(side.2)
@@ -465,14 +508,17 @@ enum MetricsEngine {
 
     struct Pause { var start: Double; var end: Double }
 
-    static func pauses(path: [CGPoint], times: [Double]) -> [Pause] {
+    /// `torso` is the climber's torso length in image units, so "still" means
+    /// the same thing however far away the phone was.
+    static func pauses(path: [CGPoint], times: [Double], torso: Double) -> [Pause] {
         let speeds = speedSeries(path: path, times: times)
+        let still = stillSpeed(torso: torso)
         var out: [Pause] = []
         var runStart: Double?
 
         for (i, s) in speeds.enumerated() {
             let t = i < times.count ? times[i] : 0
-            if s < stillSpeed {
+            if s < still {
                 if runStart == nil { runStart = t }
             } else if let start = runStart {
                 if t - start >= pauseSeconds { out.append(Pause(start: start, end: t)) }

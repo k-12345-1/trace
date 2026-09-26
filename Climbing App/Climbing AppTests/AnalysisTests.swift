@@ -67,7 +67,8 @@ struct MovementMetricsTests {
     func pauses() {
         let path = Array(repeating: CGPoint(x: 0.5, y: 0.5), count: 60)
         let times = (0..<60).map { Double($0) / 30 }
-        let stops = MetricsEngine.pauses(path: path, times: times)
+        // The fixtures' torso, which is what the thresholds were tuned against.
+        let stops = MetricsEngine.pauses(path: path, times: times, torso: 0.20)
         #expect(stops.count == 1)
         #expect((stops.first.map { $0.end - $0.start } ?? 0) > 1.8)
     }

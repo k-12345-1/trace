@@ -76,10 +76,41 @@ enum BodyScale {
     /// for twice.
     ///
     /// `net` is the rise from the lowest point of the center-of-mass path to the
-    /// highest: the lifting the route actually asked for. `gross` is the sum of
-    /// every upward step, which includes every time you dropped back down and
-    /// lifted the same weight again. Their ratio needs no scale at all, which is
-    /// why it is reported even with nothing entered on the personal info screen.
+    /// highest: the lifting the route actually asked for. `gross` is the rise
+    /// the climber actually paid for, which is more than the net whenever they
+    /// dropped back down and lifted the same weight again. Their ratio needs no
+    /// scale at all, which is why it is reported even with nothing entered on
+    /// the personal info screen.
+    ///
+    /// ## Why a descent has to be big enough to count
+    ///
+    /// `gross` used to be the sum of every frame-to-frame upward step, which
+    /// turns out to measure the tracker rather than the climber. A real clip at
+    /// 60fps carries a few thousandths of a torso length of jitter on every
+    /// frame, in both directions, and summing only the upward half of it adds
+    /// that noise to the total a thousand times over. On the first real climb
+    /// Trace was ever shown, a clean ascent with no drop in it anywhere, the
+    /// summed steps came to 9.73 torso lengths against a true rise of 5.69, and
+    /// the app told a climber who never once lost height that 68 percent of it
+    /// had been gained twice. It also scaled with frame rate: twice the frames,
+    /// twice the noise steps, same climb.
+    ///
+    /// So a direction change only counts once the body has gone back the other
+    /// way by `reversalDeadband` of a torso length. Clearing the noise sets the
+    /// floor: on that clip the median per-frame step was 0.0045 torso and the
+    /// 99th percentile 0.045, so anything from about 0.05 up is above every
+    /// single frame of jitter. But clearing the noise is not enough, because
+    /// what is left at 0.10 is still not re-lifting. It is the ordinary
+    /// oscillation of climbing: the hips drop when a foot comes up and the
+    /// rock-over takes it back. That climber dipped fifteen times and never once
+    /// by more than 0.28 of a torso length, and being told half their height was
+    /// gained twice describes the mechanics of climbing rather than anything
+    /// they did wrong.
+    ///
+    /// The band is `WasteEngine.returnRadius`, which is the distance at which
+    /// Trace already says a body is back where it started. Two measures of
+    /// movement that got you nowhere should not disagree about what counts as
+    /// movement, and this one had the lower bar by a factor of three.
     ///
     /// Image coordinates grow downward, so a rise is a fall in y.
     struct Lift {
@@ -90,15 +121,43 @@ enum BodyScale {
         var ratio: Double { net > 0.0001 ? gross / net : 1 }
     }
 
-    static func lift(path: [CGPoint]) -> Lift? {
-        guard path.count > 1 else { return nil }
+    /// How far back down the body has to go before it counts as having gone
+    /// down, in torso lengths. Deliberately the same number as
+    /// `WasteEngine.returnRadius`.
+    static let reversalDeadband = WasteEngine.returnRadius
+
+    /// `torso` is the climber's torso length in the same units as the path, so
+    /// the band means the same thing however far away the phone was. It is
+    /// required rather than optional: a default would be a number in image
+    /// units, and an image unit is not a length.
+    static func lift(path: [CGPoint], torso: Double) -> Lift? {
+        guard path.count > 1, torso > 0 else { return nil }
         let ys = path.map { Double($0.y) }
         let net = (ys.max() ?? 0) - (ys.min() ?? 0)
+        let band = torso * reversalDeadband
+
+        // A zigzag filter. `pivot` is the last confirmed turn, `candidate` the
+        // furthest the body has got since, and a leg is only banked once the
+        // body has come back off that extreme by the band.
         var gross = 0.0
-        for i in 1..<ys.count {
-            let rise = ys[i - 1] - ys[i]
-            if rise > 0 { gross += rise }
+        var pivot = ys[0], candidate = ys[0]
+        var rising = true
+        for y in ys.dropFirst() {
+            if rising {
+                if y < candidate { candidate = y }          // higher still
+                if y - candidate > band {                   // turned back down
+                    gross += max(0, pivot - candidate)
+                    pivot = candidate; candidate = y; rising = false
+                }
+            } else {
+                if y > candidate { candidate = y }          // lower still
+                if candidate - y > band {                   // turned back up
+                    pivot = candidate; candidate = y; rising = true
+                }
+            }
         }
+        if rising { gross += max(0, pivot - candidate) }
+
         return Lift(net: net, gross: gross)
     }
 
