@@ -24,6 +24,12 @@ final class ClimbAnalyzer: ObservableObject {
                 Task { @MainActor in self.state = .working(p) }
             }
 
+            // Whether the phone stayed put, which decides whether anything
+            // measured from where the body went in the frame is about the body.
+            // A failure here is not a failure of the climb: nil means unknown,
+            // and unknown is shown as such rather than as "still".
+            let camera = try? await CameraMotion.read(url: stored)
+
             // Findings read the ascent, for the same reason the metrics do: the
             // descent is not climbing, and counting it produces stops you did
             // not take and a wandering line you did not wander.
@@ -60,7 +66,8 @@ final class ClimbAnalyzer: ObservableObject {
                 findings: findings,
                 frames: frames,
                 sent: topped,
-                gymID: gymID
+                gymID: gymID,
+                cameraTravel: camera?.travel
             )
             Store.shared.save(climb)
             state = .done(climb)

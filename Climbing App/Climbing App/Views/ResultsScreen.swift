@@ -151,7 +151,9 @@ struct ResultsScreen: View {
                     // A clip Trace could not track is exactly the climb whose
                     // only record is what the climber says about it.
                     NotesCard(climb: climb)
-                    if climb.metrics.isTrustworthy {
+                    if ResultsReadout.of(climb) == .cameraMoved {
+                        cameraMoved
+                    } else if ResultsReadout.of(climb) == .measurements {
                         efficiency
                         ending
                         wasted
@@ -1037,6 +1039,42 @@ struct ResultsScreen: View {
 
     // MARK: Low tracking
 
+    /// The phone moved, so the measurements would be about the phone.
+    ///
+    /// A different failure from not being able to see the climb, and it has to
+    /// read as one: Trace saw this one perfectly. What it cannot do is tell the
+    /// climber's movement from the camera's, because both arrive as the same
+    /// thing, a body shifting inside the frame.
+    private var cameraMoved: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionTitle("The camera was moving")
+            Text("Trace followed you the whole way, but the picture travelled \(cameraTravelText) while it did. Everything Trace measures about where you went is measured inside the frame, so when the frame moves too there is no telling your movement from the phone's, and the numbers would be about whoever was holding it.")
+                .font(Theme.body(14.5))
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 7) {
+                MicroLabel(text: "Next time")
+                Text("Stand the phone on the floor, square to the wall, with the whole boulder in frame, and leave it alone. A clip somebody filmed following you up the wall is worth watching back, and it is on the clip above, but it cannot be measured.")
+                    .font(Theme.body(13.5))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, bottomClearance)
+    }
+
+    /// Said as a multiple of the frame rather than in pixels, which mean
+    /// nothing, or degrees, which Trace cannot know.
+    private var cameraTravelText: String {
+        guard let travel = climb.cameraTravel else { return "some way" }
+        return travel < 1.5
+            ? "about \(String(format: "%.1f", travel)) times the height of the picture"
+            : "\(String(format: "%.0f", travel)) times the height of the picture"
+    }
+
     private var untrustworthy: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitle("I could not see that one clearly")
@@ -1056,5 +1094,28 @@ struct ResultsScreen: View {
         .padding(.horizontal, 20)
         .padding(.top, 24)
         .padding(.bottom, bottomClearance)
+    }
+}
+
+/// Which of the three things the results screen has to say.
+///
+/// Named rather than left as a chain of `if`s in the view body, because the
+/// order matters and the order is an argument. A clip filmed on a moving phone
+/// is reported as that first, even when the tracking was also poor: "I could
+/// not see you" is wrong when Trace saw the climb perfectly and simply cannot
+/// tell the climber's movement from the camera's.
+enum ResultsReadout: Equatable {
+    /// The phone moved, so nothing measured from where the body went means
+    /// anything about the body.
+    case cameraMoved
+    /// Too few frames had a usable skeleton.
+    case unreadable
+    /// Everything is measurable.
+    case measurements
+
+    static func of(_ climb: Climb) -> ResultsReadout {
+        if climb.cameraWasStill == false { return .cameraMoved }
+        if !climb.metrics.isTrustworthy { return .unreadable }
+        return .measurements
     }
 }

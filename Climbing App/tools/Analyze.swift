@@ -33,6 +33,12 @@ func report(_ url: URL) async throws {
         line("   \(Int(size.width))×\(Int(size.height)) at \(String(format: "%.0f", fps)) fps, \(String(format: "%.1f", duration))s")
     }
 
+    if let camera = try await CameraMotion.read(url: url) {
+        line(String(format: "   camera travelled %.2f frame heights (drift %.2f, %.0f%% registered) → %@",
+                    camera.travel, camera.drift, camera.confidence * 100,
+                    camera.isStatic ? "still" : "MOVING, so nothing below about where the body went is about the body"))
+    }
+
     var lastReported = -1
     let frames = try await PoseTracker.track(url: url) { p in
         let step = Int(p * 10)

@@ -241,6 +241,25 @@ struct Climb: Codable, Identifiable {
     /// middling scores.
     var notes: ClimbNotes?
 
+    /// How far the picture itself travelled while this was filmed, in frame
+    /// heights. Optional for the same reason `sent` is: every climb recorded
+    /// before this existed has no answer.
+    ///
+    /// It belongs to the clip rather than to the climber, which is why it is
+    /// here and not in `Metrics`. Everything in there is a reading of a body.
+    var cameraTravel: Double?
+
+    /// Whether the phone was still enough for the spatial measurements to be
+    /// about the climber. Nil when the clip was analyzed before Trace looked.
+    ///
+    /// Not a detail. Re-lifting, round trips, the path ratio, the travel
+    /// between moves and entropy are all computed from where the body went in
+    /// the frame, and a frame that moves makes all of them a reading of the
+    /// camera operator.
+    var cameraWasStill: Bool? {
+        cameraTravel.map { $0 <= CameraMotion.staticTravel }
+    }
+
     var isSent: Bool { sent == true }
 
     var videoURL: URL { Store.videosDirectory.appendingPathComponent(videoFilename) }
