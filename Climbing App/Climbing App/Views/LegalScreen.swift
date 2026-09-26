@@ -25,7 +25,7 @@ struct LegalScreen: View {
     /// Bumped whenever either document changes in a way that alters what a
     /// person agreed to. Shown at the top of both so a support question about
     /// "which terms" has an answer.
-    static let version = "1.1"
+    static let version = "1.2"
 
     @Environment(\.dismiss) private var dismiss
     /// True when this is pushed inside the tabbed app, false when it is opened
@@ -133,8 +133,8 @@ extension LegalScreen {
     static func privacy(insideApp: Bool = true) -> LegalScreen {
         LegalScreen(
             title: "Privacy Policy",
-            updated: "24 September 2026",
-            standfirst: "Trace measures your climbing on your phone and uploads none of it. This policy exists to say exactly what that means, and to be honest about the three places where something does leave the device.",
+            updated: "25 September 2026",
+            standfirst: "Trace measures your climbing on your phone and uploads none of it. This policy exists to say exactly what that means, and to be honest about the four places where something does leave the device.",
             sections: [
                 Section(heading: "What stays on your phone", body: [
                     "Your video clips, the pose data extracted from them, every measurement, every finding, your route photographs, the holds found in them, your gyms, and your height, reach and weight. All of it is written to this app's own storage on this device.",
@@ -153,6 +153,7 @@ extension LegalScreen {
                     "Your account. Signing in sends your email address and password to our authentication provider so we can tell whether the person opening the app is you. We store your email address, when the account was made, and nothing else about you. We do not store your password: the provider holds a hash of it.",
                     "Your subscription. Purchases are handled by Apple. Apple tells the app whether a subscription is active. We never see your card, your billing address, or your Apple ID. We do not receive a payment record with your name on it.",
                     "Gym logos. Trace ships none: a gym's logo is theirs, and the only place it exists is on their own website. So the first time you see a particular gym in Explore, Trace asks that gym's website for the icon it publishes, and saves it on this phone. Nothing about you goes with that request: no name, no account, no location, no identifier, and no cookie survives it. The gym's web host can see that someone asked, and nothing more than that. Each gym is asked once, ever, and a gym whose site has no usable icon is never asked again.",
+                    "Searching for where you climb. The Profile screen lets you type the town or city you climb in, and offers completions as you type so you do not have to spell it. Those completions come from Apple Maps, which means the letters you have typed into that one field go to Apple to be answered. Apple handles them under its own privacy policy, we never see them, and the field works perfectly well if you ignore the suggestions and type the place yourself. Nothing else you type anywhere in Trace is sent anywhere.",
                     "That is the complete list. There is no analytics, no crash reporting, no advertising identifier, no tracking pixel, and no third party SDK that phones home."
                 ]),
                 Section(heading: "Filming other people", body: [
@@ -164,7 +165,7 @@ extension LegalScreen {
                 ]),
                 Section(heading: "Your control", body: [
                     "Delete any climb, route or gym at any time, from the item itself. Deleting removes the file from the phone.",
-                    "Deleting your account, from Profile, removes every climb, clip, route, gym and body measurement from this phone and ends your session. Where an account record exists with our authentication provider, we delete it on request to the address below.",
+                    "Deleting your account, from Profile, removes every climb, clip, route, gym and body measurement from this phone and ends your session. Where an account record exists with our authentication provider, the same tap deletes that too, and it is gone rather than deactivated. If that one call cannot be made because you are offline, Trace says so and leaves the account alone rather than telling you it deleted something it did not.",
                     "Signing out leaves everything on the phone exactly where it is. It is a sign out, not a wipe."
                 ]),
                 Section(heading: "Your rights", body: [
@@ -173,7 +174,8 @@ extension LegalScreen {
                 ]),
                 Section(heading: "Changes", body: [
                     "This document ships inside the app, so it can only change when you install an update. The version number at the top changes with it, and a material change will be flagged in the app rather than made quietly.",
-                    "Version 1.1 added gym logos, described above. It is the only thing that has ever been added to the list of what leaves this phone."
+                    "Version 1.1 added gym logos, described above.",
+                    "Version 1.2 added the place completions, also described above. It is not a new thing Trace sends: the field and its suggestions were already in the app, and this policy had not said so. Saying so is the change."
                 ])
             ],
             insideApp: insideApp)

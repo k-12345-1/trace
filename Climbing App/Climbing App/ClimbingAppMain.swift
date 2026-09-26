@@ -24,7 +24,16 @@ struct AppEntry: View {
     var body: some View {
         Group {
             switch stage {
-            case .welcome:          WelcomeScreen().transition(.opacity)
+            // Which welcome depends on whether anything can issue an account.
+            // With no auth server there is nothing to sign in to, and showing a
+            // sign-in form that cannot succeed is a dead end on the first
+            // screen rather than a promise of things to come.
+            case .welcome:
+                if AuthClient.isConfigured {
+                    WelcomeScreen().transition(.opacity)
+                } else {
+                    LocalStartScreen().transition(.opacity)
+                }
             case .askStaySignedIn:  StaySignedInScreen().transition(.opacity)
             case .app:              MainTabs().transition(.opacity)
             }

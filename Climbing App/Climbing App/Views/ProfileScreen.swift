@@ -16,6 +16,9 @@ struct ProfileScreen: View {
     @ObservedObject private var billing = Subscription.shared
     @State private var confirmingSignOut = false
     @State private var confirmingDelete = false
+    /// Set when the account could not be deleted. Nothing has been removed when
+    /// this is showing, which is what it has to say.
+    @State private var deleteFailed: String?
 
     var body: some View {
         ZStack {
@@ -45,10 +48,23 @@ struct ProfileScreen: View {
             Text("Your climbs stay on this phone.")
         }
         .alert("Delete your account?", isPresented: $confirmingDelete) {
-            Button("Delete everything", role: .destructive) { store.deleteEverything() }
+            Button("Delete everything", role: .destructive) { delete() }
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Every climb, clip, route and gym on this phone is removed, along with your height, reach and weight. This cannot be undone.")
+        }
+        .alert("Nothing was deleted", isPresented: .constant(deleteFailed != nil)) {
+            Button("OK") { deleteFailed = nil }
+        } message: {
+            Text(deleteFailed ?? "")
+        }
+    }
+
+    /// The account first, this phone second. A failure leaves both alone.
+    private func delete() {
+        Task {
+            do { try await store.deleteAccount() }
+            catch { deleteFailed = error.localizedDescription }
         }
     }
 

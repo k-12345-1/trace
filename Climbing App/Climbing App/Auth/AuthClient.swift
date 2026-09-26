@@ -108,6 +108,33 @@ enum AuthClient {
         _ = try? await post(path: "/auth/v1/logout", body: [:], bearer: session.accessToken)
     }
 
+    /// Deletes the account itself, not just this phone's copy of it.
+    ///
+    /// Apple requires that an app which creates an account can also destroy it
+    /// from inside the app, and an account that survives on a server after the
+    /// app has said it is gone is a lie whichever way you look at it.
+    ///
+    /// Supabase's own user-delete endpoint takes a service role key, which
+    /// cannot ship in an app: anyone who pulled it out of the binary could
+    /// delete anybody. So the account deletes itself through a security-definer
+    /// function called with the climber's own token, which is the standard
+    /// arrangement and the only one that does not put an administrative key on
+    /// a phone. The function has to exist on the project before this can work,
+    /// and `Supabase.sql` in the repository is the one to install:
+    ///
+    ///     create or replace function public.delete_current_user()
+    ///     returns void language plpgsql security definer set search_path = '' as $$
+    ///     begin delete from auth.users where id = auth.uid(); end; $$;
+    ///
+    /// Throwing is meaningful. The caller must not wipe the phone if this fails,
+    /// because then the account would outlive every record of it and the person
+    /// would have no way left to ask for it again.
+    static func deleteAccount(session: Session) async throws {
+        guard isConfigured else { throw AuthError.notConfigured }
+        _ = try await post(path: "/rest/v1/rpc/delete_current_user",
+                           body: [:], bearer: session.accessToken)
+    }
+
     static func refresh(session: Session) async throws -> Session {
         guard isConfigured else { throw AuthError.notConfigured }
         let data = try await post(path: "/auth/v1/token?grant_type=refresh_token",

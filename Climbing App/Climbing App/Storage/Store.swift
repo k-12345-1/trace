@@ -205,10 +205,17 @@ final class Store: ObservableObject {
         persistAccount()
     }
 
+    /// An account that belongs to this phone and to nothing else.
+    ///
+    /// `staySignedIn` is answered here rather than asked. The question means
+    /// "should Trace keep your session on this phone", and a local account has
+    /// no session: saying no would delete the only record of who is using the
+    /// app and drop the climber straight back onto the screen they just left.
     func continueLocally(name: String) {
         session = nil
         Keychain.clear()
         account = .local(name: name)
+        staySignedIn = true
         persistAccount()
     }
 
@@ -381,13 +388,24 @@ final class Store: ObservableObject {
         return name
     }
 
+    /// Deletes the account and everything on this phone with it.
+    ///
+    /// The server goes first, deliberately. If the account record cannot be
+    /// deleted, nothing local is touched and this throws: wiping the phone on a
+    /// failed call would leave the account alive with every trace of it gone
+    /// from the only device that could ask about it again. A local-only account
+    /// has no server call to make and cannot fail here.
+    func deleteAccount() async throws {
+        if let session { try await AuthClient.deleteAccount(session: session) }
+        deleteEverything()
+    }
+
     /// Removes everything Trace holds on this phone, then signs out.
     ///
-    /// Local only, because that is where everything is. When there is a server
-    /// behind the account this must also call its delete endpoint: an account
-    /// that survives on a server after the app says it is gone would be a lie,
-    /// and App Review treats it as one.
-    func deleteEverything() {
+    /// The phone is where everything is, so this is the whole of the deletion
+    /// for a local account and the second half of it for a signed-in one.
+    /// `deleteAccount()` above is the way in; this is not called on its own.
+    private func deleteEverything() {
         for climb in climbs {
             try? FileManager.default.removeItem(at: climb.videoURL)
             Thumbnails.remove(for: climb)

@@ -278,7 +278,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app;
 				PRODUCT_MODULE_NAME = ClimbingApp;
 				PRODUCT_NAME = "Climbing App";
@@ -308,7 +308,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app;
 				PRODUCT_MODULE_NAME = ClimbingApp;
 				PRODUCT_NAME = "Climbing App";
@@ -327,7 +327,7 @@
 				DEVELOPMENT_TEAM = TA274AR6D5;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app.tests;
 				PRODUCT_MODULE_NAME = ClimbingAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -346,7 +346,7 @@
 				DEVELOPMENT_TEAM = TA274AR6D5;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.traceclimb.app.tests;
 				PRODUCT_MODULE_NAME = ClimbingAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";

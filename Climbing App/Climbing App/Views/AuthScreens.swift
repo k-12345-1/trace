@@ -394,13 +394,20 @@ struct SignInScreen: View {
         focus = nil
         busy = true; error = nil; notice = nil
 
-        // The demo pair never leaves the phone, so it is answered here rather
-        // than by a network call that would fail for want of a server.
+        // The demo pair, in development builds only.
+        //
+        // It existed because the app was unreachable without it. `LocalStartScreen`
+        // is that way in now, and this screen only appears once there is a real
+        // server to answer to, so in a shipped build a credential pair that signs
+        // itself in would be a back door around that server rather than a way
+        // past a missing one.
+        #if DEBUG
         if DemoAccount.matches(email: email, password: password) {
             store.signedInAsDemo()
             busy = false
             return
         }
+        #endif
 
         Task {
             do {
@@ -504,6 +511,67 @@ struct SignUpScreen: View {
             }
             busy = false
         }
+    }
+}
+
+// MARK: - Starting without an account
+
+/// The way in while there is no authentication server.
+///
+/// Trace needs to know who is using the phone, and until something issues
+/// accounts the only honest answer is "you are". So this screen asks for a name
+/// and nothing else: no email to confirm, no password to check against a server
+/// that would refuse the request, and no credentials stored anywhere.
+///
+/// It exists because the alternative was worse than unfinished. Sign in and sign
+/// up were both on screen with no server behind them, so a new climber typed an
+/// email, pressed Create account, and was told accounts are not switched on.
+/// That is a dead end on the first screen, and a form that cannot succeed should
+/// not be shown at all.
+///
+/// The account this makes is a real one as far as the rest of the app is
+/// concerned, and it is the same `Account.local` a signed-in climber's phone
+/// would fall back to. When a server does exist, `AuthClient.isConfigured` turns
+/// true, the two credential screens appear in place of this one, and nothing
+/// here needs revisiting.
+struct LocalStartScreen: View {
+    @ObservedObject private var store = Store.shared
+    @State private var revealed = false
+    @State private var name = ""
+    @FocusState private var naming: Bool
+
+    var body: some View {
+        AuthShell(revealed: $revealed) {
+            VStack(spacing: 14) {
+                // The name is optional, which the field says rather than
+                // implies: an asterisk on everything else would be the only
+                // other way to make "optional" legible, and there is nothing
+                // else on this screen to mark.
+                AuthField(label: "What should Trace call you?", text: $name,
+                          placeholder: "Name", contentType: .name,
+                          focused: naming, onSubmit: start)
+                    .focused($naming)
+
+                AuthButton(title: "Start climbing", busyTitle: "Starting…",
+                           busy: false, enabled: true, action: start)
+                    .padding(.top, 4)
+
+                Text("Everything Trace records stays on this phone: your climbs, your clips, the walls you scan. There is nothing to sign in to and nothing to sign up for.")
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink2)
+                    .lineSpacing(3)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+
+                LegalFooter()
+            }
+        }
+    }
+
+    private func start() {
+        naming = false
+        store.continueLocally(name: name)
     }
 }
 
