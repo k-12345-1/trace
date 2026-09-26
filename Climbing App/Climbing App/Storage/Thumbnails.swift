@@ -52,8 +52,14 @@ enum Thumbnails {
     /// For showing a finding the thing it is describing. A sentence about bent
     /// arms is an assertion; the frame where they were bent is evidence, and
     /// evidence is shorter than prose.
+    /// - Parameter maxWidth: the longest side of the extracted frame. Generous,
+    ///   because the card this ends up on crops into it: a finding about two
+    ///   feet is a box a hand's width across, and at six hundred pixels that
+    ///   box was fifty pixels wide, blown up to a card three hundred and fifty
+    ///   points across. The picture that arrived was a brown smear with two
+    ///   rings drawn on it.
     static func frame(of climb: Climb, at seconds: Double,
-                      maxWidth: CGFloat = 600) async -> UIImage? {
+                      maxWidth: CGFloat = 1400) async -> UIImage? {
         let source = climb.videoURL
         guard FileManager.default.fileExists(atPath: source.path) else { return nil }
         let asset = AVURLAsset(url: source)

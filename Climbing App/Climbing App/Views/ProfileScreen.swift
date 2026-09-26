@@ -80,14 +80,21 @@ struct ProfileScreen: View {
     /// The same strip a route uses for its own counts, rather than two stats in
     /// a shape that appears nowhere else.
     private var counts: some View {
-        MetricStrip(items: [
+        var items: [MetricStrip.Item] = [
             .init(value: "\(store.climbs.count)",
                   label: store.climbs.count == 1 ? "Climb" : "Climbs"),
             .init(value: "\(store.gyms.count)",
                   label: store.gyms.count == 1 ? "Gym" : "Gyms")
-        ], alignment: .center)
-        .padding(.horizontal, Theme.gutter)
-        .padding(.top, 26)
+        ]
+        // Reach minus height, worked out rather than asked for, and only shown
+        // once both numbers are in. A blank third column would be a question
+        // rather than a fact.
+        if let ape = store.body.apeIndexLabel {
+            items.append(.init(value: ape, label: "Ape index"))
+        }
+        return MetricStrip(items: items, alignment: .center)
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 26)
     }
 
     /// The name over two lines, the way the reference sets a first and last.

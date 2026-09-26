@@ -52,6 +52,22 @@ final class PlaybackModel: ObservableObject {
         if isPlaying { player.rate = rate }
     }
 
+    /// Back or forward by a second, which on a boulder is two or three moves.
+    ///
+    /// Five seconds, the usual step, is most of a clip this short. A second is
+    /// the difference between one move and the next, and the frame steps below
+    /// are what get you inside a single one.
+    static let skip = 1.0
+
+    func skip(_ seconds: Double) {
+        guard duration > 0 else { return }
+        seek(to: min(max(time + seconds, 0), duration))
+    }
+
+    var isMuted: Bool { player.isMuted }
+
+    func mute(_ on: Bool) { player.isMuted = on }
+
     /// One frame at a time, for the moment a slow speed still goes past.
     func step(_ frames: Int) {
         if isPlaying { player.pause(); isPlaying = false }
@@ -93,6 +109,9 @@ struct ResultsScreen: View {
 
     @StateObject private var playback: PlaybackModel
     @ObservedObject private var store = Store.shared
+    /// Kept across clips and across launches, because it is a preference about
+    /// watching climbing videos, not about this one.
+    @AppStorage("clipsMuted") private var clipsMuted = false
     @Environment(\.dismiss) private var dismiss
     @State private var aspect: Double = 9.0 / 16.0
     @State private var showAllFindings = false
@@ -137,6 +156,7 @@ struct ResultsScreen: View {
                         ending
                         wasted
                         headline
+                        wentWell
                         Hairline()
                         readouts
                         comparison
@@ -157,7 +177,10 @@ struct ResultsScreen: View {
         } message: {
             Text("Climbs sharing a label are compared against each other.")
         }
-        .task { aspect = await VideoInfo.aspect(of: climb.videoURL) }
+        .task {
+            playback.mute(clipsMuted)
+            aspect = await VideoInfo.aspect(of: climb.videoURL)
+        }
         .onDisappear { playback.player.pause() }
         .preferredColorScheme(.light)
     }
@@ -324,52 +347,52 @@ struct ResultsScreen: View {
             }
             .frame(height: 22)
 
-            HStack(spacing: 14) {
-                Text(timecode(playback.time))
-                    .font(Theme.ui(12.5)).monospacedDigit()
+            // Everything the clip needs, on one line: where you are and how
+            // long it runs, back and forward a second, back and forward a
+            // frame, play, speed, sound.
+            HStack(spacing: 6) {
+                Text("\(timecode(playback.time)) / \(timecode(playback.duration))")
+                    .font(Theme.ui(12)).monospacedDigit()
                     .foregroundStyle(Theme.ink3)
+                    .layoutPriority(1)
 
-                Spacer(minLength: 4)
+                Spacer(minLength: 2)
 
-                // One frame back, play, one frame forward. At a quarter speed a
-                // deadpoint is still four or five frames, so the steps are what
-                // actually let you sit on the moment rather than pass over it.
-                Button { playback.step(-1) } label: {
-                    Image(systemName: "backward.frame.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.ink2)
-                        .frame(width: 34, height: 30)
-                        .contentShape(Rectangle())
+                control("gobackward", "Back a second") {
+                    playback.skip(-PlaybackModel.skip)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Back one frame")
+                // At a quarter speed a deadpoint is still four or five frames,
+                // so the frame steps are what let you sit on the moment rather
+                // than pass over it.
+                control("backward.frame.fill", "Back one frame", size: 13) {
+                    playback.step(-1)
+                }
 
                 Button { playback.toggle() } label: {
-                    Text(playback.isPlaying ? "Pause" : "Play")
-                        .font(Theme.ui(14, .semibold))
-                        .foregroundStyle(Theme.accentText)
-                        .frame(minWidth: 46, minHeight: 30)
-                        .contentShape(Rectangle())
+                    Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 34, height: 34)
+                        .background(Theme.blue, in: Circle())
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(playback.isPlaying ? "Pause" : "Play")
 
-                Button { playback.step(1) } label: {
-                    Image(systemName: "forward.frame.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.ink2)
-                        .frame(width: 34, height: 30)
-                        .contentShape(Rectangle())
+                control("forward.frame.fill", "Forward one frame", size: 13) {
+                    playback.step(1)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Forward one frame")
+                control("goforward", "Forward a second") {
+                    playback.skip(PlaybackModel.skip)
+                }
 
-                Spacer(minLength: 4)
+                Spacer(minLength: 2)
 
                 Button { playback.cycleRate() } label: {
                     Text(speedLabel)
-                        .font(Theme.ui(12.5, .semibold)).monospacedDigit()
+                        .font(Theme.ui(12, .semibold)).monospacedDigit()
                         .foregroundStyle(playback.rate == 1 ? Theme.ink3 : .white)
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 8)
                         .frame(height: 26)
                         .background(playback.rate == 1 ? Theme.surface2 : Theme.accent,
                                     in: Capsule())
@@ -377,11 +400,35 @@ struct ResultsScreen: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Playback speed")
+
+                // Sound off, and it stays off for every clip afterwards. A gym
+                // is loud and most of what is on these clips is other people.
+                control(clipsMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                        clipsMuted ? "Sound on" : "Sound off",
+                        size: 13,
+                        tint: clipsMuted ? Theme.accentText : Theme.ink3) {
+                    clipsMuted.toggle()
+                    playback.mute(clipsMuted)
+                }
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 4)
+    }
+
+    private func control(_ symbol: String, _ label: String, size: CGFloat = 15,
+                         tint: Color = Theme.ink2,
+                         action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: size))
+                .foregroundStyle(tint)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     /// "1x", "0.5x", "0.25x", with the duration no longer shown beside it.
@@ -562,6 +609,63 @@ struct ResultsScreen: View {
     private func fallSummary(rise: Double) -> String {
         let body = String(format: "%.1f", rise / 2.0)
         return "Your center of mass had climbed about \(body) body lengths by then. Trace has not seen the route, so it cannot tell you how close to the finish that was, only what your body was doing on the way."
+    }
+
+    /// The other half of the climb.
+    ///
+    /// It sits after the correction rather than before it, because the thing
+    /// you came for is the thing to fix, and it is silent when nothing cleared
+    /// the bar: praise for turning up is worth what it costs.
+    @ViewBuilder
+    private var wentWell: some View {
+        let strengths = StrengthEngine.strengths(from: climb.metrics, priorJerk: priorJerk)
+        if !strengths.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle("What went well")
+                VStack(spacing: 10) {
+                    ForEach(strengths) { s in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 24, height: 24)
+                                .background(Theme.ok, in: Circle())
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text(s.kind.title)
+                                        .font(Theme.serif(17, .semibold))
+                                        .foregroundStyle(Theme.ink)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Spacer(minLength: 6)
+                                    Text(s.detail)
+                                        .font(Theme.ui(12)).monospacedDigit()
+                                        .foregroundStyle(Theme.ink3)
+                                        .multilineTextAlignment(.trailing)
+                                }
+                                Text(s.kind.why)
+                                    .font(Theme.ui(14))
+                                    .foregroundStyle(Theme.ink2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .card()
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.gutter)
+            .padding(.top, 26)
+        }
+    }
+
+    /// This climber's own earlier smoothness, which is the only thing
+    /// smoothness can honestly be compared against.
+    private var priorJerk: [Double] {
+        store.climbs
+            .filter { $0.id != climb.id && $0.metrics.isTrustworthy }
+            .map(\.metrics.logJerk)
     }
 
     private var headline: some View {

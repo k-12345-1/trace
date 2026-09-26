@@ -91,16 +91,25 @@ private struct AuthShell<Content: View>: View {
                 // reads as the page coming loose. `basedOnSize` stops the bounce
                 // until the content genuinely overflows, which is the keyboard
                 // on a small screen, and then scrolling is what you want.
+                // The clearance for the mark is the scroll view's own top
+                // inset, not padding on the form inside it.
+                //
+                // As padding on the content it was part of what scrolls, so
+                // raising the keyboard slid the fields up over the lockup and
+                // the word Trace came through between them. As an inset on the
+                // scroll view, the form is clipped to the space below the mark
+                // and cannot reach it however far it scrolls, which it still
+                // does when the keyboard leaves it no room.
                 ScrollView {
                     content
                         .frame(width: min(320, geo.size.width - 44))
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                             formHeight = $0
                         }
-                        .padding(.top, top + Lockup.height + Lockup.gapBelow)
                         .padding(.bottom, 40)
                         .frame(maxWidth: .infinity)
                 }
+                .padding(.top, top + Lockup.height + Lockup.gapBelow)
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
                 .scrollIndicators(.hidden)
@@ -343,7 +352,7 @@ struct SignInScreen: View {
     var body: some View {
         AuthShell(revealed: $revealed) {
             VStack(spacing: 14) {
-                AuthField(label: "Email", text: $email, placeholder: "you@example.com",
+                AuthField(label: "Email", text: $email, placeholder: "you@email.com",
                           keyboard: .emailAddress, contentType: .emailAddress,
                           focused: focus == .email)
                     .focused($focus, equals: .email)
@@ -450,12 +459,12 @@ struct SignUpScreen: View {
         AuthShell(revealed: $revealed) {
             VStack(spacing: 14) {
                 AuthField(label: "Name", text: $name,
-                          placeholder: "Katie", contentType: .name,
+                          placeholder: "Name", contentType: .name,
                           focused: focus == .name)
                     .focused($focus, equals: .name)
                     .textInputAutocapitalization(.words)
 
-                AuthField(label: "Email", text: $email, placeholder: "you@example.com",
+                AuthField(label: "Email", text: $email, placeholder: "you@email.com",
                           keyboard: .emailAddress, contentType: .emailAddress,
                           focused: focus == .email)
                     .focused($focus, equals: .email)

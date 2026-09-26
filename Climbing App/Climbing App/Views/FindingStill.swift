@@ -80,12 +80,37 @@ struct FindingStill: View {
     /// whole trick: the card then takes its shape from this, so nothing has to
     /// be cropped away to make a subject fit a letterbox it was never going to
     /// fit.
-    private var region: CGRect {
+    /// How much of the photograph the card keeps, whatever the subject's size.
+    ///
+    /// Two floors, and they exist because the first version had neither. The
+    /// crop follows the marks, and the marks for a finding about two feet are a
+    /// hand's width apart, so the card was a fifty pixel box blown up to three
+    /// hundred and fifty points: a brown smear with two rings on it, and no way
+    /// to tell it was a picture of a foot at all.
+    ///
+    /// The first floor keeps a share of the frame, so there is enough around
+    /// the subject to recognise what you are looking at. The second keeps
+    /// enough source pixels that the card is a photograph rather than an
+    /// interpolation of one.
+    static let minimumShare = 0.34
+    static let minimumPixels = 460.0
+
+    private var region: CGRect { Self.crop(subject: subject(), pixels: image.size) }
+
+    /// The crop, as arithmetic, so it can be argued with in a test.
+    static func crop(subject: CGRect?, pixels: CGSize) -> CGRect {
         let whole = CGRect(x: 0, y: 0, width: 1, height: 1)
-        guard let subject = subject() else { return whole }
+        guard let subject else { return whole }
         let margin = max(subject.width, subject.height) * 0.32
         let grown = subject.insetBy(dx: -margin, dy: -margin)
-        let w = min(grown.width, 1), h = min(grown.height, 1)
+
+        let floorX = pixels.width > 0
+            ? max(minimumShare, minimumPixels / pixels.width) : minimumShare
+        let floorY = pixels.height > 0
+            ? max(minimumShare, minimumPixels / pixels.height) : minimumShare
+
+        let w = min(max(grown.width, floorX), 1)
+        let h = min(max(grown.height, floorY), 1)
         return CGRect(x: min(max(0, grown.midX - w / 2), 1 - w),
                       y: min(max(0, grown.midY - h / 2), 1 - h),
                       width: w, height: h)

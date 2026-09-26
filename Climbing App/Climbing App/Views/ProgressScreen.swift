@@ -43,13 +43,11 @@ struct ProgressScreen: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Over time")
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Movement over time")
                 .font(Theme.title(30))
                 .foregroundStyle(Theme.ink)
-            Text("Is your movement changing?")
-                .font(Theme.ui(14))
-                .foregroundStyle(Theme.ink3)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
