@@ -82,7 +82,7 @@ reports 0%, which is a Simulator limitation and is pinned by a known-issue test.
 | Category | Health & Fitness (secondary: Sports) |
 | Age rating | 4+ |
 | Privacy policy URL | wherever `docs/privacy.html` is hosted |
-| Support URL | a page that reaches knrobinson1023@gmail.com |
+| Support URL | https://traceclimb.vercel.app/ (Vercel project `trace-legal`, deploys `docs/`) |
 | Copyright | 2026 Trace |
 
 ### Description
@@ -165,7 +165,8 @@ Apple Maps for completions.
 - [x] Create the Supabase project, run `Supabase.sql`, add the two keys
 - [x] Register the bundle ID and create the app record
 - [ ] Accept the updated Developer Program License Agreement (Account Holder only)
-- [ ] Somewhere to host the privacy policy, and a support page. traceclimb.co
+- [x] Hosted at https://traceclimb.vercel.app/ (privacy.html, terms.html). Redeploy after `tools/legal_html.py`.
+- [ ] Was: Somewhere to host the privacy policy, and a support page. traceclimb.co
       does not resolve, and the legal documents gave hello@traceclimb.co as the (now knrobinson1023@gmail.com, version 1.5)
       contact address, so that domain needs registering or the address changing
 - [x] Age rating, pricing and availability, App Privacy answers
