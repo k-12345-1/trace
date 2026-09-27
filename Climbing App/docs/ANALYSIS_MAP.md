@@ -110,3 +110,77 @@ the wall that was scanned.
 3. **Barn-door / rotational equilibrium**, which is real physics on contacts
    Trace already has.
 4. **Holds to limbs**, which is the big one, and unlocks the whole third column.
+
+---
+
+# Audit: is what Trace recommends correct?
+
+Prompted by the first labelled clip. Katie sent a thirty-second ascent back with
+a verdict: *"an example of good climbing as the arms are straight, footwork is
+precise, hips are close to the wall, weight is distributed well"*, plus good
+force on the final dynamic move. Trace disagreed with all four. Each is examined
+below on its merits rather than assumed wrong because an expert said so, and
+they come out differently.
+
+### 1. "Weight hanging off your arms" — measuring the wrong thing
+
+`comOffsetFromFeet` is the **horizontal** distance in the image between the
+centre of mass and the base of support. Its own comment says it reads as hips
+hanging off the wall *when filmed side on*. The Record screen tells people to
+put the phone **square to the wall**. Filmed square, the same number reads as a
+body spread sideways, which is a stem or a flag, not weight on the arms.
+
+On this clip it measures 1.40 torso lengths and the climber is stemming wide.
+The finding fires above 0.35 and calls anything above 0.90 "dominant", so a
+perfectly balanced wide position is reported as the worst thing in the climb.
+
+**This one is wrong by construction on the footage Trace asks for.** The fix is
+a product decision: suppress it on square-on capture, or change what it claims.
+
+### 2. "Imprecise feet" — right idea, wrong denominator *(fixed)*
+
+It fired on a raw count: three repositions, whatever the climb. A three-move
+boulder and a thirty-move route were judged identically, so a longer climb was
+faulted for being longer. Eleven resets across nine hand moves is 1.2 a move;
+eleven across three moves would be 3.7. The old rule called them the same.
+
+Now counted per hand move, and per fifteen seconds when the moves cannot be
+read. The thresholds are set where the old ones sat for a five-move boulder, so
+a climb of that shape reads exactly as before and only the scaling changes.
+
+### 3. "Bent arms while static" — was measuring nobody's arm *(fixed)*
+
+Two defects, both real. Seven percent of the still-frame readings were below 35
+degrees, which is past the anatomical limit: the tracker had folded a wrist back
+to its own shoulder. And the readings were averaged across both arms, giving 101
+degrees on a set that is a quarter below 51 and a quarter above 145, because one
+arm hangs while the other reaches. The mean is a position nobody was in.
+
+The weight-bearing arm is measured now, which is what the coaching is about, and
+it reads 115 degrees. **The disagreement with the label survives the fix**: an
+expert calls this climb straight-armed and the rubric treats 115 as as bad as it
+gets. One labelled clip cannot move a threshold, so a test holds both numbers
+and fails if the rubric is ever recalibrated.
+
+### 4. "Catching outside the deadpoint" — unverified
+
+456 milliseconds off the apex on a move Katie says generates good force. The
+detector now finds nine hand moves instead of thirty-six, so the number is at
+least computed over real events, but every contact is matched to the nearest
+apex of the **centre of mass** whether or not the move was dynamic. On a climb
+that is mostly static that produces a number from nothing. Needs a test for
+whether a move was dynamic at all before its timing is judged.
+
+### What this changes about how thresholds get set
+
+Three of four findings on the one clip with a verdict attached were wrong, and
+two were wrong in ways no amount of internal consistency would have caught: a
+measure that means something different under the capture the app itself asks
+for, and a count that punished length. Neither is a calibration error. Both were
+found by holding a number against somebody who knows what good climbing looks
+like.
+
+The remaining disagreements are calibration, and calibration needs more than one
+labelled example. Until there are several, the honest position is that the
+thresholds are unvalidated, and this document says so rather than the app
+implying otherwise.

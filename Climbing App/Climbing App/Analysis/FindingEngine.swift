@@ -15,6 +15,16 @@ enum FindingEngine {
     ///   Smoothness has no defensible absolute scale, so it is judged against
     ///   their own history or not at all, and a history measured two different
     ///   ways is not a history.
+    /// Foot resets per hand move before it is worth mentioning.
+    ///
+    /// Set where the old absolute threshold of three sat for a short boulder of
+    /// about five moves, so a climb of that shape reads as it did and only the
+    /// scaling changes.
+    static let footResetsPerMove = 0.6
+    /// How long a move takes on real footage, used only to count in moves when
+    /// the moves themselves could not be read.
+    static let secondsPerMove = 3.0
+
     static func findings(from m: Metrics, frames: [PoseFrame],
                          priorJerk: [Double] = []) -> [Finding] {
         guard m.isTrustworthy else { return [] }
@@ -155,17 +165,38 @@ enum FindingEngine {
             ))
         }
 
-        // Foot precision.
-        if m.footAdjustments >= 3 {
-            let severity: Severity = m.footAdjustments >= 8 ? .costly
-                                   : m.footAdjustments >= 5 ? .moderate : .minor
-            let w = busiestFootWindow(frames: frames) ?? whole
-            out.append(Finding(
-                kind: .impreciseFeet,
-                severity: severity,
-                start: w.start, end: w.end,
-                message: "You repositioned a foot after placing it \(m.footAdjustments) times."
-            ))
+        // Foot precision, per move rather than per climb.
+        //
+        // The raw count judged a three-move boulder and a thirty-move route by
+        // the same number, so a longer climb was faulted for being longer. A
+        // climber who resets a foot on nearly every move is imprecise; one who
+        // does it eleven times across thirty moves is not, and the old rule
+        // called the second worse than the first.
+        //
+        // The unit is the hand move, because that is what a foot placement
+        // serves. When there are too few moves to count, the climb is too short
+        // for this finding to mean anything either.
+        // Counted against hand moves where they can be counted, and against the
+        // clock where they cannot, so the finding is never hostage to another
+        // engine declining to read. A move takes about three seconds on real
+        // footage, which is what makes the two rates the same rate.
+        let moves = ReachEngine.read(frames: frames)?.reaches.count
+        let units = moves.map(Double.init) ?? (m.duration / Self.secondsPerMove)
+        if units >= 1 {
+            let perMove = Double(m.footAdjustments) / units
+            if perMove >= Self.footResetsPerMove {
+                let severity: Severity = perMove >= 1.6 ? .costly
+                                       : perMove >= 1.0 ? .moderate : .minor
+                let w = busiestFootWindow(frames: frames) ?? whole
+                let over = moves.map { "across \($0) moves" }
+                    ?? String(format: "in %.0f seconds", m.duration)
+                out.append(Finding(
+                    kind: .impreciseFeet,
+                    severity: severity,
+                    start: w.start, end: w.end,
+                    message: "You repositioned a foot after placing it \(m.footAdjustments) times \(over)."
+                ))
+            }
         }
 
         return out.sorted { $0.severity > $1.severity }
