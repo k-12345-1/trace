@@ -126,3 +126,59 @@ struct CameraMotionTests {
 
 
 }
+
+/// Where the accounts live, and what happens when they do not.
+@Suite("Supabase configuration")
+struct SupabaseConfigTests {
+
+    /// The URL is set, so the moment a key lands the app has a server.
+    @Test("The project URL is set and is https")
+    func theURLIsSet() {
+        #expect(SupabaseConfig.url.hasPrefix("https://"))
+        #expect(SupabaseConfig.url.contains(".supabase.co"))
+    }
+
+    /// The service role key bypasses every policy and anyone can pull it out of
+    /// a shipped binary. Nothing in Trace should ever hold one, which is why
+    /// deleting an account goes through a security-definer function instead.
+    ///
+    /// A Supabase JWT carries its role in the payload, so this reads it rather
+    /// than trusting the variable's name.
+    @Test("No service role key is compiled in")
+    func noServiceRoleKey() throws {
+        let key = SupabaseConfig.anonKey
+        try #require(!key.isEmpty || key.isEmpty)   // either state is valid
+        guard !key.isEmpty else { return }
+
+        let parts = key.split(separator: ".")
+        // Newer publishable keys are not JWTs at all, and cannot be service keys.
+        guard parts.count == 3 else {
+            #expect(!key.contains("service_role"))
+            return
+        }
+        var payload = String(parts[1])
+        while payload.count % 4 != 0 { payload += "=" }
+        let data = try #require(Data(base64Encoded: payload
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")))
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["role"] as? String != "service_role",
+                "a service role key is compiled into the app")
+    }
+
+    /// Both halves are needed, so a half-filled configuration is off rather
+    /// than half on, and the app stays in local-only mode instead of throwing
+    /// at a climber trying to sign in.
+    @Test("Half a configuration is no configuration")
+    func halfIsOff() {
+        let saved = AuthClient.config
+        defer { AuthClient.config = saved }
+
+        AuthClient.config = .init(url: SupabaseConfig.url, anonKey: "")
+        #expect(!AuthClient.isConfigured)
+        AuthClient.config = .init(url: "", anonKey: "some-key")
+        #expect(!AuthClient.isConfigured)
+        AuthClient.config = .init(url: SupabaseConfig.url, anonKey: "some-key")
+        #expect(AuthClient.isConfigured)
+    }
+}

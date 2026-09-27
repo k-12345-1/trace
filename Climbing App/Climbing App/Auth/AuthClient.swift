@@ -10,8 +10,8 @@ enum AuthClient {
     // MARK: Configuration
 
     /// Filled in once a Supabase project exists. Until then the app runs in its
-    /// local-only mode and the sign-in screen says so plainly rather than
-    /// failing at the user.
+    /// local-only mode, where `LocalStartScreen` asks for a name and nothing
+    /// tries to reach a server that is not there.
     struct Config {
         var url: String
         var anonKey: String
@@ -21,10 +21,15 @@ enum AuthClient {
         }
     }
 
-    static var config = Config(
-        url: Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String ?? "",
-        anonKey: Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String ?? ""
-    )
+    /// Read from `SupabaseConfig` rather than the Info.plist.
+    ///
+    /// The plist was the original plan and does not work here: the project
+    /// generates its Info.plist, and `INFOPLIST_KEY_` build settings only pass
+    /// through keys Xcode already knows about, so a custom one is silently
+    /// dropped and the app comes up thinking accounts are switched off. Source
+    /// is no less private, since both values are publishable, and it is visible
+    /// to the compiler and to a test.
+    static var config = Config(url: SupabaseConfig.url, anonKey: SupabaseConfig.anonKey)
 
     static var isConfigured: Bool { config.isConfigured }
 
