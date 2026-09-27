@@ -70,6 +70,7 @@ struct GymMapScreen: View {
         // The map is the screen. Without this the bar's backdrop paints over
         // its bottom hundred and thirty points.
         .runsUnderTheBar()
+        .reachesTheTop()
         .onAppear(perform: frame)
     }
 

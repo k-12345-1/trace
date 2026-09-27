@@ -118,6 +118,14 @@ struct ResultsScreen: View {
     @State private var showAllFindings = false
     @State private var renaming = false
     @State private var draftLabel = ""
+    /// Where the bottom of the footage currently sits on the screen.
+    ///
+    /// The clip is the header and runs to the very top, so this screen cannot
+    /// take the paper band the rest of the app wears: it would be the picture
+    /// cropped. But the clip scrolls away, and once it has, the paragraphs
+    /// underneath pass beneath the clock exactly as they did everywhere else.
+    /// So the cover is not always on, it arrives as the footage leaves.
+    @State private var stageBottom: CGFloat = .greatestFiniteMagnitude
 
     /// Read the label back out of the store so a rename shows immediately.
     private var label: String {
@@ -140,6 +148,12 @@ struct ResultsScreen: View {
                     // the very top of the screen, under the status bar, with the
                     // back control floating on it.
                     stage
+                        .background {
+                            GeometryReader { geo in
+                                Color.clear.preference(key: StageBottomKey.self,
+                                                       value: geo.frame(in: .global).maxY)
+                            }
+                        }
                     // The scrubber belongs to the video, so it sits against it.
                     // It was two sections down, under the name and the live
                     // readout, which put the control for the clip below a
@@ -172,7 +186,24 @@ struct ResultsScreen: View {
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)
+            .onPreferenceChange(StageBottomKey.self) { stageBottom = $0 }
+
+            // Fades in over the last twenty points of the footage leaving, so
+            // there is no frame where it snaps on.
+            VStack(spacing: 0) {
+                PaperBand().frame(height: 62)
+                LinearGradient(
+                    stops: [.init(color: Theme.ground, location: 0),
+                            .init(color: Theme.ground.opacity(0), location: 1)],
+                    startPoint: .top, endPoint: .bottom)
+                    .frame(height: 14)
+                Spacer(minLength: 0)
+            }
+            .ignoresSafeArea(edges: .top)
+            .opacity(coverOpacity)
+            .allowsHitTesting(false)
         }
+        .reachesTheTop()
         .toolbar(.hidden, for: .navigationBar)
         .alert("Rename climb", isPresented: $renaming) {
             TextField("Blue slab by the fan", text: $draftLabel)
@@ -187,6 +218,13 @@ struct ResultsScreen: View {
         }
         .onDisappear { playback.player.pause() }
         .preferredColorScheme(.light)
+    }
+
+    /// One where the footage has gone, zero while any of it is still showing.
+    private var coverOpacity: Double {
+        let fadeOver: CGFloat = 20
+        let gone = 62 + fadeOver - stageBottom
+        return Double(min(max(gone / fadeOver, 0), 1))
     }
 
     // MARK: Header
@@ -1163,5 +1201,14 @@ enum ResultsReadout: Equatable {
         if climb.cameraWasStill == false { return .cameraMoved }
         if !climb.metrics.isTrustworthy { return .unreadable }
         return .measurements
+    }
+}
+
+
+/// How far down the screen the footage still reaches.
+private struct StageBottomKey: PreferenceKey {
+    static let defaultValue: CGFloat = .greatestFiniteMagnitude
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = min(value, nextValue())
     }
 }

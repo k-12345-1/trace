@@ -519,6 +519,7 @@ struct RouteDetailScreen: View {
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)
         }
+        .reachesTheTop()
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
     }

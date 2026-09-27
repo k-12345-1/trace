@@ -113,9 +113,16 @@ struct StoreStateTests {
         await billing.load()
         #expect(billing.storeState != .loading,
                 "the paywall would spin on its Subscribe button forever")
-        // In the test host there is no StoreKit configuration, so the honest
-        // answer is that the products are not available. What matters is that
-        // it is an answer.
-        #expect(billing.canBuy == (billing.storeState == .ready))
+
+        // The tests run against Trace.storekit, so the store does answer here
+        // and the answer has to be both products: a paywall offering a choice
+        // between two plans cannot have only one of them for sale.
+        if billing.storeState == .ready {
+            for plan in Subscription.Plan.allCases {
+                #expect(billing.products[plan] != nil,
+                        "\(plan.rawValue) did not load: \(billing.products.keys.map(\.rawValue))")
+            }
+            #expect(billing.canBuy, "the selected plan has no product behind it")
+        }
     }
 }

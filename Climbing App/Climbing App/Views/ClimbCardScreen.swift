@@ -56,6 +56,7 @@ struct ClimbCardScreen: View {
             // padded down to clear them.
             .ignoresSafeArea(edges: .top)
         }
+        .reachesTheTop()
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
         .alert("Route name", isPresented: $renaming) {

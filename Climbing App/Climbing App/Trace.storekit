@@ -25,7 +25,7 @@
           "introductoryOffer": null,
           "localizations": [
             {
-              "description": "Unlimited clips analyzed and walls scanned, with recommendations from your own gym. Measured entirely on your phone. Twelve months.",
+              "description": "Unlimited climbs analyzed and walls scanned.",
               "displayName": "Trace Pro, yearly",
               "locale": "en_US"
             }
@@ -46,7 +46,7 @@
           "introductoryOffer": null,
           "localizations": [
             {
-              "description": "Unlimited clips analyzed and walls scanned, with recommendations from your own gym. Measured entirely on your phone.",
+              "description": "Unlimited climbs analyzed and walls scanned.",
               "displayName": "Trace Pro, monthly",
               "locale": "en_US"
             }

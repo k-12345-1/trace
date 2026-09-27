@@ -74,6 +74,10 @@ struct MainTabs: View {
     /// Set by whichever screen is showing, if it wants the page to run under
     /// the floating bar rather than end above it.
     @State private var fullBleed = false
+    /// Set by a screen whose content is meant to reach the very top: a video, a
+    /// photograph, a map. Those cannot take a band of paper across them, and
+    /// they carry their own cover instead.
+    @State private var topBleed = false
 
     struct PendingClip: Identifiable {
         let url: URL
@@ -98,6 +102,7 @@ struct MainTabs: View {
                 }
             }
             .onPreferenceChange(FullBleedKey.self) { fullBleed = $0 }
+            .onPreferenceChange(TopBleedKey.self) { topBleed = $0 }
 
             // A solid band under the bar, fading in at its top edge.
             //
@@ -128,6 +133,41 @@ struct MainTabs: View {
             .allowsHitTesting(false)
             .ignoresSafeArea()
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
+
+            // The same band at the other end, for the same reason.
+            //
+            // A scroll view's top inset places its content, it does not clip
+            // it, so everything on every page slides up under the clock and the
+            // battery as you read. It is standard iOS and it still looks like a
+            // fault: the first line of a paragraph arrives with the time
+            // printed through it. The paywall was where it showed worst, a
+            // screen where confusion costs a sale, and it is the screen a
+            // reviewer opens first.
+            //
+            // Painted in the page's own paper rather than a blur, so it reads
+            // as the page beginning rather than as a bar laid over it, and it
+            // fades out downward so there is no line where it ends.
+            if !topBleed {
+            VStack(spacing: 0) {
+                PaperBand().frame(height: 0)
+                Spacer(minLength: 0)
+            }
+            .overlay(alignment: .top) {
+                VStack(spacing: 0) {
+                    PaperBand()
+                        .frame(height: 62)
+                    LinearGradient(
+                        stops: [
+                            .init(color: Theme.ground, location: 0),
+                            .init(color: Theme.ground.opacity(0), location: 1)
+                        ],
+                        startPoint: .top, endPoint: .bottom)
+                        .frame(height: 14)
+                }
+                .ignoresSafeArea(edges: .top)
+            }
+            .allowsHitTesting(false)
             }
 
             // Tapping anywhere off the panel closes it, which is the only way
@@ -584,9 +624,27 @@ struct FullBleedKey: PreferenceKey {
     }
 }
 
+/// The same opt-out at the top of the screen.
+///
+/// A page of text wants the paper band over it, because text under the clock
+/// reads as a fault. A video, a photograph or a map wants the opposite: those
+/// are meant to reach the edge, and a band of cream across the top of one is
+/// the picture cropped. Those screens cover their own status bar, once their
+/// picture has scrolled away.
+struct TopBleedKey: PreferenceKey {
+    static let defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
 extension View {
     func runsUnderTheBar(_ on: Bool = true) -> some View {
         preference(key: FullBleedKey.self, value: on)
+    }
+
+    func reachesTheTop(_ on: Bool = true) -> some View {
+        preference(key: TopBleedKey.self, value: on)
     }
 }
 
