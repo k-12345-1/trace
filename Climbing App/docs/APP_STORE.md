@@ -19,7 +19,31 @@ changes nothing on the phone: the home screen name comes from
 `CFBundleDisplayName`, which is and stays "Trace".
 
 Filled in already: name, subtitle, categories, description, promotional text,
-keywords, copyright, and the App Review notes.
+keywords, copyright, the App Review notes, pricing, availability, the age
+rating and the App Privacy answers.
+
+**Pricing** is free in all 175 countries, with the subscriptions carrying the
+revenue. **Age rating** came out 4+ worldwide, every content category answered
+None. **App Privacy** declares one data type, Email Address, linked to identity,
+used for App Functionality, not used for tracking, which is exactly what
+`PrivacyInfo.xcprivacy` says. It cannot be published until there is a privacy
+policy URL to go with it.
+
+Two answers in there were judgement rather than fact, and are worth a second
+opinion:
+
+- **Health or Wellness Topics: No.** Trace gives training feedback on climbing
+  movement, not self-care or lifestyle advice, and it provides no medical or
+  treatment information. Answering yes would raise the rating for no good
+  reason, but it is a line somebody could draw differently.
+- **Fitness data: not collected.** True under Apple's definition, which is about
+  data leaving the device. Every measurement Trace makes stays on the phone.
+
+**Content Rights is deliberately unanswered.** The question asks whether the app
+accesses third-party content *and whether you hold the necessary rights*. Trace
+fetches gym logos from gym websites, so "no" is untrue, and "yes, I have the
+rights" is a legal claim that is not mine to make. Either answer it knowingly or
+drop the logo fetching, which is one file, `LogoFetcher`.
 
 ## Still open
 
@@ -144,7 +168,9 @@ Apple Maps for completions.
 - [ ] Somewhere to host the privacy policy, and a support page. traceclimb.co
       does not resolve, and the legal documents give hello@traceclimb.co as the
       contact address, so that domain needs registering or the address changing
-- [ ] Age rating, pricing and availability, App Privacy answers
+- [x] Age rating, pricing and availability, App Privacy answers
+- [ ] Answer Content Rights, or drop the gym logo fetching
+- [ ] Publish the App Privacy answers once the policy URL exists
 - [ ] The two subscriptions in App Store Connect
 - [ ] Connect real SMTP, or turn off email confirmation
 - [ ] Host `docs/privacy.html` and `docs/terms.html`, paste the privacy URL
