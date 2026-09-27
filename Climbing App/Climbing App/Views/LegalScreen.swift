@@ -25,7 +25,7 @@ struct LegalScreen: View {
     /// Bumped whenever either document changes in a way that alters what a
     /// person agreed to. Shown at the top of both so a support question about
     /// "which terms" has an answer.
-    static let version = "1.2"
+    static let version = "1.3"
 
     @Environment(\.dismiss) private var dismiss
     /// True when this is pushed inside the tabbed app, false when it is opened
@@ -175,7 +175,8 @@ extension LegalScreen {
                 Section(heading: "Changes", body: [
                     "This document ships inside the app, so it can only change when you install an update. The version number at the top changes with it, and a material change will be flagged in the app rather than made quietly.",
                     "Version 1.1 added gym logos, described above.",
-                    "Version 1.2 added the place completions, also described above. It is not a new thing Trace sends: the field and its suggestions were already in the app, and this policy had not said so. Saying so is the change."
+                    "Version 1.2 added the place completions, also described above. It is not a new thing Trace sends: the field and its suggestions were already in the app, and this policy had not said so. Saying so is the change.",
+                    "Version 1.3 changed what the free tier is, in the Terms rather than here. Nothing about what leaves this phone changed with it."
                 ])
             ],
             insideApp: insideApp)
@@ -210,7 +211,7 @@ extension LegalScreen {
                     "One person per account. Do not share one."
                 ]),
                 Section(heading: "Trace Pro", body: [
-                    "Your first route scan is free. Scanning further routes, and the recommendations built from them, require a Trace Pro subscription.",
+                    "Your first three goes are free, and a go is anything that gives you feedback: a climb recorded, a clip imported, or a wall scanned. After that, recording, importing and scanning require a Trace Pro subscription.",
                     "Trace Pro is sold through the App Store and billed to your Apple ID at the price shown before you confirm. It renews each period until you turn renewal off, which you do in Settings under your name, then Subscriptions. Turning it off at least 24 hours before the next renewal stops that charge.",
                     "Refunds are handled by Apple, not by us, under Apple's own policy.",
                     "If your subscription ends, everything you have already scanned and analyzed stays on your phone and stays readable. You simply cannot scan new routes until you subscribe again.",

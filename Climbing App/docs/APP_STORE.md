@@ -7,26 +7,26 @@ in two places, a decision.
 Bundle identifier `co.traceclimb.app` · version 1.0 · iPhone only, portrait,
 iOS 17 and up · team TA274AR6D5.
 
-## Still open, and yours to decide
+## Still open
 
-**1. Accounts.** The app ships in local-only mode: `AuthClient.isConfigured` is
-false because `SUPABASE_URL` and `SUPABASE_ANON_KEY` are not set, so
-`LocalStartScreen` asks for a name and goes straight in. That is a complete,
-submittable product and it matches what the privacy policy promises. Turning
-accounts on means provisioning a Supabase project, adding those two keys to the
-build settings, and running `Supabase.sql` on it. Nothing else changes: the
-sign-in and sign-up screens appear on their own.
+**1. Accounts.** Decided: a Supabase project in a new free organization, kept
+separate from Lineage Health. Until it exists, `AuthClient.isConfigured` is
+false and `LocalStartScreen` asks for a name and goes straight in, which is a
+complete submittable product on its own. Switching accounts on is three steps:
+create the project, run `Supabase.sql` against it, and put `SUPABASE_URL` and
+`SUPABASE_ANON_KEY` in the build settings. Nothing else changes; the sign-in and
+sign-up screens appear by themselves.
 
-**2. Screenshots.** `docs/screenshots/` holds four at 1320×2868, which is the
-6.9" size Apple asks for, and they are the right four screens: home, a route,
-the pose overlay, the efficiency card. They are **not submittable**, because the
-climbs in them are the synthetic demo climber, a grey stick figure on a black
-wall. They are there to say which screens to shoot. Real ones need your own
-footage of your own climbing, recorded in the app.
+**2. Screenshots.** `docs/screenshots/` holds four at 1320×2868, the 6.9" size
+Apple asks for, of the right four screens: home, a route, the pose overlay, the
+efficiency card. They are **not submittable**, because the climbs in them are
+the synthetic demo climber. Trace now runs on a phone, so the real set is a gym
+session away: film a boulder, let it analyze, and screenshot those same four
+screens.
 
-**3. Never run on a physical iPhone.** The camera, the 60fps capture path, and
-Vision pose tracking on a live buffer have never executed on hardware, only in
-the Simulator, which has no camera. App Review runs on devices.
+**3. Running on a phone: done.** Tracking reads 90% on real gym footage from a
+real iPhone. This was the last unknown in the app itself. The Simulator still
+reports 0%, which is a Simulator limitation and is pinned by a known-issue test.
 
 ## The app record
 
@@ -79,8 +79,9 @@ Display names "Trace Pro, monthly" and "Trace Pro, yearly"; descriptions are in
 `Trace.storekit`. Each product needs a review screenshot of the paywall. The
 group needs a display name: **Trace Pro**.
 
-The free tier is one route scan. Everything already recorded stays readable
-after a subscription ends, which the Terms say and the app does.
+The free tier is three goes, spent on anything that gives feedback: a climb
+recorded, a clip imported, or a wall scanned. Everything already recorded stays
+readable after a subscription ends, which the Terms say and the app does.
 
 ## App Privacy answers
 
@@ -107,16 +108,16 @@ Apple Maps for completions.
 > Import a clip on the Add screen and choose any video of a person moving; the
 > analysis runs on the device and takes a few seconds per minute of footage.
 >
-> Scanning a route is limited to one scan without a subscription. Trace Pro is a
-> StoreKit subscription, monthly or yearly, and Restore a purchase is on the
-> same screen.
+> The first three clips or scans are free; the fourth opens the paywall. Trace
+> Pro is a StoreKit subscription, monthly or yearly, and Restore a purchase is
+> on the same screen.
 >
 > Nothing is uploaded. There is no server holding user content.
 
 ## Before hitting submit
 
-- [ ] Run on a physical iPhone, film a real climb, check the analysis
-- [ ] Decide accounts: local-only, or provision Supabase and run `Supabase.sql`
+- [x] Run on a physical iPhone, film a real climb, check the analysis
+- [ ] Create the Supabase project, run `Supabase.sql`, add the two keys
 - [ ] Host `docs/privacy.html` and `docs/terms.html`, paste the privacy URL
 - [ ] Shoot real screenshots at 1320×2868
 - [ ] Create both subscriptions at the prices above, with review screenshots

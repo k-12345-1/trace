@@ -3,8 +3,8 @@ import StoreKit
 
 /// The one place Trace asks for money.
 ///
-/// It appears when someone opens the scanner for the second time. The first scan
-/// is free and complete, not a teaser: you get the holds, the gym, the route
+/// It appears on the fourth clip or scan. The first three are free and complete,
+/// not teasers: you get the holds, the gym, the route
 /// saved, all of it. That is deliberate. Nobody can tell from a screenshot
 /// whether color segmentation works on their gym's lighting, so the honest way
 /// to sell it is to let them find out on their own wall first.
@@ -67,7 +67,7 @@ struct PaywallScreen: View {
             Text("Keep climbing")
                 .font(Theme.title(32))
                 .foregroundStyle(Theme.ink)
-            Text("Your first route was free. Scanning more of the wall, and everything Trace works out from them, is part of Trace Pro.")
+            Text("Your first three were free. Recording, importing and scanning from here, and everything Trace works out from them, is part of Trace Pro.")
                 .font(Theme.ui(15.5))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -79,7 +79,7 @@ struct PaywallScreen: View {
 
     private var included: some View {
         VStack(spacing: 10) {
-            line("Unlimited route scans",
+            line("Unlimited clips and scans",
                  "Photograph a wall, tap one hold, and Trace picks out the rest by color.")
             line("Recommended climbs",
                  "Routes off your own walls chosen for the thing you are working on.")
