@@ -97,7 +97,7 @@ def page(title, updated, version, standfirst, sections):
         "<footer>",
         "<p>This page is generated from the copy inside the Trace app, so the two "
         "always say the same thing. Questions: "
-        '<a href="mailto:hello@traceclimb.co">hello@traceclimb.co</a>.</p>',
+        '<a href="mailto:knrobinson1023@gmail.com">knrobinson1023@gmail.com</a>.</p>',
         "</footer>", "</main>", "</body>", "</html>", "",
     ]
     return "\n".join(parts)

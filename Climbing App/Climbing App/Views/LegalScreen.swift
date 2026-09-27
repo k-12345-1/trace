@@ -25,7 +25,7 @@ struct LegalScreen: View {
     /// Bumped whenever either document changes in a way that alters what a
     /// person agreed to. Shown at the top of both so a support question about
     /// "which terms" has an answer.
-    static let version = "1.4"
+    static let version = "1.5"
 
     @Environment(\.dismiss) private var dismiss
     /// True when this is pushed inside the tabbed app, false when it is opened
@@ -168,7 +168,7 @@ extension LegalScreen {
                     "Signing out leaves everything on the phone exactly where it is. It is a sign out, not a wipe."
                 ]),
                 Section(heading: "Your rights", body: [
-                    "If you are in the UK or EU, the UK GDPR and GDPR give you rights over personal data we hold. Since the only personal data we hold is your email address and the date your account was created, a request to see, correct or delete it is quick to answer. Write to hello@traceclimb.co.",
+                    "If you are in the UK or EU, the UK GDPR and GDPR give you rights over personal data we hold. Since the only personal data we hold is your email address and the date your account was created, a request to see, correct or delete it is quick to answer. Write to knrobinson1023@gmail.com.",
                     "If you are in California, the CCPA gives you similar rights. We do not sell or share personal information, and we never have."
                 ]),
                 Section(heading: "Changes", body: [
@@ -176,6 +176,7 @@ extension LegalScreen {
                     "Version 1.1 added gym logos. Version 1.4 removed them again, and the entry below says what that means.",
                     "Version 1.2 added the place completions, also described above. It is not a new thing Trace sends: the field and its suggestions were already in the app, and this policy had not said so. Saying so is the change.",
                     "Version 1.3 changed what the free tier is, in the Terms rather than here. Nothing about what leaves this phone changed with it.",
+                    "Version 1.5 changed the contact address to knrobinson1023@gmail.com. The words about your data did not change; only where a question about it goes.",
                     "Version 1.4 removed gym logos. Trace used to ask a gym's own website for the icon it publishes, the first time you saw that gym. It no longer asks anybody: a gym shows the picture you gave it, or its initials. One fewer thing leaves this phone than did before, and the app now reaches the network for one thing only: your account, if you make one."
                 ])
             ],
