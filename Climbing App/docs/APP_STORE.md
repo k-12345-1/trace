@@ -7,6 +7,20 @@ in two places, a decision.
 Bundle identifier `co.traceclimb.app` · version 1.0 · iPhone only, portrait,
 iOS 17 and up · team TA274AR6D5.
 
+**The record exists.** Apple ID **6816587121**, created under Lineage Health,
+Inc., which is the name the App Store will show as the seller. The identifier
+`co.traceclimb.app` is registered; before this the app had only ever been signed
+with the team's wildcard profile, which is why it ran on a phone without ever
+having a bundle ID of its own.
+
+Listed as **Trace Climbing**, subtitle "See how you climb". Plain "Trace" is
+taken on the App Store and Apple offers only a trademark claim against it. It
+changes nothing on the phone: the home screen name comes from
+`CFBundleDisplayName`, which is and stays "Trace".
+
+Filled in already: name, subtitle, categories, description, promotional text,
+keywords, copyright, and the App Review notes.
+
 ## Still open
 
 **1. Accounts: on.** Project `uksqwnfmqytwftpttbdk`, free tier, us-east-1, in
@@ -39,7 +53,7 @@ reports 0%, which is a Simulator limitation and is pinned by a known-issue test.
 
 | Field | Value |
 |---|---|
-| Name | Trace |
+| Name | Trace Climbing (plain "Trace" is taken) |
 | Subtitle | See how you climb |
 | Category | Health & Fitness (secondary: Sports) |
 | Age rating | 4+ |
@@ -125,6 +139,13 @@ Apple Maps for completions.
 
 - [x] Run on a physical iPhone, film a real climb, check the analysis
 - [x] Create the Supabase project, run `Supabase.sql`, add the two keys
+- [x] Register the bundle ID and create the app record
+- [ ] Accept the updated Developer Program License Agreement (Account Holder only)
+- [ ] Somewhere to host the privacy policy, and a support page. traceclimb.co
+      does not resolve, and the legal documents give hello@traceclimb.co as the
+      contact address, so that domain needs registering or the address changing
+- [ ] Age rating, pricing and availability, App Privacy answers
+- [ ] The two subscriptions in App Store Connect
 - [ ] Connect real SMTP, or turn off email confirmation
 - [ ] Host `docs/privacy.html` and `docs/terms.html`, paste the privacy URL
 - [ ] Shoot real screenshots at 1320×2868
