@@ -147,21 +147,49 @@ struct SubmissionTests {
 
     // MARK: What the policy claims
 
-    /// The policy said gym logos were the only thing that ever leaves the phone,
-    /// while the place field sent what you typed to Apple Maps. A document that
-    /// is wrong about the code is worse than one that is vague, and the App
-    /// Privacy answers have to match it.
-    @Test("The policy names everything that leaves the phone")
-    func theP0licyNamesThePlaceSearch() {
+    /// The policy has to name everything that leaves the phone, and nothing
+    /// that does not. It once claimed gym logos were the only thing while the
+    /// place field was sending what you typed to Apple Maps; now the logos are
+    /// gone and the policy must not still describe them as live.
+    @Test("The policy names everything that leaves the phone, and nothing else")
+    func thePolicyMatchesTheCode() {
         let prose = LegalScreen.privacy().sections
             .flatMap(\.body).joined(separator: " ")
 
-        #expect(prose.contains("Apple Maps"),
-                "the place completions are undisclosed")
-        #expect(prose.contains("Gym logos"))
+        #expect(prose.contains("Apple Maps"), "the place completions are undisclosed")
         #expect(prose.contains("Purchases are handled by Apple"))
-        #expect(!prose.contains("It is the only thing that has ever been added"),
-                "the policy still claims logos are the only thing that leaves")
+        #expect(prose.contains("Signing in sends your email address"))
+
+        // Gym logos are gone from the code, so the list of what leaves must not
+        // still carry them as a thing that happens.
+        let leaving = LegalScreen.privacy().sections
+            .first { $0.heading == "What does leave the device" }?
+            .body.joined(separator: " ") ?? ""
+        #expect(!leaving.isEmpty)
+        #expect(!leaving.contains("Gym logos"),
+                "the policy still lists gym logos as something Trace fetches")
+    }
+
+    /// And the code has to match the policy in the other direction: the only
+    /// thing in the app that reaches the network is the account.
+    @Test("Nothing but auth talks to the network")
+    func onlyAuthTalksToTheNetwork() throws {
+        // Asserted against the shipped source rather than trusted, because this
+        // is the claim the whole privacy story rests on.
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()      // Climbing AppTests
+            .deletingLastPathComponent()      // project root
+            .appendingPathComponent("Climbing App")
+        guard let files = FileManager.default.enumerator(at: root,
+                                                         includingPropertiesForKeys: nil) else { return }
+        var offenders: [String] = []
+        for case let url as URL in files where url.pathExtension == "swift" {
+            let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+            if text.contains("URLSession"), url.lastPathComponent != "AuthClient.swift" {
+                offenders.append(url.lastPathComponent)
+            }
+        }
+        #expect(offenders.isEmpty, "these reach the network too: \(offenders)")
     }
 
     /// The version at the top of both documents is what a support question about

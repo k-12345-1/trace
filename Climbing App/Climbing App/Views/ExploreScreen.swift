@@ -18,7 +18,6 @@ import CoreLocation
 /// The list is OpenStreetMap, credited at the bottom as its license requires.
 struct ExploreScreen: View {
     @ObservedObject private var store = Store.shared
-    @ObservedObject private var logos = VenueLogos.shared
     @StateObject private var whereabouts = Whereabouts()
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
@@ -281,8 +280,6 @@ struct ExploreScreen: View {
         Group {
             if let picture = GymPicture.image(for: mine(venue)) {
                 GymPictureSquare(image: picture)
-            } else if let logo = logos.logo(for: venue) {
-                GymPictureSquare(image: logo, inset: 0, ground: .white)
             } else if let gym = mine(venue), !store.routes(in: gym).isEmpty {
                 ZStack {
                     Theme.surface2

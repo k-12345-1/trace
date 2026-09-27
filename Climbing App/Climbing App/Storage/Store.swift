@@ -431,10 +431,6 @@ final class Store: ObservableObject {
                     Self.accountURL, Self.bodyURL, Self.scansURL] {
             try? FileManager.default.removeItem(at: url)
         }
-        // Fetched gym logos too. They are nobody's personal data, but they are
-        // the record of which gyms this phone looked at, and "removes
-        // everything Trace holds on this phone" has to mean it.
-        VenueLogos.shared.forgetEverything()
         EfficiencyCache.forgetEverything()
         try? FileManager.default.removeItem(at: Self.routePhotosDirectory)
         try? FileManager.default.removeItem(at: Self.videosDirectory)

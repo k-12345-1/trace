@@ -18,7 +18,6 @@ struct GymMapScreen: View {
     let focus: CLLocation?
 
     @ObservedObject private var store = Store.shared
-    @ObservedObject private var logos = VenueLogos.shared
     @Environment(\.dismiss) private var dismiss
     @State private var camera: MapCameraPosition = .automatic
     @State private var selected: Venue?
@@ -147,8 +146,6 @@ struct GymMapScreen: View {
         return HStack(spacing: 14) {
             if let picture = GymPicture.image(for: gym) {
                 GymPictureSquare(image: picture, size: 46)
-            } else if let logo = logos.logo(for: venue) {
-                GymPictureSquare(image: logo, size: 46, inset: 0, ground: .white)
             } else {
                 GymMark(name: venue.name, seed: venue.id, size: 46)
             }

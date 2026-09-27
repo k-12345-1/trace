@@ -182,7 +182,6 @@ private struct GymCard: View {
 struct RoutesScreen: View {
     let gym: Gym
     @ObservedObject private var store = Store.shared
-    @ObservedObject private var logos = VenueLogos.shared
     @Environment(\.dismiss) private var dismiss
     @State private var scanning = false
     @State private var confirmingDelete = false
@@ -273,7 +272,7 @@ struct RoutesScreen: View {
     /// The gym's picture: yours if you set one, theirs otherwise, and a prompt
     /// if there is neither.
     ///
-    /// Trace still ships no gym logos. Theirs is the icon their own site
+    /// Trace ships no gym logos and no longer fetches any. Theirs is the icon their own site
     /// publishes, fetched once and kept here, which is the same picture the
     /// list and the map now show. Tapping still replaces it with whatever you
     /// like: a photograph of the place, or their sign, or the view from the
@@ -286,12 +285,6 @@ struct RoutesScreen: View {
                         .resizable()
                         .scaledToFit()
                         .padding(7)
-                } else if let logo = logos.logo(for: gym) {
-                    // Edge to edge on white, the way a site icon is drawn.
-                    ZStack {
-                        Color.white
-                        Image(uiImage: logo).resizable().scaledToFit()
-                    }
                 } else {
                     ZStack {
                         Theme.surface

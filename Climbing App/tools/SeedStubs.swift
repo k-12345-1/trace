@@ -14,9 +14,3 @@ enum Thumbnails {
     static func remove(for climb: Climb) {}
 }
 
-/// Likewise `VenueLogos`, which holds UIImages and belongs to the app.
-/// `Store.deleteAccount` clears it, and the seeder never deletes anything.
-final class VenueLogos {
-    static let shared = VenueLogos()
-    func forgetEverything() {}
-}
