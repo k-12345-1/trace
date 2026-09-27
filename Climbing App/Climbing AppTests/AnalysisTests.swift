@@ -128,17 +128,34 @@ struct WeightOnArmsTests {
         #expect(offset < 0.01)
     }
 
-    @Test("Hips a tenth of a frame out read as half a torso length")
+    /// Measured in hip widths, against the span of the feet.
+    ///
+    /// Both halves of that changed together. A sideways distance used to be
+    /// divided by the torso, which is a mostly vertical length, and Vision
+    /// normalizes each axis to 0...1 on its own: on a portrait clip one unit of
+    /// x is less than half a unit of y, so the answer was overstated by the
+    /// aspect ratio, 2.17 times on the real climb. Two horizontal quantities
+    /// cancel that whatever shape the frame is. And it is measured from the
+    /// span of the feet rather than their midpoint, so a climber stemming wide
+    /// with their weight between their feet reads as nothing on their arms,
+    /// which is what it is.
+    @Test("Weight outside the feet is measured in hip widths")
     func hanging() {
-        // Torso is 0.20 by construction and the hips sit 0.10 out, so the answer
-        // is exactly 0.5 torso lengths.
         let frames = (0..<60).map {
             Fixture.body(t: Double($0) / 30, comY: 0.5, feetX: 0.5,
                          wrist: CGPoint(x: 0.6, y: 0.35), hipX: 0.6)
         }
         let offset = MetricsEngine.comOffsetFromFeet(frames: frames,
                                                      times: frames.map(\.time))
-        #expect(abs(offset - 0.5) < 0.02)
+        #expect(offset > 1, "a body well outside its feet read \(offset)")
+
+        // And a body over its feet reads nothing, on the same fixture shape.
+        let stacked = (0..<60).map {
+            Fixture.body(t: Double($0) / 30, comY: 0.5, feetX: 0.5,
+                         wrist: CGPoint(x: 0.5, y: 0.35), hipX: 0.5)
+        }
+        #expect(MetricsEngine.comOffsetFromFeet(frames: stacked,
+                                                times: stacked.map(\.time)) < 0.01)
     }
 }
 

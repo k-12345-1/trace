@@ -160,24 +160,66 @@ enum MetricsEngine {
     // angles. Filmed side on, which is what Trace asks for, it reads as hips
     // hanging away from the wall. Filmed front on it reads as a barn door.
 
-    static func comOffsetFromFeet(frames: [PoseFrame], times: [Double]) -> Double {
-        let path = frames.compactMap { $0.com }
-        let speeds = speedSeries(path: path, times: times)
-        let still = stillSpeed(of: frames)
-        let bases = plantedBase(frames: frames)
-        var samples: [Double] = []
-
-        for (i, frame) in frames.enumerated() {
-            guard i < speeds.count, speeds[i] < still,
-                  let com = frame.com,
-                  i < bases.count, let base = bases[i],
-                  let torso = torsoLength(frame), torso > 0.02 else { continue }
-            samples.append(abs(Double(com.x) - base) / torso)
+    /// How far the centre of mass sits outside the planted feet, per frame, in
+    /// hip widths. Nil where nothing is planted or there is no body to scale by.
+    ///
+    /// The instantaneous reading. Two callers want different things from it:
+    /// the resting finding wants the average over rests, and fall advice wants
+    /// the moment itself, because a climber coming off is not resting and the
+    /// question there is where their weight was when they lost it.
+    static func lateralOffsets(frames: [PoseFrame]) -> [Double?] {
+        guard let hipWidth = ReachEngine.squareHipWidth(frames), hipWidth > 1e-6 else {
+            return Array(repeating: nil, count: frames.count)
         }
-        // One frame of near-stillness is not a measurement of how someone rests.
-        // Below roughly half a second of it there is nothing to report.
+        let planted = plantedFeet(frames: frames)
+        return frames.indices.map { i in
+            guard let com = frames[i].com else { return nil }
+            let feet = [JointID.leftAnkle, .rightAnkle]
+                .filter { planted[i].contains($0) }
+                .compactMap { frames[i].pt($0) }
+            guard !feet.isEmpty else { return nil }
+            let xs = feet.map { Double($0.x) }
+            let lo = xs.min()!, hi = xs.max()!, c = Double(com.x)
+            return (c < lo ? lo - c : c > hi ? c - hi : 0) / hipWidth
+        }
+    }
+
+    /// The mean of those, over whatever frames are asked for.
+    static func meanLateralOffset(frames: [PoseFrame], where include: (PoseFrame) -> Bool) -> Double {
+        let offsets = lateralOffsets(frames: frames)
+        var samples: [Double] = []
+        for (i, f) in frames.enumerated() where include(f) {
+            if i < offsets.count, let o = offsets[i] { samples.append(o) }
+        }
         guard samples.count >= Self.minimumStillSamples else { return 0 }
         return samples.reduce(0, +) / Double(samples.count)
+    }
+
+    static func comOffsetFromFeet(frames: [PoseFrame], times: [Double]) -> Double {
+        let path = frames.compactMap { $0.com }
+        guard path.count == frames.count else { return 0 }
+
+        // Only while actually resting.
+        //
+        // This measured every frame where the centre of mass was barely moving,
+        // which on a climb with no rests in it is not resting: it is the slow
+        // part of a move. A previous attempt fixed the sentence rather than the
+        // measurement, so the app went on saying "Resting, your weight sat..."
+        // about climbers who never rested.
+        //
+        // It matters because outside a rest the answer is always yes. A climber
+        // is on one foot for much of any climb, so their weight is outside their
+        // feet nearly all of the time and their hands are holding it: on the
+        // real clip that is ninety percent of still frames. What the coaching
+        // means is the rest you took without getting your weight over your feet,
+        // where standing up would have cost nothing.
+        let torso = medianTorso(frames) ?? 0.2
+        let rests = pauses(path: path, times: times, torso: torso)
+        guard !rests.isEmpty else { return 0 }
+
+        return meanLateralOffset(frames: frames) { f in
+            rests.contains { f.time >= $0.start && f.time <= $0.end }
+        }
     }
 
     /// Frames of near-stillness needed before the offset is reported at all.

@@ -184,3 +184,38 @@ The remaining disagreements are calibration, and calibration needs more than one
 labelled example. Until there are several, the honest position is that the
 thresholds are unvalidated, and this document says so rather than the app
 implying otherwise.
+
+---
+
+# Open: every distance is measured in anisotropic units
+
+Found while fixing "weight hanging off your arms", and larger than that finding.
+
+Vision normalizes each axis to 0...1 **independently of the other**. On the real
+clip, 1206 by 2622, one unit of x is 1206 pixels and one unit of y is 2622. So a
+horizontal distance and a vertical one are not the same kind of number, and:
+
+- a sideways offset divided by the mostly-vertical torso was overstated by the
+  aspect ratio, **2.17 times** on that clip
+- `hypot(dx, dy)` mixes the two, so **a path's length depends on its direction**
+
+That reaches path length, entropy, jerk, round trips, move waste, reach travel
+and hold geometry. Correcting it on the fixture moved entropy from 1.25 to 1.09
+and move waste from 27% to 33%.
+
+The resting-weight finding is now immune, because it compares a horizontal
+distance against a horizontal body scale and the anisotropy cancels exactly. The
+rest are not.
+
+**Why it is not fixed here.** The honest fix is to scale x by the frame's aspect
+at the point the joints are made, which changes the meaning of every stored
+climb. Old climbs would need correcting on read, from the aspect of a video file
+that is still on disk, and the overlay maps joints to the screen assuming the
+current convention. That is a coherent change and not a late-evening one.
+
+It also does not invalidate the comparisons the app actually makes. Every
+readout is against the same climber's own earlier climbs, and a library filmed
+on one phone in one orientation carries one aspect ratio throughout, so the
+error is a constant factor that cancels. It bites when clips of different shapes
+are compared, and whenever a number is read as a physical length, which is
+exactly what "1.42 torso lengths to the side of your feet" invited.

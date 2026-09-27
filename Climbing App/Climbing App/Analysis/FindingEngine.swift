@@ -46,11 +46,17 @@ enum FindingEngine {
             ))
         }
 
-        // Weight hanging off the arms rather than sitting over the feet.
-        if m.comOffsetFromFeet > 0.35 {
-            let severity: Severity = m.comOffsetFromFeet > 0.90 ? .dominant
-                                   : m.comOffsetFromFeet > 0.70 ? .costly
-                                   : m.comOffsetFromFeet > 0.50 ? .moderate : .minor
+        // Weight hanging off the arms during a rest, rather than sitting over
+        // the feet. Zero when the climber never rested, which is not the same
+        // as a rest taken well.
+        //
+        // The thresholds are the same physical distances as before, converted
+        // from torso lengths to hip widths, which is the unit the measurement
+        // now uses: a hip width is about 0.47 of a torso on the real climb.
+        if m.comOffsetFromFeet > 0.74 {
+            let severity: Severity = m.comOffsetFromFeet > 1.91 ? .dominant
+                                   : m.comOffsetFromFeet > 1.49 ? .costly
+                                   : m.comOffsetFromFeet > 1.06 ? .moderate : .minor
             let percent = Int((m.comOffsetFromFeet * 100).rounded())
             let w = worstOffsetWindow(frames: frames) ?? whole
             // "Resting" was wrong: the measurement is taken over every frame
@@ -60,7 +66,7 @@ enum FindingEngine {
                 kind: .weightOnArms,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Resting, your weight sat about \(percent) percent of a torso length to the side of your feet."
+                message: "Resting, your weight sat about \(percent) percent of a hip width outside your feet."
             ))
         }
 

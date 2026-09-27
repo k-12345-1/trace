@@ -41,7 +41,10 @@ enum FallAdvice {
 
     static let swungOut = 0.3          // torso lengths outside the contacts
     static let bentElbow = 145.0       // degrees
-    static let hipsOut = 0.45          // torso lengths sideways of the feet
+    /// Hip widths outside the feet, which is the unit the measurement uses now.
+    /// The same physical distance as the 0.45 torso lengths it replaces: a hip
+    /// width is about 0.47 of a torso on real footage.
+    static let hipsOut = 0.96
     static let rushing = 1.4           // torso lengths a second
 
     static func suggestions(frames: [PoseFrame], fellAt: Double) -> [Suggestion] {
@@ -75,13 +78,17 @@ enum FallAdvice {
         }
 
         // 3. Hips out from the line of the feet.
-        let offset = MetricsEngine.comOffsetFromFeet(frames: before,
-                                                     times: before.map(\.time))
+        // The moment, not an average over rests: a climber coming off is not
+        // resting, and the question is where their weight was when they lost it.
+        let offset = MetricsEngine.meanLateralOffset(frames: before) { _ in true }
         if offset > hipsOut {
             out.append(Suggestion(
                 move: "Turn a hip into the wall and get your weight back over your feet",
-                because: String(format: "Your center of mass sat %.2f torso lengths to the side of your feet. Your fingers were holding the difference.", offset),
-                weight: 1.5 + offset))
+                because: String(format: "Your center of mass sat %.2f hip widths outside your feet. Your fingers were holding the difference.", offset),
+                // Converted with the unit, so this suggestion keeps the weight
+                // it had against the others. Hip widths are roughly half a
+                // torso, so an unconverted figure would have doubled its say.
+                weight: 1.5 + offset * 0.47))
         }
 
         // 4. Arriving fast.

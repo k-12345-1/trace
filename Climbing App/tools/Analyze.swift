@@ -70,7 +70,7 @@ func report(_ url: URL) async throws {
     line("     static elbow    \(number(metrics.staticElbowAngle, 1))°")
     line("     pauses          \(metrics.pauseCount), \(number(metrics.pauseTotal, 1))s total")
     line("     foot shuffles   \(metrics.footAdjustments)")
-    line("     COM off feet    \(number(metrics.comOffsetFromFeet)) torso lengths")
+    line("     COM off feet    \(number(metrics.comOffsetFromFeet)) hip widths (resting only)")
     line("     bracketed       \(pct(metrics.bracketedFraction))")
     line("     move waste      \(metrics.moveWaste.map { pct($0) } ?? "—")")
     line("     dynamic timing  \(metrics.hasDynamicMoves ? number(metrics.meanDeadpointError, 0) + "ms" : "no dynamic moves")")

@@ -324,8 +324,12 @@ struct BaseOfSupportTests {
         let share = Double(bases.compactMap { $0 }.count) / Double(bases.count)
         #expect(share > 0.3, "a base was found in only \(share) of frames")
 
-        let offset = MetricsEngine.comOffsetFromFeet(frames: clip, times: clip.map(\.time))
-        #expect(offset > 0, "the offset stopped being measurable")
+        // The resting offset is zero on this climb because the climber never
+        // rests, which is the point of that measure. What has to stay
+        // measurable is the instantaneous one underneath it.
+        #expect(MetricsEngine.comOffsetFromFeet(frames: clip, times: clip.map(\.time)) == 0)
+        let instant = MetricsEngine.lateralOffsets(frames: clip).compactMap { $0 }
+        #expect(instant.count > 100, "only \(instant.count) frames had a base to measure from")
     }
 }
 
