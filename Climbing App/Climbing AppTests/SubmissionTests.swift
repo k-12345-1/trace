@@ -176,3 +176,60 @@ struct SubmissionTests {
 /// Somewhere to hang the test bundle from, so the manifest can be found whether
 /// the tests are hosted in the app or running on their own.
 private final class BundleToken {}
+
+/// Getting in without an account, with accounts switched on.
+///
+/// Two review risks, one fix. Apple's 5.1.1(i) says an app may not require
+/// registration unless account-based features are core to it, and Trace's are
+/// not: no climb, clip, route or measurement is ever stored on a server, so an
+/// account is a name and nothing else. And sign-up on this project waits for a
+/// confirmation email, so an app whose only front door is registration is an
+/// app that fails review on the day the mail is slow.
+@Suite("A way in without an account", .serialized) @MainActor
+struct LocalPathTests {
+
+    /// The path exists whether or not there is a server to sign in to.
+    @Test("Continuing on this phone reaches the app either way")
+    func bothConfigurationsHaveAWayIn() {
+        let saved = AuthClient.config
+        defer { AuthClient.config = saved }
+
+        for config in [AuthClient.Config(url: "", anonKey: ""),
+                       AuthClient.Config(url: SupabaseConfig.url, anonKey: "key")] {
+            AuthClient.config = config
+            let store = Store.shared
+            store.continueLocally(name: "Katie")
+
+            #expect(store.account != nil)
+            #expect(store.account?.isLocalOnly == true)
+            #expect(store.staySignedIn != nil, "it would stop on Stay signed in?")
+        }
+    }
+
+    /// And it is a real account as far as everything else is concerned, so the
+    /// app is not a lesser thing for having skipped the form.
+    @Test("A local account climbs, scans and pays like any other")
+    func aLocalAccountIsAFullAccount() async {
+        let store = Store.shared
+        try? await store.deleteAccount()
+        store.continueLocally(name: "Katie")
+
+        #expect(store.freeAnalysesLeft == Store.freeAnalyses)
+        store.save(Fixture.climb(path: Fixture.straightPath(), entropy: 1))
+        #expect(store.climbs.count >= 1, "a local account could not record a climb")
+        #expect(store.account?.displayName == "Katie")
+
+        // Left as it was found, because the next suite shares this store.
+        try? await store.deleteAccount()
+        store.continueLocally(name: "Katie")
+    }
+
+    /// Accounts being switched on is what made this necessary: with a server
+    /// configured the local start screen is never shown, so the only way in was
+    /// the credential form.
+    @Test("Accounts are configured, which is why this matters")
+    func accountsAreOn() {
+        #expect(AuthClient.isConfigured,
+                "with no server there is a local start screen and this test is moot")
+    }
+}

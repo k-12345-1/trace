@@ -255,6 +255,43 @@ private struct AuthMessageSlot: View {
 }
 
 
+/// A way in that needs nobody's permission.
+///
+/// An account in Trace is identity and nothing else. No climb, clip, route or
+/// measurement is ever stored on a server, so signing in unlocks no feature and
+/// signing out loses nothing. Apple's 5.1.1(i) says an app may not require
+/// registration unless account-based features are core to it, and by that test
+/// Trace's are not: they are a name on a phone.
+///
+/// It is also the difference between a reviewer getting into the app and not.
+/// Sign-up on this project waits for a confirmation email, and an app whose
+/// front door depends on a message arriving is an app that fails review on the
+/// day the mail is slow.
+private struct SkipAccount: View {
+    @ObservedObject private var store = Store.shared
+    @State private var naming = false
+    @State private var name = ""
+
+    var body: some View {
+        Button { naming = true } label: {
+            Text("Use Trace without an account")
+                .font(Theme.ui(13.5, .semibold))
+                .foregroundStyle(Theme.ink3)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .alert("What should Trace call you?", isPresented: $naming) {
+            TextField("Name", text: $name)
+            Button("Start climbing") { store.continueLocally(name: name) }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Everything stays on this phone either way. An account only puts a name to it.")
+        }
+    }
+}
+
 /// Agreeing to something you cannot read is not agreeing. Both documents open
 /// from here, before the account exists.
 private struct LegalFooter: View {
@@ -383,6 +420,8 @@ struct SignInScreen: View {
                 .disabled(busy)
 
                 CrossLink(question: "New to Trace?", action: "Sign up →", onTap: goSignUp)
+
+                SkipAccount()
 
                 LegalFooter()
             }

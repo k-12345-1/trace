@@ -14,15 +14,21 @@ private final class BundleToken {}
 @Suite("The free tier", .serialized) @MainActor
 struct PaywallTests {
 
-    private func fresh() -> Store {
+    /// A store with nothing in it.
+    ///
+    /// `Store` is a singleton and suites run alongside each other, so a climb
+    /// saved by another test is a climb against this one's allowance. Wiping
+    /// first is what makes the counts mean anything.
+    private func fresh() async -> Store {
         let store = Store.shared
+        try? await store.deleteAccount()
         store.continueLocally(name: "Katie")
         return store
     }
 
     @Test("A new climber has three goes")
-    func threeToStart() {
-        let store = fresh()
+    func threeToStart() async {
+        let store = await fresh()
         #expect(Store.freeAnalyses == 3)
         #expect(store.freeAnalysesLeft == 3)
         #expect(!store.needsPro)
@@ -31,8 +37,8 @@ struct PaywallTests {
     /// Clips and scans draw on the same allowance, because both are Trace
     /// telling you something about your climbing.
     @Test("Clips and scans come out of the same three")
-    func clipsAndScansShareTheAllowance() {
-        let store = fresh()
+    func clipsAndScansShareTheAllowance() async {
+        let store = await fresh()
         let before = store.analysesUsed
 
         store.save(Fixture.climb(path: Fixture.straightPath(), entropy: 1))
@@ -50,8 +56,8 @@ struct PaywallTests {
     }
 
     @Test("The fourth is where it asks")
-    func theFourthAsks() {
-        let store = fresh()
+    func theFourthAsks() async {
+        let store = await fresh()
         for _ in 0..<Store.freeAnalyses {
             store.save(Fixture.climb(path: Fixture.straightPath(), entropy: 1))
         }
@@ -66,7 +72,7 @@ struct PaywallTests {
     /// what the delete is for.
     @Test("Deleting the account clears the count")
     func deletingClearsIt() async throws {
-        let store = fresh()
+        let store = await fresh()
         for _ in 0..<Store.freeAnalyses {
             store.save(Fixture.climb(path: Fixture.straightPath(), entropy: 1))
         }
