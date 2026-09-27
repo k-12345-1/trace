@@ -156,8 +156,9 @@ enum ReachEngine {
     /// measure's own slop.
     static let hipDifferenceWorthNaming = 0.15
     /// An elbow angle below this is the tracker confusing a wrist with an
-    /// elbow rather than an arm folded double, so it is not reported.
-    static let plausibleElbow = 35.0
+    /// elbow rather than an arm folded double, so it is not reported. One
+    /// definition, in MetricsEngine, rather than a second copy here.
+    static var plausibleElbow: Double { MetricsEngine.plausibleElbow }
 
     /// The supporting arm counts as locked off below this angle, in degrees.
     /// Above it the arm is carrying the body on bone rather than muscle, which

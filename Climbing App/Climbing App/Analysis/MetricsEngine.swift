@@ -526,19 +526,47 @@ enum MetricsEngine {
         return angles.reduce(0, +) / Double(angles.count)
     }
 
-    static func staticElbow(frames: [PoseFrame], times: [Double]) -> Double {
-        let speeds = speedSeries(path: frames.compactMap { $0.com }, times: times)
+    /// An elbow reading below this is the tracker, not an arm: the joint cannot
+    /// close further than about this, and a wrist that appears folded back to
+    /// its own shoulder has been put there by a failed detection. Seven percent
+    /// of the still-frame readings on the real climb are below it.
+    static let plausibleElbow = 35.0
+
+    /// The angle of the arm that is holding the weight, while the climber is
+    /// still.
+    ///
+    /// The straighter of the two arms, per frame, rather than the average of
+    /// both. "Keep your arms straight" is advice about the arm you are hanging
+    /// from: a straight arm carries the load on bone, a bent one on muscle. At
+    /// almost any moment of real climbing one arm is doing that and the other is
+    /// bent because it is reaching, adjusting or about to move, and the mean of
+    /// the two describes neither. On the real climb the still-frame readings are
+    /// bimodal exactly as that predicts, a quarter of them below 51 degrees and
+    /// a quarter above 145, averaging to 101, which is not a position anybody
+    /// was in.
+    static func staticElbow(frames all: [PoseFrame], times: [Double]) -> Double {
+        // Filtered here rather than trusted from the caller. The speed series is
+        // built from the frames that have a centre of mass, so indexing it
+        // against a list that also contains the ones that do not silently pairs
+        // each speed with the wrong frame, and every reading after the first
+        // gap is of something else. `compute` happens to pass tracked frames;
+        // nothing made that a requirement until now.
+        let frames = all.filter { $0.com != nil }
+        let speeds = speedSeries(path: frames.compactMap { $0.com }, times: frames.map(\.time))
         let still = stillSpeed(of: frames)
         var angles: [Double] = []
 
         for (i, frame) in frames.enumerated() {
             guard i < speeds.count, speeds[i] < still else { continue }
+            var arms: [Double] = []
             for side in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
                          (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
                 guard let s = frame.pt(side.0), let e = frame.pt(side.1), let w = frame.pt(side.2)
                 else { continue }
-                angles.append(angle(at: e, from: s, to: w))
+                let a = angle(at: e, from: s, to: w)
+                if a >= plausibleElbow { arms.append(a) }
             }
+            if let holding = arms.max() { angles.append(holding) }
         }
         guard !angles.isEmpty else { return 180 }
         return angles.reduce(0, +) / Double(angles.count)

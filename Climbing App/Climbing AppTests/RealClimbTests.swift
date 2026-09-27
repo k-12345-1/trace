@@ -171,3 +171,95 @@ struct RealClimbTests {
         #expect((lift?.contribution ?? 0) < 0.01)
     }
 }
+
+/// The climb, with an expert's verdict attached to it.
+///
+/// Katie sent this same clip a second time and labelled it: "an example of good
+/// climbing as the arms are straight, footwork is precise, hips are close to the
+/// wall, weight is distributed well", and good force on the last dynamic move.
+/// That is the first ground truth this project has ever had, and Trace
+/// contradicts it on four counts.
+///
+/// These tests hold the measurements that the label bears on, so that any change
+/// to them is a deliberate one made against a stated verdict rather than a drift.
+@Suite("A labelled climb")
+struct LabelledClimbTests {
+
+    private func frames() throws -> [PoseFrame] {
+        let bundle = Bundle(for: BundleToken.self)
+        let url = try #require(bundle.url(forResource: "realclimb", withExtension: "json"))
+        let raw = try JSONDecoder().decode([PoseFrame].self, from: Data(contentsOf: url))
+        return PoseTracker.rejectingImpossibleMoves(raw).filter { $0.com != nil }
+    }
+
+    /// An elbow cannot close past about 35 degrees, and a wrist that appears
+    /// folded back to its own shoulder was put there by a failed detection.
+    /// Seven percent of the still-frame readings on this clip were below that.
+    @Test("An arm folded double is not measured")
+    func impossibleElbowsAreNotAveragedIn() throws {
+        let clip = try frames()
+        let times = clip.map(\.time)
+        let still = MetricsEngine.stillSpeed(of: clip)
+        let speeds = MetricsEngine.speedSeries(path: clip.compactMap { $0.com }, times: times)
+
+        var impossible = 0, total = 0
+        for (i, f) in clip.enumerated() where i < speeds.count && speeds[i] < still {
+            for side in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
+                         (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
+                guard let s = f.pt(side.0), let e = f.pt(side.1), let w = f.pt(side.2) else { continue }
+                total += 1
+                if MetricsEngine.angle(at: e, from: s, to: w) < MetricsEngine.plausibleElbow {
+                    impossible += 1
+                }
+            }
+        }
+        #expect(impossible > 0, "the fixture has no impossible readings, so this proves nothing")
+
+        // And the reported figure is clear of them.
+        let reported = MetricsEngine.staticElbow(frames: clip, times: times)
+        #expect(reported > MetricsEngine.plausibleElbow * 2)
+    }
+
+    /// The arm being judged is the one holding the weight. At almost any moment
+    /// one arm is hanging and the other is reaching, and their mean is a
+    /// position nobody was in: on this clip a quarter of the readings are below
+    /// 51 degrees and a quarter above 145.
+    @Test("The weight-bearing arm is the one measured")
+    func theStraighterArmIsMeasured() throws {
+        let clip = try frames()
+        let times = clip.map(\.time)
+        let still = MetricsEngine.stillSpeed(of: clip)
+        let speeds = MetricsEngine.speedSeries(path: clip.compactMap { $0.com }, times: times)
+
+        var both: [Double] = []
+        for (i, f) in clip.enumerated() where i < speeds.count && speeds[i] < still {
+            for side in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
+                         (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
+                guard let s = f.pt(side.0), let e = f.pt(side.1), let w = f.pt(side.2) else { continue }
+                let a = MetricsEngine.angle(at: e, from: s, to: w)
+                if a >= MetricsEngine.plausibleElbow { both.append(a) }
+            }
+        }
+        let averagingBoth = both.reduce(0, +) / Double(both.count)
+        let reported = MetricsEngine.staticElbow(frames: clip, times: times)
+        #expect(reported > averagingBoth + 5,
+                "reported \(reported) against \(averagingBoth) for averaging both arms")
+    }
+
+    /// Where Trace and the label still disagree, recorded rather than resolved.
+    ///
+    /// An expert calls this climb straight-armed. The weight-bearing arm
+    /// measures 115 degrees on average, and the rubric treats 170 as free and
+    /// 115 as as bad as it gets, so the app calls the same climb maximally
+    /// bent-armed. One labelled clip cannot move a threshold, but it can stop
+    /// the disagreement being forgotten: if the rubric is ever recalibrated,
+    /// this test fails and says why.
+    @Test("The remaining disagreement with the label is on the record")
+    func theDisagreementIsRecorded() throws {
+        let clip = try frames()
+        let elbow = MetricsEngine.staticElbow(frames: clip, times: clip.map(\.time))
+        #expect(elbow > 100 && elbow < 130, "the weight-bearing arm now reads \(elbow)")
+        #expect(elbow < EfficiencyEngine.elbowFloor,
+                "the rubric no longer faults this climb, so the label and Trace agree now")
+    }
+}
