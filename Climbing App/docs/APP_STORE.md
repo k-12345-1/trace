@@ -9,13 +9,20 @@ iOS 17 and up · team TA274AR6D5.
 
 ## Still open
 
-**1. Accounts.** Decided: a Supabase project in a new free organization, kept
-separate from Lineage Health. Until it exists, `AuthClient.isConfigured` is
-false and `LocalStartScreen` asks for a name and goes straight in, which is a
-complete submittable product on its own. Switching accounts on is three steps:
-create the project, run `Supabase.sql` against it, and put `SUPABASE_URL` and
-`SUPABASE_ANON_KEY` in the build settings. Nothing else changes; the sign-in and
-sign-up screens appear by themselves.
+**1. Accounts: on.** Project `uksqwnfmqytwftpttbdk`, free tier, us-east-1, in
+its own organization. `Supabase.sql` is installed, the publishable key is in
+`SupabaseConfig`, and the sign-in and sign-up screens are live in place of the
+local start screen. Verified against the project: the key authenticates where a
+wrong one gets a 401, email sign-up is enabled, and `delete_current_user` exists
+and refuses an unauthenticated caller rather than 404ing.
+
+**One thing to settle before launch: email delivery.** The project requires
+email confirmation, so every sign-up waits on a message. Supabase's built-in
+SMTP is for development and rate-limits to a handful an hour, which on a launch
+day means climbers who never receive the link and never get in. Either connect a
+real sender (Resend, Postmark, SES) under Authentication, Emails, SMTP, or turn
+confirmation off and accept unverified addresses. The first is the right answer
+and takes about ten minutes.
 
 **2. Screenshots.** `docs/screenshots/` holds four at 1320×2868, the 6.9" size
 Apple asks for, of the right four screens: home, a route, the pose overlay, the
@@ -117,7 +124,8 @@ Apple Maps for completions.
 ## Before hitting submit
 
 - [x] Run on a physical iPhone, film a real climb, check the analysis
-- [ ] Create the Supabase project, run `Supabase.sql`, add the two keys
+- [x] Create the Supabase project, run `Supabase.sql`, add the two keys
+- [ ] Connect real SMTP, or turn off email confirmation
 - [ ] Host `docs/privacy.html` and `docs/terms.html`, paste the privacy URL
 - [ ] Shoot real screenshots at 1320×2868
 - [ ] Create both subscriptions at the prices above, with review screenshots

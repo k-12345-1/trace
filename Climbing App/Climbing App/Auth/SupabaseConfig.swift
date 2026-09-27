@@ -23,5 +23,8 @@ enum SupabaseConfig {
     static let url = "https://uksqwnfmqytwftpttbdk.supabase.co"
 
     /// The anon, or publishable, key from the same page.
-    static let anonKey = ""
+    ///
+    /// The `sb_publishable_` form rather than the old JWT: same role, not a
+    /// token, and it carries no claims to inspect.
+    static let anonKey = "sb_publishable_FYBUdavq73PfEobeGUp-Xw_8Ckk9aP7"
 }
