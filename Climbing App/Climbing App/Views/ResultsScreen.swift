@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import UIKit
 
 // MARK: - Playback
 
@@ -259,6 +260,11 @@ struct ResultsScreen: View {
 
     // MARK: Stage
 
+    /// How much of the screen the clip may take before the controls under it
+    /// would be pushed off. Two thirds leaves the scrubber and the live readout
+    /// visible on the shortest phone Trace supports.
+    static let tallestStage: CGFloat = UIScreen.main.bounds.height * 0.66
+
     private var stage: some View {
         ZStack {
             PlayerLayerView(player: playback.player)
@@ -289,7 +295,14 @@ struct ResultsScreen: View {
         // to kill the black bars, and it would cut the climber out of a tall
         // portrait clip, which is the one thing the screen exists to show.
         .aspectRatio(aspect > 0 ? aspect : 9.0 / 16.0, contentMode: .fit)
-        .frame(maxWidth: .infinity)
+        // But not taller than this, whatever the clip's shape.
+        //
+        // A portrait clip filmed on a phone is taller than the phone it is
+        // played back on, so honouring its aspect alone pushed the scrubber off
+        // the bottom of the screen: the controls for the video were below the
+        // fold on exactly the clips people actually film. Capped, a tall clip
+        // loses a little width at the sides and keeps its player on screen.
+        .frame(maxWidth: .infinity, maxHeight: Self.tallestStage)
         .clipped()
         // The back control rides on the footage rather than being pinned to the
         // screen. Pinned, it ends up as a white-on-dark disc floating over white
@@ -800,6 +813,8 @@ struct ResultsScreen: View {
 
     // MARK: Readouts
 
+    @State private var moreOpen = false
+
     private var readouts: some View {
         VStack(alignment: .leading, spacing: 14) {
             SectionTitle("Measurements")
@@ -828,9 +843,12 @@ struct ResultsScreen: View {
                         unit: climb.metrics.pauseTotal > 0
                               ? "\(Int(climb.metrics.pauseTotal.rounded()))s" : nil)
                 Readout(label: "Foot resets", value: "\(climb.metrics.footAdjustments)")
-                Readout(label: "Hips over feet",
-                        value: String(format: "%.2f", climb.metrics.comOffsetFromFeet),
-                        unit: "torso")
+                // Hip widths, not torso lengths, and only while resting. Both
+                // changed when the measure did and this label did not follow.
+                Readout(label: "Weight outside feet",
+                        value: climb.metrics.comOffsetFromFeet > 0
+                            ? String(format: "%.2f", climb.metrics.comOffsetFromFeet) : "—",
+                        unit: climb.metrics.comOffsetFromFeet > 0 ? "hip widths resting" : "no rests")
                 // No dynamic moves is not the same as perfect timing, so it reads
                 // as nothing measured rather than as a zero.
                 Readout(label: "Deadpoint",
@@ -840,6 +858,28 @@ struct ResultsScreen: View {
                 // Friction is bought with normal force, and normal force comes
                 // either from gravity or from a pair of contacts loaded toward
                 // each other. These two say how much of the climb had a pair.
+            }
+
+            // The rest, folded away. Eleven numbers at once is a wall, and the
+            // six above are the ones the findings and the grade are built from.
+            // Nothing is removed: opposition, compression and the work done are
+            // a tap away for anyone who came for them.
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) { moreOpen.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(moreOpen ? "Fewer measurements" : "More measurements")
+                        .font(Theme.ui(13.5, .semibold))
+                    Image(systemName: moreOpen ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(Theme.accentText)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if moreOpen {
+                ReadoutGrid {
                 Readout(label: "In opposition",
                         value: "\(Int((climb.metrics.bracketedFraction * 100).rounded()))",
                         unit: "% of the time")
@@ -865,7 +905,9 @@ struct ResultsScreen: View {
                                          work.net / 1000)
                                 : "None of it was spent twice")
                 }
+                }
             }
+
             Text(measurementNote)
                 .font(Theme.body(12.5))
                 .foregroundStyle(Theme.ink3)
@@ -896,15 +938,14 @@ struct ResultsScreen: View {
             : String(format: "%.0f percent of it repeated", (lift.ratio - 1) * 100)
     }
 
+    /// One line, not a paragraph.
+    ///
+    /// This ran to three sentences of hedging under a grid of eleven numbers,
+    /// which is the wordiest thing on the screen sitting under the densest.
+    /// What a reader needs is the direction and who they are being compared
+    /// against; the rest belongs to whoever goes looking.
     private var measurementNote: String {
-        let base = "Lower entropy and lower smoothness numbers mean less wasted movement. They compare against your own attempts, not against other climbers."
-        if work != nil {
-            return base + " The work figure counts gravity only, so it is a floor on what the climb cost rather than the cost itself."
-        }
-        if store.body.hasScale {
-            return base + " Add your weight on the personal info screen and the lifting reads in joules as well."
-        }
-        return base
+        "Lower is smoother. Every number compares you against your own attempts."
     }
 
     private var entropyDelta: String? {
@@ -964,8 +1005,14 @@ struct ResultsScreen: View {
                             }
                         }
 
-                        VStack(spacing: 1) {
-                            ForEach(cluster.climbs) { attempt in
+                        // A card with hairlines between the rows, like every
+                        // other list in the app. It was square-cornered
+                        // rectangles inside a one pixel border, which is the
+                        // only thing on the screen that looked drawn by
+                        // somebody else.
+                        VStack(spacing: 0) {
+                            ForEach(Array(cluster.climbs.enumerated()), id: \.element.id) { row, attempt in
+                                if row > 0 { Hairline().padding(.leading, 14) }
                                 attemptRow(
                                     attempt,
                                     index: (attempts.firstIndex { $0.id == attempt.id } ?? 0) + 1,
@@ -974,8 +1021,7 @@ struct ResultsScreen: View {
                                 )
                             }
                         }
-                        .background(Theme.line)
-                        .overlay(Rectangle().stroke(Theme.line, lineWidth: 1))
+                        .card()
                     }
                 }
 
@@ -1015,12 +1061,12 @@ struct ResultsScreen: View {
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Rectangle().fill(Theme.surface2).frame(height: 8)
-                    Rectangle()
-                        .fill(isCheapest ? Theme.accent : Theme.ink3)
+                    Capsule().fill(Theme.surface2).frame(height: 8)
+                    Capsule()
+                        .fill(isCheapest ? Theme.accent : Theme.ink3.opacity(0.55))
                         .frame(width: maxEntropy > 0
-                               ? geo.size.width * CGFloat(attempt.metrics.entropy / maxEntropy)
-                               : 0,
+                               ? max(8, geo.size.width * CGFloat(attempt.metrics.entropy / maxEntropy))
+                               : 8,
                                height: 8)
                 }
                 .frame(height: geo.size.height, alignment: .center)
@@ -1033,8 +1079,8 @@ struct ResultsScreen: View {
                 .frame(width: 44, alignment: .trailing)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-        .background(attempt.id == climb.id ? Theme.surface2 : Theme.surface)
+        .padding(.vertical, 12)
+        .background(attempt.id == climb.id ? Theme.accentWash : Color.clear)
     }
 
     // MARK: Low tracking

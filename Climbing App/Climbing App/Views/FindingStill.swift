@@ -165,10 +165,15 @@ struct FindingStill: View {
     private func subject() -> CGRect? {
         switch finding.kind {
         case .wandering:
-            // The line itself, all of it. It used to be the whole photograph
-            // squashed into a letterbox, which cut the top and bottom off the
-            // one mark the card exists to show.
-            guard let path = climb?.metrics.comPath, path.count >= 3 else { return nil }
+            // The line, over the seconds this card is about.
+            //
+            // It used to be the whole climb: thirty seconds of path drawn on
+            // one frame, under a heading that said "0:02 · 1.2s". The dashed
+            // hold-to-hold line then ran corner to corner because it belonged
+            // to a move somewhere else entirely, and none of it described what
+            // the card claimed to be describing.
+            let path = windowPath()
+            guard path.count >= 3 else { return nil }
             return box(path)
         case .bentArms:
             guard let arm = bentArm() else { return wholeBody() }
@@ -393,25 +398,39 @@ struct FindingStill: View {
     /// between two places they actually were, so it is a line they could have
     /// taken, and the blue is what they took instead.
     private func drawLine(_ ctx: inout GraphicsContext, _ at: (CGPoint) -> CGPoint) {
-        guard let path = climb?.metrics.comPath, path.count >= 3 else { return }
+        let path = windowPath()
+        guard path.count >= 3 else { return }
 
-        if let moves = climb.flatMap({ MoveEngine.read(frames: $0.frames) })?.moves,
-           !moves.isEmpty {
-            for move in moves {
-                stroke(&ctx, [at(move.from), at(move.to)],
-                       color: Ink.instead, width: 2.5, dash: [6, 5])
-            }
-            stroke(&ctx, path.map(at), color: Ink.now, width: 3)
-            if let worst = moves.max(by: { $0.waste < $1.waste }) {
-                label(&ctx, "hold to hold", at: mid(at(worst.from), at(worst.to)),
-                      offset: CGSize(width: 0, height: 18), color: Ink.instead)
-            }
-        } else {
-            stroke(&ctx, path.map(at), color: Ink.now, width: 3)
+        // Only the moves that happened inside this window. A move from another
+        // part of the climb drew a dashed line across the whole picture with
+        // both of its ends somewhere off it.
+        let moves = (climb.flatMap { MoveEngine.read(frames: $0.frames) }?.moves ?? [])
+            .filter { $0.end > finding.start && $0.start < finding.end }
+
+        for move in moves {
+            stroke(&ctx, [at(move.from), at(move.to)],
+                   color: Ink.instead, width: 2.5, dash: [6, 5])
+        }
+        stroke(&ctx, path.map(at), color: Ink.now, width: 3)
+        if let worst = moves.max(by: { $0.waste < $1.waste }) {
+            label(&ctx, "hold to hold", at: mid(at(worst.from), at(worst.to)),
+                  offset: CGSize(width: 0, height: 18), color: Ink.instead)
         }
 
         label(&ctx, "the line you took", at: at(path[path.count / 2]),
               offset: CGSize(width: 0, height: -18), color: Ink.now)
+    }
+
+    /// The centre-of-mass path over the seconds this finding covers.
+    ///
+    /// Falls back to the whole path when the window holds too little to draw,
+    /// because a card with no line on it says less than one with a long line.
+    private func windowPath() -> [CGPoint] {
+        guard let climb else { return [] }
+        let inside = climb.frames
+            .filter { $0.time >= finding.start && $0.time <= finding.end }
+            .compactMap { $0.com }
+        return inside.count >= 3 ? inside : climb.metrics.comPath
     }
 
     // MARK: Drawing
