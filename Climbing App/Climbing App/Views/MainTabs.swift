@@ -80,6 +80,11 @@ struct MainTabs: View {
         var id: String { url.path }
     }
 
+    /// Out of free goes and not subscribed.
+    private var locked: Bool {
+        Store.shared.needsPro && !Subscription.shared.isPro
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             PaperGround()
@@ -138,16 +143,18 @@ struct MainTabs: View {
 
             if entryOpen {
                 AddPanel(
-                    onRecord: { leave { showCapture = true } },
-                    // The second scan is where Trace asks. Entitlement is read
+                    // Three free goes, spent on anything that gives feedback:
+                    // a climb recorded, a clip imported, a wall scanned. After
+                    // that every one of the three asks. Entitlement is read
                     // from StoreKit, never from a flag of our own.
+                    onRecord: {
+                        leave {
+                            if locked { showPaywall = true } else { showCapture = true }
+                        }
+                    },
                     onScan: {
                         leave {
-                            if Store.shared.scanNeedsPro && !Subscription.shared.isPro {
-                                showPaywall = true
-                            } else {
-                                showScan = true
-                            }
+                            if locked { showPaywall = true } else { showScan = true }
                         }
                     },
                     onClose: close,
@@ -210,6 +217,9 @@ struct MainTabs: View {
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
+            // The picker is a system sheet, so the check happens on what comes
+            // back from it rather than on the tap that opened it.
+            guard !locked else { pickerItem = nil; showPaywall = true; return }
             importing = true
             Task { await loadPicked(item) }
         }

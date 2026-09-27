@@ -58,15 +58,42 @@ struct FindingStill: View {
 
     // MARK: What to look at
 
-    /// The frame nearest the middle of the finding, which is the one the still
-    /// was pulled from.
+    /// The frame the still was pulled from, so the marks land on the picture.
     private var pose: PoseFrame? {
-        guard let frames = climb?.frames, !frames.isEmpty else { return nil }
-        let at = finding.lookAt
-        return frames
-            .filter { !$0.joints.isEmpty }
-            .min { abs($0.time - at) < abs($1.time - at) }
+        guard let climb, let at = Self.instant(for: finding, in: climb) else { return nil }
+        return climb.frames.min { abs($0.time - at) < abs($1.time - at) }
     }
+
+    /// When to take the still.
+    ///
+    /// The middle of the finding's window is where the thing described is most
+    /// likely to be, and also, often, where nobody is. A finding that could not
+    /// name a moment covers the whole climb, so its middle is 0.6 seconds in,
+    /// and at 0.6 seconds the climber is frequently still walking up to the
+    /// wall: the card then showed an empty wall with a line drawn across it.
+    ///
+    /// Worse, the picture and the marks were chosen separately. The image came
+    /// from the middle of the window and the skeleton from the nearest frame
+    /// that had any joints in it, which on a clip with a gap could be seconds
+    /// away, so the marks described a moment the picture was not of.
+    ///
+    /// One instant now, picked as the best-tracked moment inside the window,
+    /// and both the image and the marks come from it. Nil when the climber was
+    /// never tracked well enough anywhere, in which case there is no still to
+    /// show and the card does without one.
+    static func instant(for finding: Finding, in climb: Climb?) -> Double? {
+        guard let frames = climb?.frames else { return nil }
+        let tracked = frames.filter { $0.com != nil && $0.joints.count >= Self.enoughJoints }
+        guard !tracked.isEmpty else { return nil }
+
+        let inside = tracked.filter { $0.time >= finding.start && $0.time <= finding.end }
+        let pool = inside.isEmpty ? tracked : inside
+        let target = finding.lookAt
+        return pool.min { abs($0.time - target) < abs($1.time - target) }?.time
+    }
+
+    /// Enough of a skeleton to be a climber rather than an arm in the corner.
+    static let enoughJoints = 8
 
     // MARK: The crop
     //

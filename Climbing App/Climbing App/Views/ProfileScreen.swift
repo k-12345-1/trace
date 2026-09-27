@@ -219,7 +219,9 @@ struct ProfileScreen: View {
     }
 
     private var subscriptionDetail: String {
-        Subscription.shared.isPro ? "Trace Pro · active" : "Free · 1 route scan"
+        Subscription.shared.isPro
+            ? "Trace Pro · active"
+            : "Free · \(Store.shared.freeAnalysesLeft) of \(Store.freeAnalyses) left"
     }
 
     private var bodyDetail: String {
@@ -269,7 +271,7 @@ struct SubscriptionScreen: View {
                     MetricStrip(items: [
                         .init(value: billing.isPro ? "Pro" : "Free", label: "Plan"),
                         .init(value: billing.isPro ? billing.priceText : "—", label: "Price"),
-                        .init(value: "\(store.scansUsed)", label: "Scans used")
+                        .init(value: "\(store.analysesUsed)", label: "Clips and scans")
                     ])
                     .padding(18)
                     .card()

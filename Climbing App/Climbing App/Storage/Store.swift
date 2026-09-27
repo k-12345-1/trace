@@ -336,12 +336,29 @@ final class Store: ObservableObject {
         persistRoutes()
     }
 
-    /// Whether the scanner opens, or the paywall does.
+    /// How many free goes there are before Trace asks to be paid for.
     ///
-    /// The first scan is free and complete. Nobody can tell from a screenshot
-    /// whether color segmentation copes with their gym's lighting, so they get
-    /// to find out on their own wall before being asked for anything.
-    var scanNeedsPro: Bool { scansUsed >= 1 }
+    /// Three, and they are spent on anything that produces feedback: a climb
+    /// recorded, a clip imported, or a wall scanned. One was never enough to
+    /// judge the app by. Nobody can tell from a screenshot whether the tracking
+    /// copes with their gym's lighting or their phone's angle, and a climber
+    /// who gets one clip back has seen the app work once, not seen what it is
+    /// for. Three is enough to compare two attempts at the same problem, which
+    /// is the thing Trace actually does.
+    static let freeAnalyses = 3
+
+    /// Everything that has cost one of the free goes: clips analyzed and walls
+    /// scanned.
+    var analysesUsed: Int { climbs.count + scansUsed }
+
+    /// Whether the next clip or scan opens, or the paywall does.
+    var needsPro: Bool { analysesUsed >= Self.freeAnalyses }
+
+    /// How many are left, for the screen that says so.
+    var freeAnalysesLeft: Int { max(0, Self.freeAnalyses - analysesUsed) }
+
+    /// Kept for the scanner's own call site, which asks the same question.
+    var scanNeedsPro: Bool { needsPro }
 
     func deleteRoute(_ route: Route) {
         try? FileManager.default.removeItem(at: route.photoURL)

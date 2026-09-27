@@ -157,10 +157,12 @@ struct FindingCard: View {
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
         .task {
-            guard let climb, still == nil else { return }
-            // The middle of the window, which is where the thing being
-            // described is most likely to be visible.
-            still = await Thumbnails.frame(of: climb, at: finding.lookAt)
+            guard let climb, still == nil,
+                  // The best-tracked moment in the window rather than its
+                  // middle, and the same instant the marks are drawn from, so
+                  // the picture and the lines are of the same moment.
+                  let at = FindingStill.instant(for: finding, in: climb) else { return }
+            still = await Thumbnails.frame(of: climb, at: at)
         }
     }
 }
