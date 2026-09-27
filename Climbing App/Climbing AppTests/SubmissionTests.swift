@@ -205,59 +205,66 @@ struct SubmissionTests {
 /// the tests are hosted in the app or running on their own.
 private final class BundleToken {}
 
-/// Getting in without an account, with accounts switched on.
+/// An account is required, and the app says so in one voice.
 ///
-/// Two review risks, one fix. Apple's 5.1.1(i) says an app may not require
-/// registration unless account-based features are core to it, and Trace's are
-/// not: no climb, clip, route or measurement is ever stored on a server, so an
-/// account is a name and nothing else. And sign-up on this project waits for a
-/// confirmation email, so an app whose only front door is registration is an
-/// app that fails review on the day the mail is slow.
-@Suite("A way in without an account", .serialized) @MainActor
-struct LocalPathTests {
+/// Trace briefly carried a "Use Trace without an account" link under the sign-in
+/// form, on the reading that Apple's 5.1.1(i) forbids requiring registration
+/// unless account-based features are core to an app. That link is gone: an
+/// account is now the only way in, by decision rather than by omission, and
+/// these tests are what stops it coming back by accident.
+///
+/// `continueLocally` itself stays. It is what a build with no auth server falls
+/// back to, and it is how every other suite here makes an account without a
+/// network. What must not exist is a way for a person holding the shipped app
+/// to reach it.
+@Suite("An account is required", .serialized) @MainActor
+struct AccountRequiredTests {
 
-    /// The path exists whether or not there is a server to sign in to.
-    @Test("Continuing on this phone reaches the app either way")
-    func bothConfigurationsHaveAWayIn() {
-        let saved = AuthClient.config
-        defer { AuthClient.config = saved }
-
-        for config in [AuthClient.Config(url: "", anonKey: ""),
-                       AuthClient.Config(url: SupabaseConfig.url, anonKey: "key")] {
-            AuthClient.config = config
-            let store = Store.shared
-            store.continueLocally(name: "Katie")
-
-            #expect(store.account != nil)
-            #expect(store.account?.isLocalOnly == true)
-            #expect(store.staySignedIn != nil, "it would stop on Stay signed in?")
-        }
+    /// The shipped source, walked. A grep rather than a claim, because the link
+    /// that was removed was three lines and would come back the same way.
+    private func authSource() throws -> String {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()      // Climbing AppTests
+            .deletingLastPathComponent()      // project root
+            .appendingPathComponent("Climbing App/Views/AuthScreens.swift")
+        return try String(contentsOf: url, encoding: .utf8)
     }
 
-    /// And it is a real account as far as everything else is concerned, so the
-    /// app is not a lesser thing for having skipped the form.
-    @Test("A local account climbs, scans and pays like any other")
-    func aLocalAccountIsAFullAccount() async {
+    @Test("The sign-in screen offers no way past itself")
+    func signInHasNoEscapeHatch() throws {
+        let text = try authSource()
+        #expect(!text.contains("Use Trace without an account"),
+                "the skip link is back on the sign-in screen")
+        #expect(!text.contains("SkipAccount"),
+                "the skip control is back in the auth screens")
+    }
+
+    /// With a server configured, `AppEntry` shows `WelcomeScreen` and never
+    /// `LocalStartScreen`, so the credential form is the whole front door. If
+    /// this were ever false the local screen would be the way in again, and the
+    /// test above would be measuring a file nobody reaches.
+    @Test("Accounts are configured, so the credential form is the front door")
+    func accountsAreOn() {
+        #expect(AuthClient.isConfigured,
+                "with no server the local start screen is the way in and the account is optional")
+    }
+
+    /// And an account, once made, is a full one. This is the other half of the
+    /// bargain: requiring registration is only defensible if registering gets
+    /// you the whole app rather than a lesser version of it.
+    @Test("An account climbs, scans and pays like any other")
+    func anAccountIsAFullAccount() async {
         let store = Store.shared
         try? await store.deleteAccount()
         store.continueLocally(name: "Katie")
 
         #expect(store.freeAnalysesLeft == Store.freeAnalyses)
         store.save(Fixture.climb(path: Fixture.straightPath(), entropy: 1))
-        #expect(store.climbs.count >= 1, "a local account could not record a climb")
+        #expect(store.climbs.count >= 1, "an account could not record a climb")
         #expect(store.account?.displayName == "Katie")
 
         // Left as it was found, because the next suite shares this store.
         try? await store.deleteAccount()
         store.continueLocally(name: "Katie")
-    }
-
-    /// Accounts being switched on is what made this necessary: with a server
-    /// configured the local start screen is never shown, so the only way in was
-    /// the credential form.
-    @Test("Accounts are configured, which is why this matters")
-    func accountsAreOn() {
-        #expect(AuthClient.isConfigured,
-                "with no server there is a local start screen and this test is moot")
     }
 }

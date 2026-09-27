@@ -81,3 +81,41 @@ struct PaywallTests {
         #expect(!store.needsPro)
     }
 }
+
+/// The state the Subscribe button reads.
+///
+/// The purchase on a real phone failed with "The App Store is not reachable"
+/// while the phone was plainly online. Two things were wrong and both are here.
+/// `Subscription` is a singleton, so its one request for the products went out
+/// whenever something first touched it, which on a cold launch is before the
+/// network is up, and nothing ever asked again: the store stayed empty for the
+/// life of the process. And the paywall drew a live Subscribe button over that
+/// empty store, so the only way to discover it was to press the button and be
+/// told the purchase had failed, which reads as payment being broken rather
+/// than as prices not having loaded.
+@Suite("The store's answer", .serialized) @MainActor
+struct StoreStateTests {
+
+    /// Nothing has been asked yet, so nothing can be bought yet. This is what
+    /// keeps the button from being live over a store that has not answered.
+    @Test("Before the store answers there is nothing to buy")
+    func nothingToBuyBeforeTheAnswer() {
+        let billing = Subscription.shared
+        if billing.storeState == .loading { #expect(!billing.canBuy) }
+    }
+
+    /// Whatever the answer is, `load` has to produce one. Left on `.loading`
+    /// the button spins forever, which is the same dead end wearing a nicer
+    /// face than the alert was.
+    @Test("Asking always settles the state")
+    func loadingAlwaysResolves() async {
+        let billing = Subscription.shared
+        await billing.load()
+        #expect(billing.storeState != .loading,
+                "the paywall would spin on its Subscribe button forever")
+        // In the test host there is no StoreKit configuration, so the honest
+        // answer is that the products are not available. What matters is that
+        // it is an answer.
+        #expect(billing.canBuy == (billing.storeState == .ready))
+    }
+}

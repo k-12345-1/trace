@@ -44,6 +44,17 @@ final class Subscription: ObservableObject {
     /// cheaper way to pay for the same thing.
     @Published var plan: Plan = .yearly
     @Published private(set) var isPurchasing = false
+
+    /// Whether the App Store has answered yet.
+    ///
+    /// The paywall used to have no idea. It drew the fallback prices whether
+    /// the products had arrived or not, so an offline phone showed a finished
+    /// screen with a live Subscribe button on it, and the only way to find out
+    /// the store had never answered was to press that button and be told so.
+    /// A button that cannot succeed should say so before it is pressed.
+    enum StoreState { case loading, ready, unavailable }
+    @Published private(set) var storeState: StoreState = .loading
+    var canBuy: Bool { products[plan] != nil }
     /// Set when a purchase fails for a reason worth showing. Cancellation is not
     /// one: someone who taps Cancel does not need to be told they canceled.
     @Published var problem: String?
@@ -68,18 +79,33 @@ final class Subscription: ObservableObject {
 
     // MARK: Reading the store
 
-    func load() async {
+    /// Ask the App Store for the two products.
+    ///
+    /// Called on every appearance of the paywall rather than once at launch.
+    /// Once was the bug: `Subscription` is a singleton built the first time
+    /// anything touches it, which on a cold launch is before the phone has
+    /// finished joining a network, and nothing ever asked again. The store
+    /// stayed permanently empty for the life of the process and every purchase
+    /// failed with a message about the connection on a phone that was online.
+    ///
+    /// A failure is distinguished from an answer. `Product.products(for:)`
+    /// returns only the ids the store recognises, so an empty array is the App
+    /// Store saying these products do not exist, which is a different problem
+    /// from not reaching it at all, and a person can act on neither if both
+    /// read the same.
+    @discardableResult
+    func load() async -> Bool {
         do {
             let fetched = try await Product.products(for: Self.productIDs)
             products = Dictionary(uniqueKeysWithValues: fetched.compactMap { p in
                 Plan(rawValue: p.id).map { ($0, p) }
             })
+            storeState = products.isEmpty ? .unavailable : .ready
         } catch {
-            // Offline. The paywall falls back to naming the prices in text,
-            // which is better than an empty screen, and Buy will still work
-            // once the App Store answers.
             products = [:]
+            storeState = .unavailable
         }
+        return storeState == .ready
     }
 
     /// The live entitlement, straight from StoreKit.
@@ -103,12 +129,17 @@ final class Subscription: ObservableObject {
     /// into whatever the person was trying to do.
     @discardableResult
     func buy() async -> Bool {
-        guard let product = products[plan] else {
-            problem = "The App Store is not reachable. Check your connection and try again."
-            return false
-        }
         isPurchasing = true
         defer { isPurchasing = false }
+
+        // One more try before giving up. The products may simply not have
+        // arrived yet: the paywall can be opened within a second of launch, and
+        // the first request can lose a race with the network coming up.
+        if products[plan] == nil { await load() }
+        guard let product = products[plan] else {
+            problem = "Trace could not reach the App Store to load its prices. Check your connection and try again."
+            return false
+        }
 
         do {
             switch try await product.purchase() {

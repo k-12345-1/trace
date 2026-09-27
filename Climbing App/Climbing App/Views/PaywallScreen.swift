@@ -183,28 +183,64 @@ struct PaywallScreen: View {
         .buttonStyle(.plain)
     }
 
+    /// What the main pill says, and whether pressing it can do anything.
+    ///
+    /// Three states rather than one. A Subscribe button drawn over a store that
+    /// has not answered is a button that fails when pressed, and the failure
+    /// reads as the payment being broken rather than as the prices not having
+    /// loaded. So the button waits while the store is being asked, and offers
+    /// to ask again if the answer never came.
+    private var subscribeTitle: String {
+        switch billing.storeState {
+        case .ready:       return "Subscribe"
+        case .loading:     return "Subscribe"
+        case .unavailable: return "Try again"
+        }
+    }
+
+    private var subscribeEnabled: Bool {
+        !billing.isPurchasing && billing.storeState != .loading
+    }
+
+    private func pressSubscribe() {
+        Task {
+            if billing.storeState == .unavailable {
+                await billing.load()
+                return
+            }
+            if await billing.buy() { onUnlocked(); dismiss() }
+        }
+    }
+
     private var buttons: some View {
         VStack(spacing: 8) {
-            Button {
-                Task { if await billing.buy() { onUnlocked(); dismiss() } }
-            } label: {
+            Button(action: pressSubscribe) {
                 ZStack {
-                    if billing.isPurchasing {
+                    if billing.isPurchasing || billing.storeState == .loading {
                         ProgressView().tint(.white)
                     } else {
-                        Text("Subscribe")
+                        Text(subscribeTitle)
                             .font(Theme.ui(16.5, .semibold))
                     }
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 17)
-                .background(Theme.button)
+                .background(subscribeEnabled ? Theme.button : Theme.button.opacity(0.4))
                 .clipShape(Capsule())
                 .contentShape(Capsule())
             }
             .buttonStyle(.plain)
-            .disabled(billing.isPurchasing)
+            .disabled(!subscribeEnabled)
+
+            if billing.storeState == .unavailable {
+                Text("Trace could not load its prices from the App Store. Nothing has been charged.")
+                    .font(Theme.ui(13))
+                    .foregroundStyle(Theme.ink2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+            }
 
             Button {
                 Task { await billing.restore(); if billing.isPro { onUnlocked(); dismiss() } }
