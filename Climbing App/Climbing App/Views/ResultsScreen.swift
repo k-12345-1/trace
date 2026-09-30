@@ -318,19 +318,6 @@ struct ResultsScreen: View {
                 reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body),
                 title: label
             )
-            // Top right, because the back ring now floats top left.
-            VStack {
-                HStack {
-                    Spacer()
-                    StatusChip(
-                        text: "Tracking \(Int(climb.metrics.trackingConfidence * 100))%",
-                        dot: climb.metrics.isTrustworthy ? Theme.ok : Theme.ember[1]
-                    )
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, 58)
         }
         // The video's own aspect, so it fills the width exactly and there is
         // never a letterbox. Cropping to a fixed height would be the other way
@@ -353,6 +340,18 @@ struct ResultsScreen: View {
             BackOverlayButton { onClose?() ?? dismiss() }
                 .padding(.leading, Theme.gutter - 6)
                 .padding(.top, 52)
+        }
+        // On the framed view, not inside the footage: the footage now fills
+        // and crops, and anything laid inside it near the top is cropped with
+        // it. The chip sat half under the status bar until it moved out here
+        // beside the back ring.
+        .overlay(alignment: .topTrailing) {
+            StatusChip(
+                text: "Tracking \(Int(climb.metrics.trackingConfidence * 100))%",
+                dot: climb.metrics.isTrustworthy ? Theme.ok : Theme.ember[1]
+            )
+            .padding(.trailing, 14)
+            .padding(.top, 58)
         }
         .contentShape(Rectangle())
         .onTapGesture { playback.toggle() }
