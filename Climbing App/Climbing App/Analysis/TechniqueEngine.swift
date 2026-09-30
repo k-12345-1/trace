@@ -53,13 +53,16 @@ enum TechniqueEngine {
         /// How far below the hips it landed, in torso lengths. Negative means
         /// above them.
         let belowHips: Double?
+        /// A throw followed within a second and a half. A high foot before a
+        /// dynamic move is where the move comes from, not a fault.
+        let beforeThrow: Bool
 
         /// Judged against the hips, not the other foot. A step big enough to
         /// count as a step at all already lands well above the standing foot,
         /// so that comparison flagged every step; "near hip height" is what
         /// the coaches say and what the climber can see.
         var isHigh: Bool {
-            guard let b = belowHips else { return false }
+            guard !beforeThrow, let b = belowHips else { return false }
             return b <= TechniqueEngine.highStepNearHips
         }
     }
@@ -122,6 +125,12 @@ enum TechniqueEngine {
     static let bentCatch = 130.0
     /// A supporting arm below this angle is locked off rather than hanging.
     static let lockOffAngle = 110.0
+    /// And the other arm has to be doing something else: reaching, or hanging
+    /// straighter than this. Both arms bent and still at once is a bent-arm
+    /// rest, which is the bent-arms finding's business; on the first real clip
+    /// that shape was reported here as a three second lock-off and it was not
+    /// one.
+    static let otherArmHanging = 140.0
     /// Held for longer than this and it is a lock-off being held, which is the
     /// thing the coaches say to stop doing. "A few seconds".
     static let lockOffHeld = 2.5
@@ -134,6 +143,17 @@ enum TechniqueEngine {
     /// hips and a knee-height step about half a torso below, so a third of a
     /// torso is past the knee and into the territory the coaches mean.
     static let highStepNearHips = 0.35
+    /// A foot has to stay where it landed this long to have landed.
+    static let stepSettle = 0.25
+    /// Two feet cannot both land somewhere new within this of each other
+    /// while climbing. On the first real clip that pair was the tracker
+    /// handing an ankle from one leg to the other, which read as a foot
+    /// leaping above the hips, and both landings are dropped rather than
+    /// guessed between.
+    static let swapWindow = 0.4
+    /// An apex this soon after a landing means the foot was placed to throw
+    /// from.
+    static let throwLead = 1.5
     /// Fewer events than this and a share is not a share.
     static let minimumReaches = 3
     static let minimumSteps = 3
@@ -152,8 +172,6 @@ enum TechniqueEngine {
 
         let steps = steps(in: usable, torso: torso)
         let reaches = ReachEngine.read(frames: usable)?.reaches ?? []
-        let byTime = Dictionary(reaches.map { ($0.start, $0) }, uniquingKeysWith: { a, _ in a })
-        _ = byTime
 
         var upward: [ReachEngine.Reach] = []
         var stayed: [ReachEngine.Reach] = []
@@ -175,14 +193,27 @@ enum TechniqueEngine {
 
         var lockOffs: [Span] = []
         var flares: [Span] = []
-        for (shoulder, elbow, wrist) in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
-                                         (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
-            let still = stillHand(wrist, in: usable, torso: torso)
+        let arms = [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
+                    (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)]
+        let stillByWrist = Dictionary(uniqueKeysWithValues: arms.map {
+            ($0.2, stillHand($0.2, in: usable, torso: torso))
+        })
+        for (k, (shoulder, elbow, wrist)) in arms.enumerated() {
+            let still = stillByWrist[wrist]!
+            let (oShoulder, oElbow, oWrist) = arms[1 - k]
+            let otherStill = stillByWrist[oWrist]!
             lockOffs += spans(in: usable, minimum: lockOffHeld) { i in
                 guard still[i],
                       let a = angle(usable[i], shoulder, elbow, wrist),
-                      a >= MetricsEngine.plausibleElbow else { return false }
-                return a < lockOffAngle
+                      a >= MetricsEngine.plausibleElbow, a < lockOffAngle else { return false }
+                // A lock-off, not a rest: the other hand is moving, or the
+                // other arm is hanging long.
+                if !otherStill[i] { return true }
+                // An other arm that cannot be read, or reads as folded past
+                // what an arm can do, is unknown rather than bent.
+                guard let o = angle(usable[i], oShoulder, oElbow, oWrist),
+                      o >= MetricsEngine.plausibleElbow else { return true }
+                return o >= otherArmHanging
             }
             flares += spans(in: usable, minimum: flareHeld) { i in
                 guard still[i],
@@ -207,6 +238,8 @@ enum TechniqueEngine {
     /// finding's business, not this one's.
     static func steps(in frames: [PoseFrame], torso: Double) -> [Step] {
         let planted = MetricsEngine.plantedFeet(frames: frames)
+        let apexes = MetricsEngine.verticalApexes(path: frames.compactMap(\.com),
+                                                  times: frames.map(\.time))
         var out: [Step] = []
         for ankle in [JointID.leftAnkle, JointID.rightAnkle] {
             let other: JointID = ankle == .leftAnkle ? .rightAnkle : .leftAnkle
@@ -226,7 +259,8 @@ enum TechniqueEngine {
                 let prev = runsWithTime[k - 1], next = runsWithTime[k]
                 guard let a = frames[(prev.from + prev.to) / 2].pt(ankle),
                       let b = frames[(next.from + next.to) / 2].pt(ankle) else { continue }
-                guard MetricsEngine.distance(a, b) / torso >= MetricsEngine.footAdjustDistance
+                guard MetricsEngine.distance(a, b) / torso >= MetricsEngine.footAdjustDistance,
+                      frames[next.to].time - frames[next.from].time >= stepSettle
                 else { continue }
                 let f = frames[next.from]
                 let above = f.pt(other).map { Double($0.y - b.y) / torso }
@@ -234,11 +268,16 @@ enum TechniqueEngine {
                     guard let l = f.pt(.leftHip), let r = f.pt(.rightHip) else { return nil }
                     return Double(b.y - (l.y + r.y) / 2) / torso
                 }()
+                let thrown = apexes.contains { $0 - f.time > 0 && $0 - f.time <= throwLead }
                 out.append(Step(time: f.time, ankle: ankle,
-                                aboveOtherFoot: above, belowHips: hips))
+                                aboveOtherFoot: above, belowHips: hips,
+                                beforeThrow: thrown))
             }
         }
-        return out.sorted { $0.time < $1.time }
+        let sorted = out.sorted { $0.time < $1.time }
+        return sorted.filter { step in
+            !sorted.contains { $0.ankle != step.ankle && abs($0.time - step.time) <= swapWindow }
+        }
     }
 
     // MARK: Helpers

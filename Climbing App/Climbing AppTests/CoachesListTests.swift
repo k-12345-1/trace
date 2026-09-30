@@ -23,10 +23,12 @@ struct CoachesListTests {
                       leftAnkle: CGPoint? = nil, rightAnkle: CGPoint? = nil) -> PoseFrame {
         let shoulderY = hipY - 0.20
         let ls = CGPoint(x: hipX - 0.05, y: shoulderY), rs = CGPoint(x: hipX + 0.05, y: shoulderY)
-        let le = leftElbow ?? CGPoint(x: hipX - 0.09, y: shoulderY + 0.08)
-        let re = rightElbow ?? CGPoint(x: hipX + 0.09, y: shoulderY + 0.08)
         let lw = leftWrist ?? CGPoint(x: hipX - 0.07, y: shoulderY - 0.12)
         let rw = rightWrist ?? CGPoint(x: hipX + 0.07, y: shoulderY - 0.12)
+        // A hanging arm by default: the elbow on the line from shoulder to
+        // wrist, so it reads as straight and not as a fold the tracker made.
+        let le = leftElbow ?? CGPoint(x: (ls.x + lw.x) / 2, y: (ls.y + lw.y) / 2)
+        let re = rightElbow ?? CGPoint(x: (rs.x + rw.x) / 2, y: (rs.y + rw.y) / 2)
         let la = leftAnkle ?? CGPoint(x: hipX - 0.04, y: hipY + 0.19)
         let ra = rightAnkle ?? CGPoint(x: hipX + 0.04, y: hipY + 0.19)
         func j(_ p: CGPoint) -> Joint { Joint(x: Double(p.x), y: Double(p.y), confidence: 0.9) }
