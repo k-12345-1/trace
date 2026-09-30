@@ -12,6 +12,10 @@ struct OverlayView: View {
     let time: Double
     /// width / height of the video as displayed.
     let videoAspect: Double
+    /// True when the player fills its frame and crops, false when it fits and
+    /// letterboxes. The overlay has to make the same choice or the skeleton
+    /// drifts off the body by exactly the cropped margin.
+    var fills: Bool = false
     var showReadout: Bool = true
     /// Meters per normalized image unit, when the climber has given their height.
     /// Without it every distance stays in body lengths, which is honest rather
@@ -104,7 +108,9 @@ struct OverlayView: View {
             return CGRect(origin: .zero, size: size)
         }
         let viewAspect = size.width / size.height
-        if viewAspect > videoAspect {
+        // Fit puts the video's long side against the frame; fill puts its
+        // short side against it and lets the rest overhang.
+        if (viewAspect > videoAspect) != fills {
             let w = size.height * videoAspect
             return CGRect(x: (size.width - w) / 2, y: 0, width: w, height: size.height)
         }

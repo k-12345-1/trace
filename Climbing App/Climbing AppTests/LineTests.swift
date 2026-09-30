@@ -190,3 +190,49 @@ struct FallAdviceTests {
         #expect(advice.allSatisfy { $0.because.contains(where: \.isNumber) })
     }
 }
+
+/// The line read as a sequence.
+@Suite("The line as a sequence")
+struct LineSequenceTests {
+    private func rect(_ x: Double, _ y: Double) -> CGRect {
+        CGRect(x: x, y: y, width: 0.04, height: 0.04)
+    }
+
+    /// One line per move, numbered from the bottom, and the swing cue given
+    /// once rather than on every sideways move.
+    @Test("A traverse gets one cue, not one per move")
+    func oneCuePerKind() throws {
+        // Five holds walking across the wall with a little rise each time.
+        let holds = [rect(0.10, 0.80), rect(0.30, 0.76), rect(0.50, 0.72),
+                     rect(0.70, 0.68), rect(0.90, 0.64)]
+        let line = try #require(LineEngine.read(holds: holds))
+        let steps = LineEngine.sequence(line)
+        #expect(steps.count == line.moves.count)
+        #expect(steps.first?.hasPrefix("1 to 2:") == true)
+        let cues = steps.filter { $0.contains("Flag the trailing foot") }.count
+        #expect(cues <= 1, "the swing cue was repeated \(cues) times")
+        #expect(steps.allSatisfy { $0.contains("right") }, "\(steps)")
+    }
+}
+
+/// A thumb on a finding stays with the climb.
+@Suite("Helpful or not", .serialized) @MainActor
+struct FindingRatingTests {
+    @Test("A thumb is saved, and tapping it again withdraws it")
+    func thumbsPersist() async throws {
+        let store = Store.shared
+        try? await store.deleteAccount()
+        store.continueLocally(name: "Katie")
+        var climb = Fixture.climb(path: Fixture.straightPath(), entropy: 1)
+        climb.findings = [Finding(kind: .bentArms, severity: .moderate, start: 1, end: 2, message: "m")]
+        store.save(climb)
+        let finding = climb.findings[0]
+
+        store.rate(finding, in: climb, helpful: false)
+        #expect(store.climbs.first { $0.id == climb.id }?.findings[0].helpful == false)
+        store.rate(finding, in: climb, helpful: true)
+        #expect(store.climbs.first { $0.id == climb.id }?.findings[0].helpful == true)
+        store.rate(finding, in: climb, helpful: true)
+        #expect(store.climbs.first { $0.id == climb.id }?.findings[0].helpful == nil)
+    }
+}

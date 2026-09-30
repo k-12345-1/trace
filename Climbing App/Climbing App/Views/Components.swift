@@ -80,6 +80,14 @@ struct FindingCard: View {
 
     @State private var still: UIImage?
     @State private var drillOpen = false
+    @ObservedObject private var store = Store.shared
+
+    /// The live copy, so a thumb shows as pressed the moment it is.
+    private var current: Finding {
+        guard let climb else { return finding }
+        return store.climbs.first { $0.id == climb.id }?
+            .findings.first { $0.id == finding.id } ?? finding
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -124,6 +132,21 @@ struct FindingCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.top, 2)
+
+                // Was this any use? Asked on every finding, because a finding
+                // the climber disagrees with is the most useful thing Trace
+                // can learn about its own thresholds.
+                if let climb {
+                    HStack(spacing: 6) {
+                        Text("Helpful?")
+                            .font(Theme.ui(12.5))
+                            .foregroundStyle(Theme.ink3)
+                        Spacer(minLength: 0)
+                        thumb(up: true, climb: climb)
+                        thumb(up: false, climb: climb)
+                    }
+                    .padding(.top, 6)
+                }
 
                 if showDrill {
                     Button {
@@ -355,5 +378,26 @@ struct FlowOfChips: View {
             // takes a sideways drag and rubber-bands, which on a page that
             // scrolls vertically reads as the page itself coming loose.
             .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    }
+}
+
+
+extension FindingCard {
+    fileprivate func thumb(up: Bool, climb: Climb) -> some View {
+        let on = current.helpful == up
+        return Button {
+            store.rate(finding, in: climb, helpful: up)
+        } label: {
+            Image(systemName: up ? "hand.thumbsup" : "hand.thumbsdown")
+                .symbolVariant(on ? .fill : .none)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(on ? Color.white : Theme.accentText)
+                .frame(width: 34, height: 30)
+                .background(on ? Theme.button : Theme.surface2,
+                            in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(up ? "Helpful" : "Not helpful")
     }
 }

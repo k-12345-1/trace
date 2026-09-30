@@ -117,6 +117,9 @@ struct Finding: Codable, Identifiable {
     var start: Double
     var end: Double
     var message: String
+    /// Whether the climber said this was helpful. Nil until they say. Kept
+    /// on the finding so it travels with the climb and nowhere else.
+    var helpful: Bool?
 
     var timecode: String {
         let m = Int(start) / 60, s = Int(start) % 60

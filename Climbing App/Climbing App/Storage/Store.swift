@@ -103,6 +103,15 @@ final class Store: ObservableObject {
         refreshFocus()
     }
 
+    /// The climber's verdict on a finding. Tapping the same thumb again
+    /// withdraws it.
+    func rate(_ finding: Finding, in climb: Climb, helpful: Bool) {
+        guard let c = climbs.firstIndex(where: { $0.id == climb.id }),
+              let f = climbs[c].findings.firstIndex(where: { $0.id == finding.id }) else { return }
+        climbs[c].findings[f].helpful = climbs[c].findings[f].helpful == helpful ? nil : helpful
+        persist()
+    }
+
     func delete(_ climb: Climb) {
         try? FileManager.default.removeItem(at: climb.videoURL)
         Thumbnails.remove(for: climb)

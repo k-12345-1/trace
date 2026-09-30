@@ -201,6 +201,52 @@ enum LineEngine {
         }
     }
 
+    /// The route as a sequence, one line per move, each with a cue for the
+    /// move's shape. This replaced a note per remarkable move, which said the
+    /// same paragraph about swinging for every sideways move on a traverse
+    /// and nothing at all about the ones in between, so a climber reading it
+    /// could not tell where they were in the route.
+    ///
+    /// Move n goes from hold n to hold n + 1. Ordinary moves get their
+    /// direction and nothing more; the coaches' cues are given once each,
+    /// on the first move of that kind, and later moves of the same kind
+    /// only name it.
+    static func sequence(_ line: Line) -> [String] {
+        var out: [String] = []
+        var said: Set<String> = []
+        for m in line.moves {
+            let n = m.index + 1
+            let dir = direction(of: m)
+            switch m.kind {
+            case .match:
+                out.append("\(n) to \(n + 1): close together. Match hands on one, then move on.")
+            case .long:
+                let first = said.insert("long").inserted
+                out.append(first
+                    ? String(format: "%d to %d: the long one, %.1f times the usual gap. Get a foot high or turn a hip in before it, or throw for it.", n, n + 1, m.reach)
+                    : "\(n) to \(n + 1): long again.")
+            case .across:
+                let first = said.insert("across").inserted
+                out.append(first
+                    ? "\(n) to \(n + 1): \(dir), more across than up. Flag the trailing foot or keep a hip turned in so your weight stays between your hands."
+                    : "\(n) to \(n + 1): \(dir), across.")
+            case .ordinary:
+                out.append("\(n) to \(n + 1): \(dir).")
+            }
+        }
+        return out
+    }
+
+    /// Up, left, right, or a mix, from the photograph's point of view.
+    private static func direction(of m: Move) -> String {
+        let dx = m.to.midX - m.from.midX
+        let dy = m.from.midY - m.to.midY   // y grows downward
+        let side = dx > 0 ? "right" : "left"
+        if abs(dx) < abs(dy) * 0.35 { return dy >= 0 ? "straight up" : "down" }
+        if abs(dy) < abs(dx) * 0.35 { return "\(side)" }
+        return dy >= 0 ? "up and \(side)" : "down and \(side)"
+    }
+
     /// The caveat, shown wherever a line is.
     static let caveat = "Read from the shape of the holds in your photo, and nothing else. Trace cannot see which way a hold faces, how good it is, or how steep the wall is, so this is the line rather than the beta."
 

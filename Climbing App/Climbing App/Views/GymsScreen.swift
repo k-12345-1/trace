@@ -611,11 +611,11 @@ struct RouteDetailScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                let notes = line.moves.compactMap { LineEngine.note(for: $0) }
-                if !notes.isEmpty {
-                    VStack(alignment: .leading, spacing: 9) {
-                        ForEach(Array(notes.enumerated()), id: \.offset) { _, note in
-                            Text(note)
+                let steps = LineEngine.sequence(line)
+                if !steps.isEmpty {
+                    VStack(alignment: .leading, spacing: 7) {
+                        ForEach(Array(steps.enumerated()), id: \.offset) { _, step in
+                            Text(step)
                                 .font(Theme.body(13.5))
                                 .foregroundStyle(Theme.ink2)
                                 .fixedSize(horizontal: false, vertical: true)

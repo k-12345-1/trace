@@ -90,7 +90,11 @@ struct PlayerLayerView: UIViewRepresentable {
     func makeUIView(context: Context) -> LayerView {
         let v = LayerView()
         v.playerLayer.player = player
-        v.playerLayer.videoGravity = .resizeAspect
+        // Fill, not fit. Fit left a strip of paper either side of every
+        // portrait clip once the height was capped; the wall now reaches the
+        // edges of the phone and a little of the top and bottom is cropped,
+        // which on a clip framed for a climber is floor and ceiling.
+        v.playerLayer.videoGravity = .resizeAspectFill
         v.backgroundColor = .black
         return v
     }
@@ -115,7 +119,6 @@ struct ResultsScreen: View {
     @AppStorage("clipsMuted") private var clipsMuted = false
     @Environment(\.dismiss) private var dismiss
     @State private var aspect: Double = 9.0 / 16.0
-    @State private var showAllFindings = false
     @State private var renaming = false
     @State private var draftLabel = ""
     /// Where the bottom of the footage currently sits on the screen.
@@ -310,6 +313,7 @@ struct ResultsScreen: View {
                 frames: climb.frames,
                 time: playback.time,
                 videoAspect: aspect,
+                fills: true,
                 metersPerUnit: BodyScale.metersPerUnit(frames: climb.frames, body: store.body),
                 reachRadius: BodyScale.reachRadius(frames: climb.frames, body: store.body),
                 title: label
@@ -332,7 +336,7 @@ struct ResultsScreen: View {
         // never a letterbox. Cropping to a fixed height would be the other way
         // to kill the black bars, and it would cut the climber out of a tall
         // portrait clip, which is the one thing the screen exists to show.
-        .aspectRatio(aspect > 0 ? aspect : 9.0 / 16.0, contentMode: .fit)
+        .aspectRatio(aspect > 0 ? aspect : 9.0 / 16.0, contentMode: .fill)
         // But not taller than this, whatever the clip's shape.
         //
         // A portrait clip filmed on a phone is taller than the phone it is
@@ -814,27 +818,16 @@ struct ResultsScreen: View {
                 FindingCard(finding: top, climb: climb)
                     .onTapGesture { playback.seek(to: top.start) }
 
+                // All of them, worst first. They used to fold behind a link,
+                // which hid the second and third things a climber wanted to
+                // hear about behind a tap they did not know to make.
                 if climb.findings.count > 1 {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { showAllFindings.toggle() }
-                    } label: {
-                        Text(showAllFindings
-                             ? "Hide the rest"
-                             : "\(climb.findings.count - 1) more, if you want them")
-                            .font(Theme.ui(14, .semibold))
-                            .foregroundStyle(Theme.accentText)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    if showAllFindings {
-                        VStack(spacing: 10) {
-                            ForEach(climb.findings.dropFirst()) { f in
-                                FindingCard(finding: f, showDrill: false, climb: climb)
-                                    .onTapGesture { playback.seek(to: f.start) }
-                            }
+                    SectionTitle("Also on this climb")
+                        .padding(.top, 8)
+                    VStack(spacing: 10) {
+                        ForEach(climb.findings.dropFirst()) { f in
+                            FindingCard(finding: f, climb: climb)
+                                .onTapGesture { playback.seek(to: f.start) }
                         }
                     }
                 }
