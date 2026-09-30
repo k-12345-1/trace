@@ -43,7 +43,7 @@ enum LeakKind: String, Codable {
     var instead: String {
         switch self {
         case .bentArms:
-            return "Hang off straight arms between moves. Bend them only to pull."
+            return "Hang between moves with your arms nearly straight and your shoulders engaged, not sagging. Bend them only to pull."
         case .weightOnArms:
             return "Turn a hip in and get your weight over your feet before you reach."
         case .lurchy:
@@ -71,9 +71,9 @@ enum LeakKind: String, Codable {
         case .lurchy:
             return "Downclimb everything you climb. It forces control and doubles your volume."
         case .impreciseFeet:
-            return "Silent feet. Place each foot once, with no noise and no adjusting."
+            return "Silent feet. Slow down as you approach the foothold, hover your toe over it for a second, then place it once: no noise, no scuff, no adjusting."
         case .hesitation:
-            return "Read the whole sequence from the ground, then climb it without stopping."
+            return "Read the whole sequence from the ground, miming the hand moves, then climb it without stopping."
         case .wandering:
             return "Climb it again and get from each position to the next in one movement, rather than setting off and correcting."
         case .mistimedDynamics:
