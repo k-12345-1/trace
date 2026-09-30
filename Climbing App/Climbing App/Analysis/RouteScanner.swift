@@ -32,7 +32,7 @@ enum RouteScanner {
 
     // Tuning. A hold is a small fraction of a wall photo, and a blob that fills
     // half the frame is a mat or a wall panel, not a hold.
-    static let minAreaFraction = 0.00025
+    static let minAreaFraction = 0.00015
     static let maxAreaFraction = 0.06
     /// Analysis resolution. Big enough to separate holds, small enough to be instant.
     static let workingWidth = 420
@@ -266,6 +266,16 @@ enum RouteScanner {
     /// How far a neutral colour has to sit from the wall's own colours before
     /// it can be a route rather than a shade of the wall.
     static let neutralClearance = 25.0
+    /// A pixel this faintly coloured, and darker than a route, can still be
+    /// that route's hold in deep shadow. Below it there is no hue to read.
+    static let shadowChroma = 7.0
+    /// Only a clearly coloured route claims shadow pixels by hue alone; a
+    /// muted one would claim the wall.
+    static let shadowCandidateChroma = 24.0
+    /// Hue agreement for a shadow pixel, in radians. About thirty degrees.
+    static let shadowHue = 0.5
+    /// How far, in pixels at working width, a route may grow into its shadow.
+    static let shadowGrow = 10
 
     /// The colours of the wall, the mats, the ceiling and the shadows.
     ///
@@ -306,6 +316,7 @@ enum RouteScanner {
     static func segment(_ bmp: Bitmap, colors: [Lab], tolerance: Double,
                         ground: [Lab] = []) -> [Int8] {
         var labels = [Int8](repeating: -1, count: bmp.width * bmp.height)
+        var shadow = [Int8](repeating: -1, count: bmp.width * bmp.height)
         guard !colors.isEmpty, colors.count < 127 else { return labels }
         for i in 0..<(bmp.width * bmp.height) {
             let lab = bmp.lab(at: i)
@@ -323,6 +334,40 @@ enum RouteScanner {
                 if d < best { best = d; nearest = Int8(j) }
             }
             labels[i] = nearest
+
+            // Deep shadow. A small hold under a volume keeps its hue and loses
+            // nearly everything else: chroma falls under the grey line and
+            // every distance above fails. What survives is the direction of
+            // the colour. A dim pixel still faintly the route's hue, and darker
+            // than the route, is noted here and adopted below, but only next to
+            // a pixel already the route's: a shaded face touches a lit one. By
+            // hue alone, without that, the dark panel on the first wall came
+            // back as thirty boxes of yellow.
+            if nearest < 0, chroma >= shadowChroma, chroma < groundChroma {
+                let hue = atan2(lab.b, lab.a)
+                for (j, color) in colors.enumerated() {
+                    let cChroma = (color.a * color.a + color.b * color.b).squareRoot()
+                    guard cChroma >= shadowCandidateChroma, lab.l < color.l else { continue }
+                    var dh = abs(hue - atan2(color.b, color.a))
+                    if dh > .pi { dh = 2 * .pi - dh }
+                    if dh < shadowHue { shadow[i] = Int8(j); break }
+                }
+            }
+        }
+
+        // Grow the routes into their own shadows, a ring at a time.
+        let w = bmp.width, h = bmp.height
+        for _ in 0..<shadowGrow {
+            var adopted: [(Int, Int8)] = []
+            for i in 0..<(w * h) where labels[i] < 0 && shadow[i] >= 0 {
+                let x = i % w, y = i / w, want = shadow[i]
+                if (x > 0 && labels[i - 1] == want) || (x < w - 1 && labels[i + 1] == want)
+                    || (y > 0 && labels[i - w] == want) || (y < h - 1 && labels[i + w] == want) {
+                    adopted.append((i, want))
+                }
+            }
+            if adopted.isEmpty { break }
+            for (i, j) in adopted { labels[i] = j }
         }
         return labels
     }
