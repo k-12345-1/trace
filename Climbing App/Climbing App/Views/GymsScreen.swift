@@ -436,6 +436,9 @@ struct RouteDetailScreen: View {
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showLine = true
+    @State private var showFigure = false
+    @State private var figureT = 0.0
+    @State private var figurePlaying = false
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
 
@@ -571,6 +574,12 @@ struct RouteDetailScreen: View {
                                           y: r.minY + hold.midY * r.height)
                         }
                     }
+
+                    // The figure, over everything, at wherever the scrubber is.
+                    if showFigure, let line = LineEngine.read(holds: live.holds),
+                       let seq = BetaEngine.read(line: line), let pose = seq.pose(at: figureT) {
+                        BetaFigure(pose: pose, rect: r, span: seq.span)
+                    }
                 }
             }
             .frame(height: photoHeight)
@@ -602,6 +611,42 @@ struct RouteDetailScreen: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                }
+
+                // Climb it: a figure moved through the stances. Off by default,
+                // because it is a drawing of one shape and not the beta, and it
+                // says so where it is switched on.
+                if let seq = BetaEngine.read(line: line) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showFigure.toggle()
+                                if showFigure { showLine = true; figureT = 0; figurePlaying = true }
+                                else { figurePlaying = false }
+                            }
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: "figure.climbing")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text(showFigure ? "Hide the climber" : "Climb it")
+                                    .font(Theme.ui(14, .semibold))
+                            }
+                            .foregroundStyle(showFigure ? Theme.ink : .white)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .background(showFigure ? Theme.surface2 : Theme.button, in: Capsule())
+                            .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+
+                        if showFigure {
+                            BetaScrubber(t: $figureT, playing: $figurePlaying,
+                                         stances: seq.stances.count)
+                            Text(BetaEngine.caveat)
+                                .font(Theme.ui(12))
+                                .foregroundStyle(Theme.ink3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
 
                 if let summary = LineEngine.summary(line) {

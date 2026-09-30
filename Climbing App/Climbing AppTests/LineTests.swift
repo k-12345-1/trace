@@ -236,3 +236,76 @@ struct FindingRatingTests {
         #expect(store.climbs.first { $0.id == climb.id }?.findings[0].helpful == nil)
     }
 }
+
+/// A figure through the line.
+@Suite("A body on the line")
+struct BetaTests {
+    private func hold(_ x: Double, _ y: Double) -> CGRect {
+        CGRect(x: x - 0.02, y: y - 0.02, width: 0.04, height: 0.04)
+    }
+
+    /// A ladder: hands alternate up the middle, feet find the holds below.
+    private var ladder: [CGRect] {
+        [hold(0.45, 0.90), hold(0.55, 0.80), hold(0.45, 0.70), hold(0.55, 0.60),
+         hold(0.45, 0.50), hold(0.55, 0.40), hold(0.45, 0.30)]
+    }
+
+    @Test("One stance per pair of holds, hands on the holds")
+    func handsAreOnTheHolds() throws {
+        let line = try #require(LineEngine.read(holds: ladder))
+        let seq = try #require(BetaEngine.read(line: line))
+        #expect(seq.stances.count == line.holds.count - 1)
+        for (i, s) in seq.stances.enumerated() {
+            let a = line.holds[i], b = line.holds[i + 1]
+            let hands = [s.leftHand, s.rightHand]
+            #expect(hands.contains { abs($0.x - a.midX) < 1e-6 && abs($0.y - a.midY) < 1e-6 })
+            #expect(hands.contains { abs($0.x - b.midX) < 1e-6 && abs($0.y - b.midY) < 1e-6 })
+        }
+    }
+
+    @Test("The body hangs below the hands and the feet are below the hips")
+    func theBodyHangs() throws {
+        let line = try #require(LineEngine.read(holds: ladder))
+        let seq = try #require(BetaEngine.read(line: line))
+        for s in seq.stances {
+            #expect(s.leftShoulder.y > min(s.leftHand.y, s.rightHand.y))
+            #expect(s.hips.y > s.leftShoulder.y)
+            #expect(s.leftFoot.y >= s.hips.y + BetaEngine.highestFoot * seq.span)
+            #expect(s.rightFoot.y >= s.hips.y + BetaEngine.highestFoot * seq.span)
+        }
+    }
+
+    /// Higher up the ladder there are holds below to stand on; at the start
+    /// there are none, so the feet smear.
+    @Test("Feet take holds when there are any, and smear when there are none")
+    func feetFindHolds() throws {
+        let line = try #require(LineEngine.read(holds: ladder))
+        let seq = try #require(BetaEngine.read(line: line))
+        let first = try #require(seq.stances.first)
+        #expect(first.leftFootHold == nil && first.rightFootHold == nil)
+        let later = seq.stances.dropFirst(3)
+        #expect(later.contains { $0.leftFootHold != nil || $0.rightFootHold != nil },
+                "no stance above the third found a foothold")
+        // A foot is never on a hand's hold.
+        for (i, s) in seq.stances.enumerated() {
+            for f in [s.leftFootHold, s.rightFootHold].compactMap({ $0 }) {
+                #expect(f != i && f != i + 1, "stance \(i) stood on a hand hold")
+            }
+        }
+    }
+
+    @Test("Scrubbing is continuous and ends on the last stance")
+    func scrubbing() throws {
+        let line = try #require(LineEngine.read(holds: ladder))
+        let seq = try #require(BetaEngine.read(line: line))
+        let a = try #require(seq.pose(at: 0)), z = try #require(seq.pose(at: 1))
+        #expect(abs(a.hips.y - seq.stances.first!.hips.y) < 1e-9)
+        #expect(abs(z.hips.y - seq.stances.last!.hips.y) < 1e-9)
+        var last = a.hips.y
+        for k in 1...50 {
+            let p = try #require(seq.pose(at: Double(k) / 50))
+            #expect(abs(p.hips.y - last) < 0.08, "jumped at \(k)")
+            last = p.hips.y
+        }
+    }
+}
