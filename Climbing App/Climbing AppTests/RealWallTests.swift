@@ -104,3 +104,59 @@ struct RealWallTests {
         }
     }
 }
+
+/// The second real wall, and what it taught.
+///
+/// On this photograph the scanner offered a black route, a mauve one and a
+/// cream one, and none of the four a person sees first: blue, green, pink,
+/// yellow. Two things were wrong. A blue route with two big volumes covered
+/// 2.2% of the picture, past the line for scenery, so it was thrown away as
+/// wall before the palette was read. And a hold is one colour lit from one
+/// side: in plain Lab distance the shaded face of a blue hold was nearer to a
+/// grey shadow than to its own lit face, so the route came back as half its
+/// holds and split between two shades of blue that each had too few.
+@Suite("A second real wall")
+struct SecondWallTests {
+    private func wall() throws -> CGImage {
+        let url = try #require(Bundle(for: BundleToken.self).url(forResource: "wall2", withExtension: "jpg"))
+        return try #require(UIImage(data: Data(contentsOf: url))?.cgImage)
+    }
+
+    private func lab(_ hex: UInt32) -> Lab {
+        Lab(r: UInt8((hex >> 16) & 0xFF), g: UInt8((hex >> 8) & 0xFF), b: UInt8(hex & 0xFF))
+    }
+
+    private let routes: [(String, UInt32, Int)] = [
+        ("blue", 0x345372, 6), ("green", 0x304B2B, 3), ("pink", 0xA84D6E, 4), ("yellow", 0xBCAA4A, 4),
+    ]
+
+    @Test("Blue, green, pink and yellow are offered, and grey is not")
+    func theRoutesAreOffered() throws {
+        let found = RouteScanner.palette(in: try wall())
+        for (name, hex, atLeast) in routes {
+            let target = lab(hex)
+            let match = found.first { $0.lab.distance(to: target) < 25 }
+            #expect(match != nil, "the \(name) route was not offered: got \(found.map(\.hex))")
+            if let match {
+                #expect(match.holds.count >= atLeast, "\(name) came back with \(match.holds.count) holds")
+            }
+        }
+        for s in found {
+            let chroma = (s.lab.a * s.lab.a + s.lab.b * s.lab.b).squareRoot()
+            #expect(chroma >= RouteScanner.groundChroma * 0.9,
+                    "a grey was offered as a route: \(s.hex) with \(s.holds.count) holds")
+        }
+    }
+
+    /// A route colour that covers a lot of the picture is still a route.
+    @Test("A big volume does not make a route into wall")
+    func aBigVolumeIsNotWall() throws {
+        let bmp = try #require(Bitmap(try wall(), targetWidth: RouteScanner.workingWidth))
+        let ground = RouteScanner.groundColors(in: bmp)
+        // A dark grey panel sits twenty from a dark blue hold in plain Lab, and
+        // it is right that it is wall. What must not be wall is anything with
+        // colour in it.
+        let coloured = ground.filter { ($0.a * $0.a + $0.b * $0.b).squareRoot() >= RouteScanner.groundChroma }
+        #expect(coloured.isEmpty, "a coloured route was taken as wall: \(coloured.map { "L\(Int($0.l)) a\(Int($0.a)) b\(Int($0.b))" })")
+    }
+}

@@ -194,8 +194,18 @@ enum RouteScanner {
         // are exactly hold shaped, and the scan comes back with six shades of
         // grey and no routes.
         let ground = groundColors(in: bmp)
-        let candidates = commonColors(in: bmp, apart: tolerance * 0.6,
-                                      ground: ground)
+        // A grey that is not quite the wall's grey is still the wall: a shadow,
+        // a seam, a panel in different light. Neutral candidates have to stand
+        // well clear of every ground colour or they are dropped, which is what
+        // keeps a route of white holds and loses the 41 boxes of panel shade
+        // that led the list once shading was allowed for.
+        let candidates = commonColors(in: bmp, apart: tolerance * 0.6, ground: ground)
+            .filter { c in
+                let chroma = (c.lab.a * c.lab.a + c.lab.b * c.lab.b).squareRoot()
+                guard chroma < groundChroma else { return true }
+                let nearest = ground.map { $0.distance(to: c.lab) }.min() ?? .infinity
+                return nearest >= neutralClearance
+            }
         var labels = segment(bmp, colors: candidates.map(\.lab), tolerance: tolerance,
                              ground: ground)
         var swatches: [Swatch] = []
@@ -249,12 +259,39 @@ enum RouteScanner {
     static let groundShare = 0.02
     static let groundLimit = 12
 
+    /// Below this chroma a colour is a grey, a beige or a shadow: the stuff
+    /// walls, mats and ceilings are made of. Above it, covering a lot of the
+    /// picture is not enough on its own to be called scenery.
+    static let groundChroma = 16.0
+    /// How far a neutral colour has to sit from the wall's own colours before
+    /// it can be a route rather than a shade of the wall.
+    static let neutralClearance = 25.0
+
     /// The colours of the wall, the mats, the ceiling and the shadows.
+    ///
+    /// Share alone was the rule, and on the second real wall it threw the
+    /// routes away: a blue route with two big volumes covered 2.2% of the
+    /// photograph and a yellow one 2.4%, both past the line, and both were
+    /// removed as scenery before the palette was read. So a colour past the
+    /// line is scenery if it is grey enough to be a wall, or if it comes as a
+    /// sheet: its biggest piece is bigger than any hold could be. A blue route
+    /// is neither, whatever it covers.
     static func groundColors(in bmp: Bitmap) -> [Lab] {
         let total = Double(bmp.width * bmp.height)
         return commonColors(in: bmp, step: 12, keep: groundLimit, apart: groundReach)
             .filter { Double($0.count) / total >= groundShare }
+            .filter { isScenery($0.lab, in: bmp) }
             .map(\.lab)
+    }
+
+    static func isScenery(_ lab: Lab, in bmp: Bitmap) -> Bool {
+        if (lab.a * lab.a + lab.b * lab.b).squareRoot() < groundChroma { return true }
+        let total = bmp.width * bmp.height
+        var mask = [Bool](repeating: false, count: total)
+        for i in 0..<total { mask[i] = bmp.lab(at: i).distance(to: lab) < groundReach }
+        let biggest = components(mask: &mask, width: bmp.width, height: bmp.height,
+                                 minPixels: 8, maxPixels: total).map(\.count).max() ?? 0
+        return Double(biggest) / Double(total) > maxAreaFraction
     }
 
     static func isGround(_ lab: Lab, _ ground: [Lab]) -> Bool {
@@ -274,10 +311,15 @@ enum RouteScanner {
             let lab = bmp.lab(at: i)
             // Wall is wall, however close it happens to sit to a route colour.
             if isGround(lab, ground) { continue }
+            // A pixel with colour in it may be a shaded face of a hold, so
+            // lightness counts for less. A grey pixel has no shaded face to be:
+            // it is wall, and it has to match a candidate outright, and closely.
+            let chroma = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+            let shaded = chroma >= groundChroma
             var nearest: Int8 = -1
-            var best = tolerance
+            var best = shaded ? tolerance : tolerance * 0.6
             for (j, color) in colors.enumerated() {
-                let d = lab.distance(to: color)
+                let d = shaded ? lab.shadeDistance(to: color) : lab.distance(to: color)
                 if d < best { best = d; nearest = Int8(j) }
             }
             labels[i] = nearest
@@ -331,7 +373,7 @@ enum RouteScanner {
     /// million pixels is slower and no better at this, because the question is
     /// only "which colors are there enough of to be worth a mask".
     static func commonColors(in bmp: Bitmap, step: Double = 12,
-                             keep: Int = 14, apart: Double = 18,
+                             keep: Int = 20, apart: Double = 18,
                              ground: [Lab] = []) -> [Candidate] {
         struct Bin { var l = 0.0, a = 0.0, b = 0.0, r = 0.0, g = 0.0, bl = 0.0, n = 0.0 }
         var bins: [Int: Bin] = [:]
@@ -358,7 +400,7 @@ enum RouteScanner {
         for bin in bins.values.filter({ $0.n >= 12 }).sorted(by: { $0.n > $1.n }) {
             let lab = Lab(l: bin.l / bin.n, a: bin.a / bin.n, b: bin.b / bin.n)
             let near = merged.firstIndex {
-                Lab(l: $0.l / $0.n, a: $0.a / $0.n, b: $0.b / $0.n).distance(to: lab) < apart
+                Lab(l: $0.l / $0.n, a: $0.a / $0.n, b: $0.b / $0.n).shadeDistance(to: lab) < apart
             }
             if let near {
                 merged[near].l += bin.l; merged[near].a += bin.a; merged[near].b += bin.b
@@ -608,6 +650,18 @@ struct Lab {
     }
 
     /// CIE76. Good enough to separate gym hold colors, and fast.
+    /// Distance with lightness counted at less than half weight.
+    ///
+    /// A hold is one colour lit from one side: its shaded face is the same
+    /// plastic, darker. In plain Lab distance the dark side of a blue hold is
+    /// nearer to a grey shadow than to the lit side of the same hold, so it was
+    /// handed to the shadow and the hold came back as half a box. Down-weighting
+    /// L is what says "same colour, less light".
+    func shadeDistance(to other: Lab) -> Double {
+        let dl = (l - other.l) * 0.4, da = a - other.a, db = b - other.b
+        return (dl * dl + da * da + db * db).squareRoot()
+    }
+
     func distance(to other: Lab) -> Double {
         let dl = l - other.l, da = a - other.a, db = b - other.b
         return (dl * dl + da * da + db * db).squareRoot()
