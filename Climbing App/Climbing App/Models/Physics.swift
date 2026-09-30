@@ -97,6 +97,51 @@ extension LeakKind {
                 measured: "The time between your hand reaching the hold and the apex of your arc."
             )
 
+        case .overReaching:
+            return PhysicsNote(
+                plain: "A hand can only go as far as the arm is long. A foot moved first moves the whole body.",
+                concept: "Reach as body travel plus arm extension",
+                law: "Hand travel = shoulder travel along the reach + arm extension",
+                why: "Extending the arm costs the shoulder and the fingers, and it is capped at one arm's length. Raising a foot lifts the shoulder with the legs, which are stronger and not on a clock, and leaves the arm to finish rather than to do it all.",
+                measured: "On each upward reach, how far the shoulder travelled along the hand's direction, and whether either foot had landed somewhere new in the second and a half before."
+            )
+
+        case .squareHips:
+            return PhysicsNote(
+                plain: "Square hips push your weight away from the wall. A turned hip brings the shoulder in and the arm goes long.",
+                concept: "Moment about the feet, and the reach a turned hip buys",
+                law: "Torque off the wall = weight × the distance your hips sit out from your feet",
+                why: "With the hips square the centre of mass sits out from the wall and the arm has to bend to hold it in. Turning a hip in puts the mass over the feet and brings the reaching shoulder closer to the hold, so the same hold is caught with a straighter arm.",
+                measured: "Hip width at launch against your own widest, and the elbow angle of the reaching arm at the catch."
+            )
+
+        case .lockOffHeld:
+            return PhysicsNote(
+                plain: "A lock-off is a muscle holding a joint shut. Held, it closes its own blood supply.",
+                concept: "Isometric contraction and occlusion",
+                law: "Elbow torque = load × distance from the joint to the line of the load, for as long as it is held",
+                why: "Moving through a lock-off costs an instant. Holding one costs the whole time, and a forearm contracting hard shuts off its own circulation, so the pump arrives while you are standing still. It also loads the elbow tendons in the position that injures them.",
+                measured: "The longest stretch a bent arm stayed still on its hold."
+            )
+
+        case .elbowsFlared:
+            return PhysicsNote(
+                plain: "An elbow up and out hangs the load on the shoulder joint instead of the back.",
+                concept: "Line of force through the shoulder",
+                law: "The further the elbow sits from the line between hand and torso, the more of the load the shoulder holds as torque",
+                why: "With the elbow tucked and the shoulder blade set, the pull runs into the big muscles of the back. Flared, the same pull goes through the rotator cuff and the inner elbow, which is where climbers get hurt.",
+                measured: "Seconds an elbow sat above its shoulder while the hand was below it, on a hand that was not moving."
+            )
+
+        case .highStep:
+            return PhysicsNote(
+                plain: "A foot near hip height is a foot you cannot stand up on without hauling.",
+                concept: "Mechanical advantage of the leg",
+                law: "The higher the foot relative to the hips, the more the knee is folded and the less force the leg can give",
+                why: "A deeply bent knee is weak, and the hips end up far from the foot, so the arms have to do the lifting a leg was meant to. Two smaller steps keep the knee in its strong range and the hips over the foot.",
+                measured: "Where each foot landed, against the other foot and against the hips."
+            )
+
         case .unopposed:
             return PhysicsNote(
                 plain: "Friction needs something pressing into the hold. Outside your hands and feet, nothing is.",

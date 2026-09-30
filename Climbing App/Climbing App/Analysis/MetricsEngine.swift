@@ -124,6 +124,7 @@ enum MetricsEngine {
         let straight = (path.first != nil && path.last != nil)
             ? distance(path.first!, path.last!) : 0
         let stops = pauses(path: path, times: times, torso: medianTorso(tracked) ?? 0.2)
+        let technique = TechniqueEngine.read(frames: tracked)
 
         return Metrics(
             entropy: geometricEntropy(path: path, length: length),
@@ -146,7 +147,12 @@ enum MetricsEngine {
             compressionFraction: ForceEngine.compressionFraction(frames: tracked),
             swingTotal: ForceEngine.swingTotal(frames: tracked),
             moveWaste: MoveEngine.read(frames: tracked)?.waste,
-            movingJerk: movingJerk(frames: tracked)
+            movingJerk: movingJerk(frames: tracked),
+            feetStayedShare: technique.feetStayedShare,
+            squareReachShare: technique.squareShare,
+            lockOffHeldSeconds: technique.lockOffHeldSeconds,
+            elbowsFlaredSeconds: technique.flaredSeconds,
+            highStepShare: technique.highStepShare
         )
     }
 

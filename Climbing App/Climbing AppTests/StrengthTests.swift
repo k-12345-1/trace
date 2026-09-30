@@ -83,6 +83,10 @@ struct StrengthTests {
         case .unopposed:     return StrengthEngine.Kind.insideContacts.rawValue
         case .mistimedDynamics: return StrengthEngine.Kind.timedWell.rawValue
         case .lurchy:        return StrengthEngine.Kind.smoothForYou.rawValue
+        // The coaches' list has no strength to contradict yet: nothing praises
+        // feet-first reaching or tucked elbows, so nothing can clash with it.
+        case .overReaching, .squareHips, .lockOffHeld, .elbowsFlared, .highStep:
+            return "no strength for \(kind.rawValue)"
         }
     }
 

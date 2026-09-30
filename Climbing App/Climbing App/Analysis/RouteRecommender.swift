@@ -89,6 +89,16 @@ enum RouteRecommender {
             return "One move much longer than the rest. It has to be thrown, so the timing is the move."
         case .unopposed:
             return "Holds spread wide on both sides of the line. Every reach then has somewhere on the far side to press against."
+        case .overReaching:
+            return "Plenty of footholds between the hands. There is always a foot to move before the hand goes."
+        case .squareHips:
+            return "Spread wide, so a reach is made by turning a hip in rather than pulling square."
+        case .lockOffHeld:
+            return "Big holds, close together. Nothing needs holding, so the arm can move in and straight back out."
+        case .elbowsFlared:
+            return "Close, positive holds you can hang below with the elbows tucked."
+        case .highStep:
+            return "Lots of holds, evenly spaced, so every step can be a small one."
         }
     }
 
@@ -121,6 +131,12 @@ enum RouteRecommender {
             // Wide, like weight on your arms, because a route that only ever
             // goes straight up never offers the second contact to pull against.
             return rank(shape.spread, pool.map(\.spread), ascending: true)
+        case .overReaching, .highStep:
+            return rank(Double(shape.holdCount), pool.map { Double($0.holdCount) }, ascending: true)
+        case .squareHips:
+            return rank(shape.spread, pool.map(\.spread), ascending: true)
+        case .lockOffHeld, .elbowsFlared:
+            return rank(shape.reachiness, pool.map(\.reachiness), ascending: false)
         }
     }
 

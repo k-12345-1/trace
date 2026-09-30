@@ -80,7 +80,25 @@ enum PatternEngine {
         // as seconds, because seconds reward a short climb for being short.
         Dimension(kind: .unopposed, higherIsBetter: false,
                   strong: 0.05, flag: 0.15, weak: 0.30,
-                  unit: { "\(Int(($0 * 100).rounded()))% unopposed" })
+                  unit: { "\(Int(($0 * 100).rounded()))% unopposed" }),
+        // The coaches' list. Shares of moves, so a long climb is not faulted
+        // for being long; a climb with too few moves to make a share is left
+        // out of the reading rather than counted as clean.
+        Dimension(kind: .overReaching, higherIsBetter: false,
+                  strong: 0.2, flag: 0.5, weak: 0.75,
+                  unit: { "\(Int(($0 * 100).rounded()))% feet still" }),
+        Dimension(kind: .squareHips, higherIsBetter: false,
+                  strong: 0.15, flag: 0.4, weak: 0.7,
+                  unit: { "\(Int(($0 * 100).rounded()))% square" }),
+        Dimension(kind: .lockOffHeld, higherIsBetter: false,
+                  strong: 1.0, flag: 2.5, weak: 4.5,
+                  unit: { String(format: "%.1f s held", $0) }),
+        Dimension(kind: .elbowsFlared, higherIsBetter: false,
+                  strong: 0.5, flag: 1.5, weak: 4.0,
+                  unit: { String(format: "%.1f s flared", $0) }),
+        Dimension(kind: .highStep, higherIsBetter: false,
+                  strong: 0.1, flag: 0.3, weak: 0.55,
+                  unit: { "\(Int(($0 * 100).rounded()))% high" })
     ]
 
     // MARK: A reading
@@ -195,6 +213,10 @@ enum PatternEngine {
         case .mistimedDynamics: return m.hasDynamicMoves ? v : nil
         case .weightOnArms:     return v > 0 ? v : nil
         case .bentArms:         return v > 0 ? v : nil
+        // A share that could not be made is not a zero.
+        case .overReaching:     return m.feetStayedShare
+        case .squareHips:       return m.squareReachShare
+        case .highStep:         return m.highStepShare
         // Not FocusEngine's value, which is seconds. The share is what compares
         // across climbs of different lengths.
         case .unopposed:        return 1 - m.bracketedFraction

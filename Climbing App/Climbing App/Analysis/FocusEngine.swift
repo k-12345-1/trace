@@ -21,6 +21,11 @@ enum FocusEngine {
         case .weightOnArms:  return m.comOffsetFromFeet
         case .mistimedDynamics: return m.meanDeadpointError
         case .unopposed:     return m.swingTotal
+        case .overReaching:  return m.feetStayedShare ?? 0
+        case .squareHips:    return m.squareReachShare ?? 0
+        case .lockOffHeld:   return m.lockOffHeldSeconds
+        case .elbowsFlared:  return m.elbowsFlaredSeconds
+        case .highStep:      return m.highStepShare ?? 0
         }
     }
 
@@ -36,6 +41,10 @@ enum FocusEngine {
         case .impreciseFeet: return max(1, baseline * 0.5)       // half as many resets
         case .mistimedDynamics: return max(90, baseline * 0.6)   // milliseconds off the apex
         case .weightOnArms:  return max(0.25, baseline * 0.65)   // torso lengths
+        case .overReaching, .squareHips, .highStep:
+                             return max(0.15, baseline * 0.5)    // half as often
+        case .lockOffHeld:   return min(baseline, 2.0)           // under a few seconds
+        case .elbowsFlared:  return max(0.5, baseline * 0.5)     // half the time
         default:             return baseline * 0.8               // 20 percent less
         }
     }
@@ -48,6 +57,10 @@ enum FocusEngine {
         case .lurchy:        return String(format: "%.1f ldlj", value)
         case .mistimedDynamics: return "\(Int(value.rounded())) ms"
         case .weightOnArms:  return String(format: "%.2f torso", value)
+        case .overReaching, .squareHips, .highStep:
+                             return "\(Int((value * 100).rounded()))% of moves"
+        case .lockOffHeld, .elbowsFlared:
+                             return String(format: "%.1f s", value)
         default:             return String(format: "%.2f×", value)
         }
     }
@@ -63,6 +76,11 @@ enum FocusEngine {
         case .weightOnArms:  return "How far your center of mass sits sideways of your feet while resting, in torso lengths. Lower means your legs are carrying you."
         case .unopposed:     return "Seconds per climb spent hanging outside your hands and feet rather than between them. Lower means more of your weight had something to pull against."
         case .mistimedDynamics: return "How far your hand lands from the top of your arc on dynamic moves. Lower is better timed."
+        case .overReaching:  return "Share of upward reaches made with both feet still. Lower means the feet moved first."
+        case .squareHips:    return "Share of reaches made with square hips and a bent arm at the catch. Lower means more twisting in."
+        case .lockOffHeld:   return "The longest a bent arm stayed still on its hold, in seconds. Lower means you flowed through."
+        case .elbowsFlared:  return "Seconds per climb an elbow sat above its shoulder. Lower means tucked."
+        case .highStep:      return "Share of foot moves that landed near hip height. Lower means smaller steps."
         }
     }
 

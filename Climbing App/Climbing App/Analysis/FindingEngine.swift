@@ -205,7 +205,77 @@ enum FindingEngine {
             }
         }
 
+        out += techniqueFindings(frames: frames)
         return out.sorted { $0.severity > $1.severity }
+    }
+
+    // MARK: - The coaches' list
+    //
+    // Five faults named in the technique sources under docs/technique-sources
+    // that a pose can see and nothing above measured. Each needs a pattern, not
+    // one event: a single high step is a rock-over and a single held lock-off
+    // is a roof lip.
+
+    /// Share of upward reaches made with the feet still before it is a finding.
+    static let overReachingShare = 0.5
+    static let squareHipsShare = 0.4
+    static let highStepShare = 0.3
+    static let flaredSeconds = 1.5
+
+    static func techniqueFindings(frames: [PoseFrame]) -> [Finding] {
+        let t = TechniqueEngine.read(frames: frames)
+        var out: [Finding] = []
+
+        if let share = t.feetStayedShare, share >= overReachingShare,
+           t.feetStayed.count >= 2, let first = t.feetStayed.first {
+            let severity: Severity = share >= 0.8 ? .costly : share >= 0.65 ? .moderate : .minor
+            out.append(Finding(
+                kind: .overReaching, severity: severity,
+                start: max(0, first.start - 0.6), end: first.end,
+                message: "On \(t.feetStayed.count) of \(t.upwardReaches.count) upward reaches your feet stayed where they were and the arm did the work."
+            ))
+        }
+
+        if let share = t.squareShare, share >= squareHipsShare,
+           t.squareAndBent.count >= 2, let first = t.squareAndBent.first {
+            let severity: Severity = share >= 0.75 ? .costly : share >= 0.55 ? .moderate : .minor
+            out.append(Finding(
+                kind: .squareHips, severity: severity,
+                start: max(0, first.start - 0.4), end: first.end,
+                message: "On \(t.squareAndBent.count) of \(t.hipJudged) reaches your hips were square to the wall and the arm caught bent."
+            ))
+        }
+
+        if let held = t.longestLockOff {
+            let s = held.duration
+            let severity: Severity = s >= 5 ? .costly : s >= 3.5 ? .moderate : .minor
+            out.append(Finding(
+                kind: .lockOffHeld, severity: severity,
+                start: held.start, end: held.end,
+                message: String(format: "You held a bent arm still on its hold for %.1f seconds.", s)
+            ))
+        }
+
+        if t.flaredSeconds >= flaredSeconds, let worst = t.longestFlare {
+            let severity: Severity = t.flaredSeconds >= 5 ? .costly
+                                   : t.flaredSeconds >= 3 ? .moderate : .minor
+            out.append(Finding(
+                kind: .elbowsFlared, severity: severity,
+                start: worst.start, end: worst.end,
+                message: String(format: "For %.1f seconds an elbow sat above its shoulder with the hand below it.", t.flaredSeconds)
+            ))
+        }
+
+        if let share = t.highStepShare, share >= highStepShare,
+           t.highSteps.count >= 2, let first = t.highSteps.first {
+            let severity: Severity = share >= 0.6 ? .costly : share >= 0.45 ? .moderate : .minor
+            out.append(Finding(
+                kind: .highStep, severity: severity,
+                start: max(0, first.time - 0.6), end: first.time + 0.6,
+                message: "\(t.highSteps.count) of \(t.steps.count) foot moves landed near hip height."
+            ))
+        }
+        return out
     }
 
     // MARK: - Pointing at a moment

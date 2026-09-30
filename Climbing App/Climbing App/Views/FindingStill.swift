@@ -266,6 +266,11 @@ struct FindingStill: View {
         case .unopposed:     drawUnopposed(&ctx, at)
         case .lurchy, .mistimedDynamics:
             circlePoint(pose?.com, "your weight", &ctx, at)
+        case .overReaching: circleJoints([.leftAnkle, .rightAnkle], "these stayed", &ctx, at)
+        case .squareHips:   circleJoints([.leftHip, .rightHip], "square", &ctx, at)
+        case .lockOffHeld:  drawBentArm(&ctx, at)
+        case .elbowsFlared: circleJoints([.leftElbow, .rightElbow], "up here", &ctx, at)
+        case .highStep:     circleJoints([.leftAnkle, .rightAnkle], "this high", &ctx, at)
         }
     }
 

@@ -20,6 +20,7 @@ enum Severity: Int, Codable, Comparable {
 enum LeakKind: String, Codable {
     case bentArms, weightOnArms, lurchy, impreciseFeet, hesitation, wandering
     case mistimedDynamics, unopposed
+    case overReaching, squareHips, lockOffHeld, elbowsFlared, highStep
 
     var title: String {
         switch self {
@@ -31,6 +32,11 @@ enum LeakKind: String, Codable {
         case .wandering:        return "The long way between moves"
         case .mistimedDynamics: return "Catching outside the deadpoint"
         case .unopposed:        return "Hanging outside your contacts"
+        case .overReaching:     return "Reaching before stepping"
+        case .squareHips:       return "Square hips on the reach"
+        case .lockOffHeld:      return "Holding a lock-off"
+        case .elbowsFlared:     return "Elbows flared"
+        case .highStep:         return "Stepping too high"
         }
     }
 
@@ -58,6 +64,16 @@ enum LeakKind: String, Codable {
             return "Catch the hold at the top of the arc, not on the way up to it."
         case .unopposed:
             return "Put a foot or a hand out on the other side before you reach."
+        case .overReaching:
+            return "Move a foot up before the hand goes. Feet first, then reach."
+        case .squareHips:
+            return "Turn a hip into the wall before you reach, so the arm can stay long."
+        case .lockOffHeld:
+            return "Flow through the lock-off: reach, then let the arm out. Do not hold it."
+        case .elbowsFlared:
+            return "Tuck the elbow in and down, crease toward your face, and let your back take the load."
+        case .highStep:
+            return "Take two smaller steps instead of one high one, and keep your hips over the foot you stand on."
         }
     }
 
@@ -80,6 +96,16 @@ enum LeakKind: String, Codable {
             return "Deadpoint isolation. Pick one dynamic move and repeat it, catching the hold at the exact top of the arc rather than on the way up or the way down."
         case .unopposed:
             return "Find the second force. Before the reach, put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving. A flag is not for balance, it is the other half of a pair."
+        case .overReaching:
+            return "Feet first. On an easy problem, make a rule that a foot has to move before every hand does. Bring one or both feet up a little higher than feels necessary, then reach."
+        case .squareHips:
+            return "Twist-in traverse. On gently overhanging ground, make every reach with a hip turned into the wall: with two footholds drop a knee, with one step through onto your outside edge and smear the other foot."
+        case .lockOffHeld:
+            return "Flow and go. On easy ground, make a rule that you may not stop in a bent-arm position: move into each lock-off and straight out of it with controlled momentum."
+        case .elbowsFlared:
+            return "Elbows in. Drop the grade and climb with both elbows tucked close to the wall, the crease of each turned slightly toward your face. On a gaston the elbow is meant to be out; everywhere else it is not."
+        case .highStep:
+            return "Small steps. Climb an easy problem using every intermediate foothold, never placing a foot above the opposite knee."
         }
     }
 }
@@ -147,6 +173,19 @@ struct Metrics: Codable {
     /// exactly the mistake this field exists to stop.
     var movingJerk: Double?
 
+    /// The technique measurements, summarised for the focus and the pattern
+    /// screens. Shares are nil when there were too few events to make one.
+    /// Upward reaches the arm made with both feet still.
+    var feetStayedShare: Double?
+    /// Reaches made with square hips and a bent arm at the catch.
+    var squareReachShare: Double?
+    /// The longest a bent arm was held still on its hold, in seconds.
+    var lockOffHeldSeconds: Double = 0
+    /// Seconds an elbow sat above its shoulder with the hand below it.
+    var elbowsFlaredSeconds: Double = 0
+    /// Foot moves that landed near hip height.
+    var highStepShare: Double?
+
     /// Below this we do not draw and we do not coach. Confidently wrong feedback
     /// is the failure mode that kills the product.
     var isTrustworthy: Bool { trackingConfidence >= 0.55 }
@@ -191,6 +230,11 @@ struct Metrics: Codable {
         // existed has no reading, and zero would mean a perfect one.
         moveWaste          = try c.decodeIfPresent(Double.self, forKey: .moveWaste)
         movingJerk         = try c.decodeIfPresent(Double.self, forKey: .movingJerk)
+        feetStayedShare    = try c.decodeIfPresent(Double.self, forKey: .feetStayedShare)
+        squareReachShare   = try c.decodeIfPresent(Double.self, forKey: .squareReachShare)
+        lockOffHeldSeconds = try c.decodeIfPresent(Double.self, forKey: .lockOffHeldSeconds) ?? 0
+        elbowsFlaredSeconds = try c.decodeIfPresent(Double.self, forKey: .elbowsFlaredSeconds) ?? 0
+        highStepShare      = try c.decodeIfPresent(Double.self, forKey: .highStepShare)
     }
 
     init(entropy: Double, logJerk: Double, pathRatio: Double, staticElbowAngle: Double,
@@ -199,7 +243,15 @@ struct Metrics: Codable {
          comPath: [CGPoint], duration: Double, trackingConfidence: Double,
          bracketedFraction: Double = 0, compressionFraction: Double = 0,
          swingTotal: Double = 0, moveWaste: Double? = nil,
-         movingJerk: Double? = nil) {
+         movingJerk: Double? = nil,
+         feetStayedShare: Double? = nil, squareReachShare: Double? = nil,
+         lockOffHeldSeconds: Double = 0, elbowsFlaredSeconds: Double = 0,
+         highStepShare: Double? = nil) {
+        self.feetStayedShare = feetStayedShare
+        self.squareReachShare = squareReachShare
+        self.lockOffHeldSeconds = lockOffHeldSeconds
+        self.elbowsFlaredSeconds = elbowsFlaredSeconds
+        self.highStepShare = highStepShare
         self.bracketedFraction = bracketedFraction
         self.compressionFraction = compressionFraction
         self.swingTotal = swingTotal
