@@ -467,15 +467,17 @@ struct ScanScreen: View {
             let read = RouteScanner.palette(in: cg)
             let writing = await RouteScanner.readTags(in: cg)
             // Writing on a hold means it is not a hold.
-            let found = RouteScanner.withoutStickers(read, text: writing.text)
-            // The panels, so a route stays on its own.
+            var found = RouteScanner.withoutStickers(read, text: writing.text)
+            // The panels, so a route stays on its own; and the mat and the
+            // top, so nothing off the wall is a hold.
             let bmp = Bitmap(cg, targetWidth: RouteScanner.workingWidth)
-            let lines = bmp.map { FaceEngine.lines(in: $0) } ?? []
+            let faces = bmp.map { FaceEngine.read(in: $0) } ?? FaceEngine.Reading(seams: [], floor: nil, top: nil)
             let size = (width: bmp?.width ?? 1, height: bmp?.height ?? 1)
+            found = RouteScanner.onTheWall(found, reading: faces, width: size.width, height: size.height)
             await MainActor.run {
                 swatches = found
                 tags = writing.tags
-                seams = lines
+                seams = faces.seams
                 seamSize = size
                 reading = false
                 if let first = found.first { pick(first) }

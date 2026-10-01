@@ -122,3 +122,63 @@ struct FaceTests {
         #expect(abs(a.x - 0.17) < 0.04, "\(a)")
     }
 }
+
+/// Nothing below the mat or above the wall is a hold.
+@Suite("The wall's extent")
+struct WallExtentTests {
+    private func canvas(_ draw: (CGContext) -> Void) -> Bitmap {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        let img = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 400), format: f).image { ctx in
+            UIColor(white: 0.6, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 300, height: 400))
+            draw(ctx.cgContext)
+        }.cgImage!
+        return Bitmap(img, targetWidth: 300)!
+    }
+
+    @Test func theFloorAndTopAreRead() throws {
+        let bmp = canvas { c in
+            c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
+            c.move(to: CGPoint(x: 0, y: 350)); c.addLine(to: CGPoint(x: 300, y: 340)); c.strokePath()
+            c.move(to: CGPoint(x: 0, y: 60)); c.addLine(to: CGPoint(x: 300, y: 70)); c.strokePath()
+        }
+        let r = FaceEngine.read(in: bmp, wallL: 64)
+        #expect(r.seams.isEmpty)
+        #expect(r.floor != nil && r.top != nil)
+        #expect(r.onTheWall(CGPoint(x: 0.5, y: 0.5), width: 300, height: 400))
+        #expect(!r.onTheWall(CGPoint(x: 0.5, y: 0.95), width: 300, height: 400))
+        #expect(!r.onTheWall(CGPoint(x: 0.5, y: 0.05), width: 300, height: 400))
+    }
+
+    @Test func holdsOffTheWallAreDropped() throws {
+        let bmp = canvas { c in
+            c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
+            c.move(to: CGPoint(x: 0, y: 350)); c.addLine(to: CGPoint(x: 300, y: 340)); c.strokePath()
+        }
+        let r = FaceEngine.read(in: bmp, wallL: 64)
+        func hold(_ x: Double, _ y: Double) -> RouteScanner.Hold {
+            RouteScanner.Hold(rect: CGRect(x: x - 0.02, y: y - 0.02, width: 0.04, height: 0.04), area: 0.001)
+        }
+        let s = RouteScanner.Swatch(hex: "#FF0000", lab: Lab(r: 255, g: 0, b: 0),
+                                    holds: [hold(0.3, 0.3), hold(0.5, 0.5), hold(0.6, 0.7), hold(0.7, 0.95)], score: 1)
+        let kept = RouteScanner.onTheWall([s], reading: r, width: 300, height: 400)
+        #expect(kept.first?.holds.count == 3)
+        // A colour that was only on the mat is not a route.
+        let mat = RouteScanner.Swatch(hex: "#0000FF", lab: Lab(r: 0, g: 0, b: 255),
+                                      holds: [hold(0.2, 0.93), hold(0.5, 0.95), hold(0.8, 0.97)], score: 1)
+        #expect(RouteScanner.onTheWall([mat], reading: r, width: 300, height: 400).isEmpty)
+    }
+
+    /// The real walls keep every route after the mat and the top are read.
+    @Test func realRoutesStayOnTheWall() throws {
+        for name in ["gymwall", "wall2", "wall3", "wall4"] {
+            let url = try #require(Bundle(for: FaceToken.self).url(forResource: name, withExtension: "jpg"))
+            let image = try #require(UIImage(data: Data(contentsOf: url))?.cgImage)
+            let bmp = try #require(Bitmap(image, targetWidth: RouteScanner.workingWidth))
+            let before = RouteScanner.palette(in: image)
+            let after = RouteScanner.onTheWall(before, reading: FaceEngine.read(in: bmp), width: bmp.width, height: bmp.height)
+            #expect(after.count >= before.count - 1, "\(name): \(before.count) -> \(after.count)")
+            let lost = zip(before, after).map { $0.holds.count - $1.holds.count }.reduce(0, +)
+            #expect(lost <= before.reduce(0) { $0 + $1.holds.count } / 5, "\(name) lost \(lost)")
+        }
+    }
+}

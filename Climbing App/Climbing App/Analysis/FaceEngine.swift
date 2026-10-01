@@ -29,6 +29,13 @@ enum FaceEngine {
             p.x * cos(theta) + p.y * sin(theta) - rho >= 0
         }
 
+        /// The line's y at a given x, in bitmap pixels. Nil for a vertical.
+        func y(atX x: Double) -> Double? {
+            let s = sin(theta)
+            guard abs(s) > 1e-6 else { return nil }
+            return (rho - x * cos(theta)) / s
+        }
+
         /// Where it crosses the picture, normalised, for drawing and tests.
         func endpoints(width: Int, height: Int) -> (CGPoint, CGPoint)? {
             let w = Double(width), h = Double(height)
@@ -77,15 +84,21 @@ enum FaceEngine {
     /// the ground is a horizontal plane and no route is on it, and nothing
     /// is climbed above the wall. In between, a near-horizontal line is a
     /// roof's lip and counts.
-    static let floorTilt = 25.0
-    static let floorFrom = 0.6
-    static let topTo = 0.3
+    /// The mat sits low and nearly level, with the lean perspective gives
+    /// it. On the fourth wall a volume's edge at seventeen degrees, seventy
+    /// per cent of the way down, passed for the floor and took twenty holds.
+    static let floorTilt = 20.0
+    static let floorFrom = 0.8
+    /// The ceiling sits high and level. On the first wall the lip of the
+    /// overhang, a quarter of the way down, passed for the top.
+    static let topTilt = 12.0
+    static let topTo = 0.2
 
     static func isFloor(_ line: Line, width: Int, height: Int) -> Bool {
         let tilt = abs(line.theta * 180 / .pi - 90)
-        guard tilt <= floorTilt, let (a, b) = line.endpoints(width: width, height: height) else { return false }
+        guard let (a, b) = line.endpoints(width: width, height: height) else { return false }
         let y = (a.y + b.y) / 2
-        return y >= floorFrom || y <= topTo
+        return (tilt <= floorTilt && y >= floorFrom) || (tilt <= topTilt && y <= topTo)
     }
 
     /// Seam pixels: dark lines and lightness steps, among low chroma pixels.
@@ -122,15 +135,39 @@ enum FaceEngine {
         return mask
     }
 
-    static func lines(in bmp: Bitmap) -> [Line] {
+    /// What the lines say about the wall: the seams between its panels,
+    /// and where the wall ends. The floor line is the highest near-horizontal
+    /// line low in the picture, the top line the lowest one high in it, so
+    /// that between them lies the wall and nothing else.
+    struct Reading {
+        var seams: [Line]
+        var floor: Line?
+        var top: Line?
+
+        /// Whether a point, normalised, is on the wall: not below the mat
+        /// and not above the top. Glare on the ceiling and a stripe on the
+        /// padding are not holds, however hold shaped they are.
+        func onTheWall(_ p: CGPoint, width: Int, height: Int) -> Bool {
+            let q = CGPoint(x: p.x * Double(width), y: p.y * Double(height))
+            if let floor, let y = floor.y(atX: q.x), q.y > y { return false }
+            if let top, let y = top.y(atX: q.x), q.y < y { return false }
+            return true
+        }
+    }
+
+    static func lines(in bmp: Bitmap) -> [Line] { read(in: bmp).seams }
+
+    static func read(in bmp: Bitmap) -> Reading {
         // The wall's lightness is the most common colour's. Cheaper than the
         // full ground read, which walks every blob of every colour and took
         // three seconds on the second wall for a number this needs roughly.
         let wallL = RouteScanner.commonColors(in: bmp, step: 12, keep: 1, apart: 1).first?.lab.l ?? 60
-        return lines(in: bmp, wallL: wallL)
+        return read(in: bmp, wallL: wallL)
     }
 
-    static func lines(in bmp: Bitmap, wallL: Double) -> [Line] {
+    static func lines(in bmp: Bitmap, wallL: Double) -> [Line] { read(in: bmp, wallL: wallL).seams }
+
+    static func read(in bmp: Bitmap, wallL: Double) -> Reading {
         let w = bmp.width, h = bmp.height
         let mask = seamMask(bmp, wallL: wallL)
         let diag = (Double(w * w + h * h)).squareRoot()
@@ -153,16 +190,28 @@ enum FaceEngine {
         var candidates: [(Int, Int, Int)] = []
         for a in 0..<angles { for r in 0..<rhoBins where acc[a * rhoBins + r] >= needed { candidates.append((acc[a * rhoBins + r], a, r)) } }
         candidates.sort { $0.0 > $1.0 }
-        var out: [Line] = []
+        var out = Reading(seams: [], floor: nil, top: nil)
+        var taken: [Line] = []
         for (_, a, r) in candidates.prefix(160) {
             let theta = Double(a) * angleStep * .pi / 180
             let rho = Double(r) - diag
-            if out.contains(where: { near($0, theta: theta, rho: rho) }) { continue }
+            if taken.contains(where: { near($0, theta: theta, rho: rho) }) { continue }
             if let support = walk(theta: theta, rho: rho, mask: mask, width: w, height: h, diag: diag) {
                 let line = Line(theta: theta, rho: rho, support: support)
-                guard !isFloor(line, width: w, height: h) else { continue }
-                out.append(line)
-                if out.count >= mostLines { break }
+                taken.append(line)
+                if isFloor(line, width: w, height: h) {
+                    // The floor is the highest such line, the top the lowest:
+                    // the wall is what lies between them.
+                    let y = line.y(atX: Double(w) / 2) ?? 0
+                    if y >= Double(h) * floorFrom * 0.98 {
+                        if let f = out.floor, let fy = f.y(atX: Double(w) / 2), fy <= y { } else { out.floor = line }
+                    } else {
+                        if let t = out.top, let ty = t.y(atX: Double(w) / 2), ty >= y { } else { out.top = line }
+                    }
+                    continue
+                }
+                out.seams.append(line)
+                if out.seams.count >= mostLines { break }
             }
         }
         return out

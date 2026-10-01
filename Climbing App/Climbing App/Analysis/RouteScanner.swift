@@ -216,6 +216,18 @@ enum RouteScanner {
         }
     }
 
+    /// The holds that are on the wall, between the mat and the top.
+    static func onTheWall(_ swatches: [Swatch], reading: FaceEngine.Reading, width: Int, height: Int) -> [Swatch] {
+        guard reading.floor != nil || reading.top != nil else { return swatches }
+        return swatches.compactMap { s in
+            var copy = s
+            copy.holds = s.holds.filter {
+                reading.onTheWall(CGPoint(x: $0.rect.midX, y: $0.rect.midY), width: width, height: height)
+            }
+            return copy.holds.count >= minimumHolds ? copy : nil
+        }
+    }
+
     // MARK: Reading the wall's colors
 
     /// One color on the wall, and the route it picks out.
