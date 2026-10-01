@@ -202,7 +202,7 @@ struct HomeScreen: View {
                 } else {
                     // The gym's own mark, the same one it wears in Explore
                     // and on its page, so a gym is one thing everywhere.
-                    GymMark(name: gym.name, seed: gym.venueID ?? gym.id.uuidString, size: 118)
+                    GymMark(name: gym.name, seed: gym.venueID ?? gym.id.uuidString, size: 128)
                 }
             }
         }
