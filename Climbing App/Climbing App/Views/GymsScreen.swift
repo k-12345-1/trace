@@ -433,6 +433,9 @@ struct RouteDetailScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showLine = true
     @State private var showNumbers = true
+    /// The boxes round the holds. Off while the figure climbs, because the
+    /// body standing on a hold says where it is better than a box does.
+    @State private var showBoxes = true
     @State private var showFigure = false
     @State private var figureT = 0.0
     @State private var figurePlaying = false
@@ -578,11 +581,13 @@ struct RouteDetailScreen: View {
                                                    lineJoin: .round))
                     }
 
-                    ForEach(Array(live.holds.enumerated()), id: \.offset) { _, hold in
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .stroke(Theme.blueLight, lineWidth: 2)
-                            .frame(width: hold.width * r.width + 8, height: hold.height * r.height + 8)
-                            .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
+                    if showBoxes {
+                        ForEach(Array(live.holds.enumerated()), id: \.offset) { _, hold in
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .stroke(Theme.blueLight, lineWidth: 2)
+                                .frame(width: hold.width * r.width + 8, height: hold.height * r.height + 8)
+                                .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
+                        }
                     }
 
                     if let line, showNumbers {
@@ -627,7 +632,14 @@ struct RouteDetailScreen: View {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle("The line")
                     Spacer()
-                    HStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        Button { withAnimation(.easeInOut(duration: 0.2)) { showBoxes.toggle() } } label: {
+                            Text(showBoxes ? "Hide boxes" : "Show boxes")
+                                .font(Theme.ui(13.5, .semibold))
+                                .foregroundStyle(Theme.accentText)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                         Button { withAnimation(.easeInOut(duration: 0.2)) { showNumbers.toggle() } } label: {
                             Text(showNumbers ? "Hide numbers" : "Show numbers")
                                 .font(Theme.ui(13.5, .semibold))
@@ -654,6 +666,10 @@ struct RouteDetailScreen: View {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 showFigure.toggle()
+                                // The boxes go when the climber arrives and
+                                // come back when it leaves; either can be
+                                // overridden with the button above.
+                                showBoxes = !showFigure
                                 if showFigure { showLine = true; figureT = 0; figurePlaying = true }
                                 else { figurePlaying = false }
                             }
