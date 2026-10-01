@@ -562,7 +562,10 @@ struct ScanScreen: View {
             photoFilename: filename,
             holds: kept.map { $0.rect },
             outlines: kept.map { $0.outline },
-            continues: coverage.map { Array($0.continues) }
+            continues: coverage.map { Array($0.continues) },
+            startHolds: CoverageEngine.startHolds(
+                holds: kept.map(\.rect), tags: tags,
+                others: swatches.filter { $0.id != chosen?.id }.flatMap { $0.holds.map(\.rect) })
         ))
         dismiss()
     }

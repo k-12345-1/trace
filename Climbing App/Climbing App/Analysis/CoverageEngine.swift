@@ -83,6 +83,32 @@ enum CoverageEngine {
     ///     hold nearest it on the whole wall, so a start under a yellow hold
     ///     is not also the green route's start because a green hold sits
     ///     beside it.
+    /// The hold a sticker belongs to, among this route's, or nil when it is
+    /// another route's or nobody's. The nearest hold above or level with
+    /// the sticker, big enough to be a hold, nearer than any other route's.
+    static func holdIndex(for t: RouteScanner.Tag, holds: [CGRect], others: [CGRect] = []) -> Int? {
+        func gap(_ h: CGRect) -> Double? {
+            guard Double(h.width * h.height) >= tagHold, h.midY <= t.point.y + tagBelowHold else { return nil }
+            return max(0, hypot(h.midX - t.point.x, h.midY - t.point.y) - max(h.width, h.height) / 2)
+        }
+        var best: (Int, Double)?
+        for (i, h) in holds.enumerated() {
+            if let g = gap(h), best == nil || g < best!.1 { best = (i, g) }
+        }
+        guard let best, best.1 <= tagReach else { return nil }
+        let theirs = others.compactMap { gap($0) }.min() ?? .infinity
+        return best.1 <= theirs ? best.0 : nil
+    }
+
+    /// The holds the start stickers sit under, in this route.
+    static func startHolds(holds: [CGRect], tags: [RouteScanner.Tag], others: [CGRect] = []) -> [Int] {
+        var out: [Int] = []
+        for t in tags where t.kind == .start {
+            if let i = holdIndex(for: t, holds: holds, others: others), !out.contains(i) { out.append(i) }
+        }
+        return out
+    }
+
     static func read(holds: [CGRect], tags: [RouteScanner.Tag] = [], others: [CGRect] = []) -> Coverage {
         var out = Coverage(continues: [], sawStart: false, sawFinish: false, tagsRead: !tags.isEmpty)
         guard !holds.isEmpty else { return out }
@@ -97,15 +123,7 @@ enum CoverageEngine {
 
         // The stickers that belong to this route: those whose nearest hold on
         // the wall is one of these, and close enough to be its sticker.
-        func gap(_ h: CGRect, _ t: RouteScanner.Tag) -> Double? {
-            guard Double(h.width * h.height) >= tagHold, h.midY <= t.point.y + tagBelowHold else { return nil }
-            return max(0, hypot(h.midX - t.point.x, h.midY - t.point.y) - max(h.width, h.height) / 2)
-        }
-        func near(_ t: RouteScanner.Tag) -> Bool {
-            guard let mine = holds.compactMap({ gap($0, t) }).min(), mine <= tagReach else { return false }
-            let theirs = others.compactMap { gap($0, t) }.min() ?? .infinity
-            return mine <= theirs
-        }
+        func near(_ t: RouteScanner.Tag) -> Bool { holdIndex(for: t, holds: holds, others: others) != nil }
         out.sawStart = tags.contains { $0.kind == .start && near($0) }
         out.sawFinish = tags.contains { $0.kind == .finish && near($0) }
 

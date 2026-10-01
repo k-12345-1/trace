@@ -52,6 +52,9 @@ struct Route: Codable, Identifiable, Hashable {
     /// scanned. Nil on routes scanned before this was read; empty when the
     /// scan looked whole.
     var continues: [CoverageEngine.Edge]? = nil
+    /// The holds the start stickers sat under, as indices into `holds`.
+    /// Nil on routes scanned before this was read.
+    var startHolds: [Int]? = nil
 
     /// The outline for a hold, when there is one worth drawing.
     func outline(at i: Int) -> [CGPoint]? {

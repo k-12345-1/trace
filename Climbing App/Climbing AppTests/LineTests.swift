@@ -326,3 +326,61 @@ extension BetaTests {
         }
     }
 }
+
+/// Hands and feet: the start holds first, and nothing a hand should not go to.
+@Suite("Hands and feet on the line")
+struct HandsAndFeetTests {
+    private func hold(_ x: Double, _ y: Double, _ s: Double = 0.05) -> CGRect {
+        CGRect(x: x - s / 2, y: y - s / 2, width: s, height: s)
+    }
+
+    /// The defect: the sequence began on two foot chips low on the wall and
+    /// the figure hung from them. With the start known, those are feet.
+    @Test func theStartHoldsComeFirstAndBelowThemIsFeet() throws {
+        let holds = [hold(0.45, 0.95, 0.02), hold(0.55, 0.93, 0.02), hold(0.5, 0.85, 0.02),
+                     hold(0.4, 0.7), hold(0.6, 0.7), hold(0.5, 0.5), hold(0.5, 0.3)]
+        let line = try #require(LineEngine.read(holds: holds, starts: [3, 4]))
+        #expect(line.startCount == 2)
+        #expect(line.hands.count == 4)
+        #expect(line.hands[0] == holds[3] && line.hands[1] == holds[4])
+        #expect(line.feet.count == 3)
+        #expect(line.holds.count == 7)
+    }
+
+    @Test func aChipIsNeverAHandHold() throws {
+        let holds = [hold(0.5, 0.9), hold(0.52, 0.8, 0.015), hold(0.5, 0.7), hold(0.5, 0.5), hold(0.5, 0.3)]
+        let line = try #require(LineEngine.read(holds: holds))
+        #expect(line.feet == [holds[1]])
+        #expect(line.hands.count == 4)
+    }
+
+    /// With one start sticker the figure begins with both hands on it.
+    @Test func oneStartMatchesBothHands() throws {
+        let holds = [hold(0.5, 0.95, 0.02), hold(0.5, 0.8), hold(0.45, 0.6), hold(0.55, 0.4)]
+        let line = try #require(LineEngine.read(holds: holds, starts: [1]))
+        #expect(line.startCount == 1 && line.hands.first == holds[1])
+        let seq = try #require(BetaEngine.read(line: line, shape: .average))
+        let first = try #require(seq.stances.first)
+        #expect(first.leftHand == first.rightHand)
+        #expect(abs(first.leftHand.y - 0.8) < 0.001)
+        // And no stance ever has a hand on the chip.
+        for p in seq.stances { #expect(p.leftHand.y < 0.9 && p.rightHand.y < 0.9) }
+    }
+
+    @Test func theFigureStillStandsOnFootHolds() throws {
+        // Start holds a hand's width apart, chips under them at shin height.
+        let holds = [hold(0.45, 0.95, 0.02), hold(0.55, 0.93, 0.02), hold(0.45, 0.7), hold(0.55, 0.7), hold(0.5, 0.58)]
+        let line = try #require(LineEngine.read(holds: holds, starts: [2, 3]))
+        let seq = try #require(BetaEngine.read(line: line, shape: .average))
+        let first = try #require(seq.stances.first)
+        #expect(first.leftFootHold != nil || first.rightFootHold != nil)
+    }
+
+    @Test func startStickersNameTheirHolds() {
+        let holds = [hold(0.5, 0.9, 0.02), hold(0.4, 0.7), hold(0.6, 0.7), hold(0.5, 0.4)]
+        let tags = [RouteScanner.Tag(kind: .start, point: CGPoint(x: 0.4, y: 0.74)),
+                    RouteScanner.Tag(kind: .start, point: CGPoint(x: 0.6, y: 0.74)),
+                    RouteScanner.Tag(kind: .finish, point: CGPoint(x: 0.5, y: 0.44))]
+        #expect(CoverageEngine.startHolds(holds: holds, tags: tags) == [1, 2])
+    }
+}

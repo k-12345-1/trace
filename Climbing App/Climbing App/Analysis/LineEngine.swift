@@ -49,8 +49,18 @@ enum LineEngine {
     }
 
     struct Line {
-        /// The holds in the order they are met, bottom to top.
+        /// Every hold, bottom to top.
         let holds: [CGRect]
+        /// The holds the hands go to, bottom to top, the start holds first.
+        /// The route as a climber reads it: a sequence of hand moves, with
+        /// the feet taking whatever is below.
+        let hands: [CGRect]
+        /// Holds only a foot goes to: everything below the start, and
+        /// anything too small to take a hand.
+        let feet: [CGRect]
+        /// How many holds the start stickers named. Two is a hand on each;
+        /// one is both hands matched on it; none is a start nobody marked.
+        let startCount: Int
         let moves: [Move]
         /// The longest move on the route, which is where it is most likely to
         /// stop you. Not "the crux": a crux can be a bad hold on a short move,
@@ -73,16 +83,45 @@ enum LineEngine {
     static let acrossRatio = 1.3
     /// Fewer holds than this and there is no line to read.
     static let minimumHolds = 3
+    /// A hold under this share of the route's middle hold, by area, is a
+    /// foot chip: a hand does not go there. The figure used to hang off
+    /// them, which is what a climber notices first.
+    static let footChip = 0.3
+    /// A hold this far below the lowest start hold, in frame heights, is
+    /// below the start and so for feet only.
+    static let belowStart = 0.01
 
     // MARK: Reading it
 
-    static func read(holds: [CGRect]) -> Line? {
+    /// - Parameter starts: the holds the start stickers sit under, as
+    ///   indices into `holds`. Empty when none were read, in which case the
+    ///   start is the lowest hand-sized holds.
+    static func read(holds: [CGRect], starts: [Int] = []) -> Line? {
         guard holds.count >= minimumHolds else { return nil }
         let ordered = order(holds)
         guard ordered.count >= minimumHolds else { return nil }
 
+        // Hands and feet. A start hold is a hand hold whatever its size;
+        // everything below the lowest start is feet; a chip is feet.
+        let startRects = starts.compactMap { holds.indices.contains($0) ? holds[$0] : nil }
+        let areas = holds.map { Double($0.width * $0.height) }.sorted()
+        let middle = areas[areas.count / 2]
+        let lowestStartY = startRects.map(\.midY).max()
+        func isHand(_ h: CGRect) -> Bool {
+            if startRects.contains(h) { return true }
+            if let y = lowestStartY, h.midY > y + belowStart { return false }
+            return Double(h.width * h.height) >= middle * footChip
+        }
+        var hands = ordered.filter(isHand)
+        let feet = ordered.filter { !isHand($0) }
+        // The start holds come first, however the ordering placed them.
+        if !startRects.isEmpty {
+            hands = startRects.sorted { $0.midX < $1.midX } + hands.filter { !startRects.contains($0) }
+        }
+        guard hands.count >= 2 else { return nil }
+
         var gaps: [Double] = []
-        for (a, b) in zip(ordered, ordered.dropFirst()) {
+        for (a, b) in zip(hands, hands.dropFirst()) {
             gaps.append(distance(a, b))
         }
         let median = medianOf(gaps)
@@ -90,7 +129,7 @@ enum LineEngine {
 
         var moves: [Move] = []
         for (i, gap) in gaps.enumerated() {
-            let a = ordered[i], b = ordered[i + 1]
+            let a = hands[i], b = hands[i + 1]
             let across = abs(b.midX - a.midX)
             let up = abs(b.midY - a.midY)
             let sideways = up > 0.0001 ? across / up : .infinity
@@ -106,8 +145,8 @@ enum LineEngine {
                               reach: reach, sideways: sideways, kind: kind))
         }
 
-        return Line(holds: ordered, moves: moves,
-                    longest: moves.max { $0.reach < $1.reach })
+        return Line(holds: ordered, hands: hands, feet: feet, startCount: startRects.count,
+                    moves: moves, longest: moves.max { $0.reach < $1.reach })
     }
 
     /// The order the holds are met: bottom to top, always.
@@ -170,7 +209,7 @@ enum LineEngine {
     static func summary(_ line: Line) -> String? {
         guard !line.moves.isEmpty else { return nil }
         let holds = line.holds.count
-        var parts = ["\(holds) holds"]
+        var parts = [line.feet.isEmpty ? "\(holds) holds" : "\(holds) holds, \(line.hands.count) for the hands"]
 
         if line.isTraverse {
             parts.append("mostly across rather than up")

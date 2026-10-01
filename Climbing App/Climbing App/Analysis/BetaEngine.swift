@@ -148,28 +148,43 @@ enum BetaEngine {
     }
 
     static func read(line: LineEngine.Line, shape: Shape) -> Sequence? {
-        let holds = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
-        guard holds.count >= 2 else { return nil }
+        let hands = line.hands.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
+        guard hands.count >= 2 else { return nil }
         var gaps: [Double] = []
-        for (a, b) in zip(holds, holds.dropFirst()) { gaps.append(distance(a, b)) }
+        for (a, b) in zip(hands, hands.dropFirst()) { gaps.append(distance(a, b)) }
         let median = LineEngine.medianOf(gaps)
         guard median > 1e-6 else { return nil }
         let span = median * spansPerGap
 
+        // Where the hands are at each stance. The start first: a hand on
+        // each start hold, or both on the one, then one hand at a time up
+        // the hand holds. Never a hand on a foot hold.
+        var pairs: [(CGPoint, CGPoint)] = []
+        if line.startCount == 1 { pairs.append((hands[0], hands[0])) }
+        for i in 1..<hands.count { pairs.append((hands[i - 1], hands[i])) }
+
         var stances: [Pose] = []
-        for i in 0..<(holds.count - 1) {
-            let a = holds[i], b = holds[i + 1]
-            // Left hand on the left of the pair, whichever came first.
+        for (a, b) in pairs {
             let (l, r) = a.x <= b.x ? (a, b) : (b, a)
-            stances.append(stance(leftHand: l, rightHand: r, holds: holds,
-                                  handIndex: i + 1, span: span, shape: shape))
+            // Feet may use any hold a hand is not on, foot chips included.
+            let feetFrom = all.filter { $0 != a && $0 != b }
+            stances.append(stance(leftHand: l, rightHand: r, feetFrom: feetFrom,
+                                  span: span, shape: shape))
         }
         return Sequence(stances: stances, span: span, shape: shape)
     }
 
     /// The body hung from two hands, standing on what it can.
+    /// The older entry, kept for the tests that build a stance from a list.
     static func stance(leftHand: CGPoint, rightHand: CGPoint, holds: [CGPoint],
                        handIndex: Int, span: Double, shape: Shape = .average) -> Pose {
+        let feetFrom = holds.enumerated().filter { k, _ in k < handIndex - 1 || k > handIndex }.map(\.element)
+        return stance(leftHand: leftHand, rightHand: rightHand, feetFrom: feetFrom, span: span, shape: shape)
+    }
+
+    static func stance(leftHand: CGPoint, rightHand: CGPoint, feetFrom: [CGPoint],
+                       span: Double, shape: Shape = .average) -> Pose {
         let arm = shape.arm * span
         let mid = CGPoint(x: (leftHand.x + rightHand.x) / 2, y: (leftHand.y + rightHand.y) / 2)
         let handGap = distance(leftHand, rightHand)
@@ -195,9 +210,7 @@ enum BetaEngine {
         // never a hold a hand is on. A leg may take a hold a little past its
         // straight length, because the hips will come across to it.
         let leg = shape.leg * span
-        let candidates = holds.enumerated().filter { k, _ in
-            k < handIndex - 1 || k > handIndex
-        }.filter { _, h in
+        let candidates = feetFrom.enumerated().filter { _, h in
             h.y - hips.y >= highestFoot * span && distance(h, hips) <= leg * legStretch
         }
         var leftPick = candidates.filter { $0.element.x <= hips.x }.min { $0.element.y < $1.element.y }
