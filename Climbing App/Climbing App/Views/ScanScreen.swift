@@ -28,6 +28,12 @@ struct ScanScreen: View {
     @State private var chosen: RouteScanner.Swatch?
     /// The start and finish stickers the photograph could read.
     @State private var tags: [RouteScanner.Tag] = []
+    /// The seams between the wall's panels, and the picture's size they were
+    /// read at, so a route's holds on another panel can be set aside.
+    @State private var seams: [FaceEngine.Line] = []
+    @State private var seamSize = (width: 1, height: 1)
+    /// How many of the chosen colour's holds sit on another panel.
+    @State private var asideCount = 0
 
     /// Whether the chosen route looks whole in this photograph.
     private var coverage: CoverageEngine.Coverage? {
@@ -131,6 +137,12 @@ struct ScanScreen: View {
     /// the picture's own aspect at the full width of the phone, so the image
     /// runs edge to edge and nothing is cropped. A tall photograph makes a tall
     /// stage, and the page scrolls, which it already did.
+    /// Pinch to zoom and drag to pan, so a tap on a small hold lands on it.
+    @State private var zoom: CGFloat = 1
+    @State private var zoomAtStart: CGFloat = 1
+    @State private var pan: CGSize = .zero
+    @State private var panAtStart: CGSize = .zero
+
     private func stage(_ ui: UIImage) -> some View {
         let aspect = ui.size.height > 0 ? ui.size.width / ui.size.height : 0.75
         return GeometryReader { geo in
@@ -155,9 +167,49 @@ struct ScanScreen: View {
             }
             .contentShape(Rectangle())
             .onTapGesture { location in
+                // Taps arrive in the picture's own space, before the zoom,
+                // so a zoomed tap maps like an unzoomed one.
                 guard rect.contains(location) else { return }
                 add(at: CGPoint(x: (location.x - rect.minX) / rect.width,
                                 y: (location.y - rect.minY) / rect.height))
+            }
+            // The picture, and everything drawn on it, scaled and slid
+            // together; the frame stays put and clips.
+            .scaleEffect(zoom, anchor: .topLeading)
+            .offset(pan)
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
+            .gesture(
+                MagnifyGesture()
+                    .onChanged { v in
+                        zoom = min(max(zoomAtStart * v.magnification, 1), 5)
+                        pan = clamped(pan, zoom: zoom, in: geo.size)
+                    }
+                    .onEnded { _ in zoomAtStart = zoom; panAtStart = pan }
+                    .simultaneously(with: DragGesture(minimumDistance: 8)
+                        .onChanged { v in
+                            guard zoom > 1 else { return }
+                            pan = clamped(CGSize(width: panAtStart.width + v.translation.width,
+                                                 height: panAtStart.height + v.translation.height),
+                                          zoom: zoom, in: geo.size)
+                        }
+                        .onEnded { _ in panAtStart = pan })
+            )
+            .overlay(alignment: .bottomTrailing) {
+                if zoom > 1.01 {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) { zoom = 1; pan = .zero }
+                        zoomAtStart = 1; panAtStart = .zero
+                    } label: {
+                        Text("Reset zoom")
+                            .font(Theme.ui(12.5, .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(Color.black.opacity(0.55), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(10)
+                }
             }
         }
         .aspectRatio(aspect, contentMode: .fit)
@@ -241,6 +293,18 @@ struct ScanScreen: View {
                     .foregroundStyle(Theme.ink3)
             }
 
+            if asideCount > 0 {
+                HStack(alignment: .top, spacing: 7) {
+                    Image(systemName: "square.split.diagonal")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.accentText)
+                    Text("\(asideCount) hold\(asideCount == 1 ? "" : "s") of this colour \(asideCount == 1 ? "sits" : "sit") on another panel and \(asideCount == 1 ? "was" : "were") left out. Tap one to add it.")
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             // Whether the photograph has the whole route. Said once, under
             // the count, so a scan of two thirds of a boulder is not saved
             // as a boulder.
@@ -262,7 +326,7 @@ struct ScanScreen: View {
             // they can actually judge are whether a box belongs to the route
             // and whether a hold was missed, so those are the two things the
             // photograph takes.
-            Text("Tap a hold Trace missed to add it. Tap any box to drop a hold that is not part of the route.")
+            Text("Tap a hold Trace missed to add it. Tap any outline to drop a hold that is not part of the route. Pinch to zoom in for a closer tap.")
                 .font(Theme.body(12))
                 .foregroundStyle(Theme.ink3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -374,6 +438,7 @@ struct ScanScreen: View {
         let ui = picked.upright
         image = ui
         reset()
+        zoom = 1; zoomAtStart = 1; pan = .zero; panAtStart = .zero
         guard let cg = ui.cgImage else { return }
         readTheWall(cg)
         Task {
@@ -403,9 +468,15 @@ struct ScanScreen: View {
             let writing = await RouteScanner.readTags(in: cg)
             // Writing on a hold means it is not a hold.
             let found = RouteScanner.withoutStickers(read, text: writing.text)
+            // The panels, so a route stays on its own.
+            let bmp = Bitmap(cg, targetWidth: RouteScanner.workingWidth)
+            let lines = bmp.map { FaceEngine.lines(in: $0) } ?? []
+            let size = (width: bmp?.width ?? 1, height: bmp?.height ?? 1)
             await MainActor.run {
                 swatches = found
                 tags = writing.tags
+                seams = lines
+                seamSize = size
                 reading = false
                 if let first = found.first { pick(first) }
             }
@@ -419,11 +490,22 @@ struct ScanScreen: View {
         chosen = swatch
         colorHex = swatch.hex
         holds = swatch.holds
-        dropped = []
+        // Holds of this colour on another panel start out set aside. They
+        // are drawn faint and a tap brings any of them in, the same as a
+        // hold dropped by hand.
+        let split = FaceEngine.split(swatch.holds, lines: seams, width: seamSize.width, height: seamSize.height)
+        dropped = Set(split.aside.map(\.id))
+        asideCount = split.aside.count
         // Taps belong to the colour they were made on. Left in place they
         // carried from one route to the next, and a green route came back
         // with five holds that had been tapped on the beige one.
         added = []
+    }
+
+    /// Keep the zoomed picture covering its frame: no empty strip on any side.
+    private func clamped(_ p: CGSize, zoom: CGFloat, in size: CGSize) -> CGSize {
+        let maxX = size.width * (zoom - 1), maxY = size.height * (zoom - 1)
+        return CGSize(width: min(max(p.width, -maxX), 0), height: min(max(p.height, -maxY), 0))
     }
 
     /// A hold the scan missed, pointed at.

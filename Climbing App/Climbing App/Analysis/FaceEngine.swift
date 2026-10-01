@@ -1,0 +1,220 @@
+import Foundation
+import CoreGraphics
+
+/// The faces of a wall, read from the seams between them.
+///
+/// A bouldering wall is panels at angles, and the seams where they meet are
+/// the long straight lines in a photograph of one: a shadow down an arete,
+/// a step in lightness where a slab turns into an overhang. A route is set
+/// on a face. Holds of its colour on the far side of a seam are usually a
+/// different route, and on the fifth wall the white and orange routes each
+/// picked up holds from the panel next door.
+///
+/// The lines are found with a Hough transform over the dark and the sharply
+/// lit-to-shaded pixels, then each candidate is walked to make sure it is a
+/// line and not a row of bolt holes: a seam is continuous, a row of holes
+/// is five per cent of one. Each line splits the picture in two, and a
+/// hold's face is which side of every line it falls.
+enum FaceEngine {
+
+    struct Line: Equatable {
+        /// Normal form: x cos θ + y sin θ = ρ, in bitmap pixels.
+        let theta: Double
+        let rho: Double
+        /// Share of the line's run across the picture that is seam.
+        let support: Double
+
+        /// Which side of the line a point is on, in bitmap pixels.
+        func side(_ p: CGPoint) -> Bool {
+            p.x * cos(theta) + p.y * sin(theta) - rho >= 0
+        }
+
+        /// Where it crosses the picture, normalised, for drawing and tests.
+        func endpoints(width: Int, height: Int) -> (CGPoint, CGPoint)? {
+            let w = Double(width), h = Double(height)
+            var pts: [CGPoint] = []
+            let c = cos(theta), s = sin(theta)
+            if abs(s) > 1e-6 {
+                for x in [0.0, w] { let y = (rho - x * c) / s; if y >= 0, y <= h { pts.append(CGPoint(x: x / w, y: y / h)) } }
+            }
+            if abs(c) > 1e-6 {
+                for y in [0.0, h] { let x = (rho - y * s) / c; if x >= 0, x <= w { pts.append(CGPoint(x: x / w, y: y / h)) } }
+            }
+            guard pts.count >= 2 else { return nil }
+            return (pts[0], pts[pts.count - 1])
+        }
+    }
+
+    /// A seam pixel is darker than the wall by this much in L, or sits on a
+    /// step in L this big between its neighbours.
+    static let darker = 14.0
+    static let step = 10.0
+    /// Within the longest run, this share of the samples has to be seam. A
+    /// seam behind a few holds is most of its length; a row of bolt holes is
+    /// a twentieth of one.
+    static let minimumSupport = 0.5
+    /// And the run has to be at least this share of the picture's diagonal.
+    static let minimumRun = 0.35
+    /// How far a run may go without seam before it ends: the width of a hold
+    /// sitting on the seam, at working width.
+    static let maximumGap = 24
+    /// Pixels in from the picture's edge that are ignored, so the frame of
+    /// the photograph is not read as a seam.
+    static let border = 3
+    static let angleStep = 2.0
+    /// Lines closer than this in angle (degrees) and offset (pixels) are one.
+    static let mergeAngle = 14.0
+    static let mergeRho = 30.0
+    /// A seam is thin. Within a window this wide, seam pixels have to be a
+    /// minority, or the pixel is in a shadowed panel, not on a line.
+    static let thinWindow = 4
+    static let thinShare = 0.45
+    /// The most seams a wall is given. A photograph has a handful of panels.
+    static let mostLines = 5
+
+    /// Seam pixels: dark lines and lightness steps, among low chroma pixels.
+    static func seamMask(_ bmp: Bitmap, wallL: Double) -> [Bool] {
+        let w = bmp.width, h = bmp.height
+        var dark = [Bool](repeating: false, count: w * h)
+        var edge = [Bool](repeating: false, count: w * h)
+        for y in border..<(h - border) {
+            for x in border..<(w - border) {
+                let i = y * w + x
+                let lab = bmp.lab(at: i)
+                guard (lab.a * lab.a + lab.b * lab.b).squareRoot() < RouteScanner.groundChroma else { continue }
+                if lab.l <= wallL - darker { dark[i] = true; continue }
+                let dx = abs(bmp.lab(at: i + 1).l - bmp.lab(at: i - 1).l)
+                let dy = abs(bmp.lab(at: i + w).l - bmp.lab(at: i - w).l)
+                if max(dx, dy) >= step { edge[i] = true }
+            }
+        }
+        // Thin: a sheet of dark is not a line. Judged on the dark pixels
+        // alone; the step pixels either side of a dark line are thin by
+        // nature, and counted they fattened every line into a sheet.
+        var mask = edge
+        for y in border..<(h - border) {
+            for x in border..<(w - border) where dark[y * w + x] {
+                var on = 0, n = 0
+                for oy in -thinWindow...thinWindow { for ox in -thinWindow...thinWindow {
+                    let nx = x + ox, ny = y + oy
+                    guard nx >= 0, ny >= 0, nx < w, ny < h else { continue }
+                    n += 1; if dark[ny * w + nx] { on += 1 }
+                } }
+                if Double(on) / Double(n) <= thinShare { mask[y * w + x] = true }
+            }
+        }
+        return mask
+    }
+
+    static func lines(in bmp: Bitmap) -> [Line] {
+        // The wall's lightness is the most common colour's. Cheaper than the
+        // full ground read, which walks every blob of every colour and took
+        // three seconds on the second wall for a number this needs roughly.
+        let wallL = RouteScanner.commonColors(in: bmp, step: 12, keep: 1, apart: 1).first?.lab.l ?? 60
+        return lines(in: bmp, wallL: wallL)
+    }
+
+    static func lines(in bmp: Bitmap, wallL: Double) -> [Line] {
+        let w = bmp.width, h = bmp.height
+        let mask = seamMask(bmp, wallL: wallL)
+        let diag = (Double(w * w + h * h)).squareRoot()
+        let angles = Int(180 / angleStep)
+        let rhoBins = Int(2 * diag) + 1
+        var acc = [Int](repeating: 0, count: angles * rhoBins)
+        var cosT = [Double](), sinT = [Double]()
+        for a in 0..<angles { let t = Double(a) * angleStep * .pi / 180; cosT.append(cos(t)); sinT.append(sin(t)) }
+        for y in 0..<h { for x in 0..<w where mask[y * w + x] {
+            for a in 0..<angles {
+                let rho = Double(x) * cosT[a] + Double(y) * sinT[a]
+                let r = Int(rho + diag)
+                if r >= 0, r < rhoBins { acc[a * rhoBins + r] += 1 }
+            }
+        } }
+
+        // Candidates: bins with enough votes, strongest first, verified by
+        // walking the line and merged with anything already taken.
+        let needed = Int(diag * minimumRun * minimumSupport)
+        var candidates: [(Int, Int, Int)] = []
+        for a in 0..<angles { for r in 0..<rhoBins where acc[a * rhoBins + r] >= needed { candidates.append((acc[a * rhoBins + r], a, r)) } }
+        candidates.sort { $0.0 > $1.0 }
+        var out: [Line] = []
+        for (_, a, r) in candidates.prefix(160) {
+            let theta = Double(a) * angleStep * .pi / 180
+            let rho = Double(r) - diag
+            if out.contains(where: { near($0, theta: theta, rho: rho) }) { continue }
+            if let support = walk(theta: theta, rho: rho, mask: mask, width: w, height: h, diag: diag) {
+                out.append(Line(theta: theta, rho: rho, support: support))
+                if out.count >= mostLines { break }
+            }
+        }
+        return out
+    }
+
+    /// The same seam, found again a few degrees off. Angles wrap at 180,
+    /// where rho changes sign.
+    private static func near(_ l: Line, theta: Double, rho: Double) -> Bool {
+        var dt = abs(l.theta - theta) * 180 / .pi
+        var dr = abs(l.rho - rho)
+        if dt > 180 - mergeAngle { dt = 180 - dt; dr = abs(l.rho + rho) }
+        return dt < mergeAngle && dr < mergeRho
+    }
+
+    /// The longest continuous run of seam along the line, with small gaps
+    /// allowed, as a share of the line's length inside the picture. Nil when
+    /// it is not a seam.
+    static func walk(theta: Double, rho: Double, mask: [Bool], width: Int, height: Int, diag: Double) -> Double? {
+        let c = cos(theta), s = sin(theta)
+        let dx = -s, dy = c
+        let px = rho * c, py = rho * s
+        var inside = 0
+        var runLength = 0, runHits = 0, gap = 0
+        var bestLength = 0, bestHits = 0
+        for t in stride(from: -diag, through: diag, by: 1.0) {
+            let x = Int((px + t * dx).rounded()), y = Int((py + t * dy).rounded())
+            guard x >= 0, y >= 0, x < width, y < height else { continue }
+            inside += 1
+            var hit = mask[y * width + x]
+            if !hit {
+                for (ox, oy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                    let nx = x + ox, ny = y + oy
+                    if nx >= 0, ny >= 0, nx < width, ny < height, mask[ny * width + nx] { hit = true; break }
+                }
+            }
+            if hit {
+                if runLength == 0 { runHits = 0 }
+                runLength += gap + 1; runHits += 1; gap = 0
+                if runLength > bestLength { bestLength = runLength; bestHits = runHits }
+            } else {
+                gap += 1
+                if gap > maximumGap { runLength = 0; gap = 0 }
+            }
+        }
+        guard inside > 0, bestLength > 0 else { return nil }
+        let density = Double(bestHits) / Double(bestLength)
+        let runShare = Double(bestLength) / diag
+        return density >= minimumSupport && runShare >= minimumRun ? density : nil
+    }
+
+    // MARK: Faces
+
+    /// Which face a point is on: its side of every line, as a key.
+    static func face(of p: CGPoint, lines: [Line], width: Int, height: Int) -> String {
+        let q = CGPoint(x: p.x * Double(width), y: p.y * Double(height))
+        return lines.map { $0.side(q) ? "1" : "0" }.joined()
+    }
+
+    /// The share of a route's holds a face needs before its holds are kept.
+    static let homeShare = 0.2
+
+    /// The holds that are on the route's own face, and the ones set aside.
+    static func split(_ holds: [RouteScanner.Hold], lines: [Line], width: Int, height: Int)
+        -> (kept: [RouteScanner.Hold], aside: [RouteScanner.Hold]) {
+        guard !lines.isEmpty, holds.count >= 3 else { return (holds, []) }
+        let faces = holds.map { face(of: CGPoint(x: $0.rect.midX, y: $0.rect.midY), lines: lines, width: width, height: height) }
+        let counts = Dictionary(grouping: faces, by: { $0 }).mapValues(\.count)
+        let home = Set(counts.filter { Double($0.value) / Double(holds.count) > homeShare }.keys)
+        var kept: [RouteScanner.Hold] = [], aside: [RouteScanner.Hold] = []
+        for (h, f) in zip(holds, faces) { if home.contains(f) { kept.append(h) } else { aside.append(h) } }
+        return (kept, aside)
+    }
+}
