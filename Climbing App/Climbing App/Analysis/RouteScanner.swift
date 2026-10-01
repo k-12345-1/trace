@@ -123,7 +123,19 @@ enum RouteScanner {
         return out.sorted { $0.area > $1.area }
     }
 
-    static func holds(in bmp: Bitmap, mask: inout [Bool]) -> [Hold] {
+    /// - Parameters:
+    ///   - labels: which candidate each pixel went to, for the patch rule.
+    ///   - colors: the candidates, so the rule knows which labels are coloured
+    ///     routes. The dark candidate claims the shadowed rim of every hold,
+    ///     and counted as "another route" it made every hold a patch.
+    static func holds(in bmp: Bitmap, mask: inout [Bool],
+                      labels: [Int8]? = nil, index: Int = -1, colors: [Lab] = []) -> [Hold] {
+        let colored = colors.map { ($0.a * $0.a + $0.b * $0.b).squareRoot() >= groundChroma }
+        // Only a pale candidate can be a patch: chalk is white, and a cream
+        // route is where chalk lands. A coloured hold's shaded rim can fall to
+        // a candidate outside its hue family, and judged for enclosure every
+        // yellow hold on the first wall became a patch on its own shadow.
+        let pale = colors.indices.contains(index) && isPale(colors[index])
         let total = Double(bmp.width * bmp.height)
         let minPixels = Int(total * minAreaFraction)
         let maxPixels = Int(total * maxAreaFraction)
@@ -140,6 +152,14 @@ enum RouteScanner {
             let fill = Double(component.count) / (w * h)
             let aspect = max(w / h, h / w)
             guard isHoldShaped(fill: fill, aspect: aspect) else { continue }
+            // And hollow ones: a ring of glare, a shadow down two sides of a
+            // volume, which box and hull both enclose.
+            guard component.hullFill(width: bmp.width) >= lumpFill else { continue }
+            // And patches on another route's hold.
+            if pale, let labels, isPatch(component, labels: labels, index: index, colored: colored,
+                                         width: bmp.width, height: bmp.height) {
+                continue
+            }
 
             found.append(Hold(
                 rect: CGRect(x: Double(component.minX) / Double(bmp.width),
@@ -152,6 +172,48 @@ enum RouteScanner {
         }
         // Biggest first, so the review list leads with the holds that matter.
         return found.sorted { $0.area > $1.area }
+    }
+
+    /// Whether a blob sits on another route's hold rather than on the wall.
+    private static func isPatch(_ c: Component, labels: [Int8], index: Int, colored: [Bool],
+                                width: Int, height: Int) -> Bool {
+        var other = 0, free = 0
+        for p in c.pixels {
+            let i = Int(p), x = i % width, y = i / width
+            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let nx = x + dx, ny = y + dy
+                guard nx >= 0, ny >= 0, nx < width, ny < height else { continue }
+                let l = labels[ny * width + nx]
+                if l == Int8(index) { continue }
+                if l < 0 { free += 1 }
+                else if Int(l) < colored.count, colored[Int(l)] { other += 1 }
+                // A neighbour on a grey or dark candidate is a shadow or the
+                // wall under another name, and says nothing.
+            }
+        }
+        return other + free > 0 && Double(other) / Double(other + free) > patchShare
+    }
+
+    // MARK: Stickers
+
+    /// The holds that are stickers, taken out.
+    ///
+    /// A start, a finish, a grade: the setters' tags are coloured, and every
+    /// one came back as a hold of its colour, the yellow ones as a route of
+    /// their own. Writing on a hold means it is not a hold. `text` is where
+    /// the photograph had writing, normalised, from `readTags`.
+    static func withoutStickers(_ swatches: [Swatch], text: [CGRect]) -> [Swatch] {
+        guard !text.isEmpty else { return swatches }
+        return swatches.compactMap { s in
+            var copy = s
+            copy.holds = s.holds.filter { h in
+                !text.contains { t in
+                    let overlap = h.rect.intersection(t)
+                    return !overlap.isNull && overlap.width * overlap.height >= 0.3 * h.rect.width * h.rect.height
+                }
+            }
+            return copy.holds.count >= minimumHolds ? copy : nil
+        }
     }
 
     // MARK: Reading the wall's colors
@@ -262,7 +324,7 @@ enum RouteScanner {
                 .filter { $0.area <= maxAreaFraction }
                 .reduce(0.0) { $0 + $1.area } * total
             guard labelled > 0, sized / Double(labelled) >= routePurity else { continue }
-            let found = holds(in: bmp, labels: &labels, index: i)
+            let found = holds(in: bmp, labels: &labels, index: i, colors: joined.map(\.lab))
             guard found.count >= minimumHolds else { continue }
             swatches.append(Swatch(hex: candidate.hex, lab: candidate.lab,
                                    holds: found,
@@ -285,7 +347,7 @@ enum RouteScanner {
         guard colors.indices.contains(index) else { return [] }
         var labels = segment(bmp, colors: colors, tolerance: tolerance,
                              ground: groundColors(in: bmp))
-        return holds(in: bmp, labels: &labels, index: index)
+        return holds(in: bmp, labels: &labels, index: index, colors: colors)
     }
 
     // MARK: Shades of one hue
@@ -470,10 +532,31 @@ enum RouteScanner {
         return labels
     }
 
-    static func holds(in bmp: Bitmap, labels: inout [Int8], index: Int) -> [Hold] {
+    static func holds(in bmp: Bitmap, labels: inout [Int8], index: Int, colors: [Lab] = []) -> [Hold] {
         var mask = [Bool](repeating: false, count: labels.count)
         for i in labels.indices { mask[i] = labels[i] == Int8(index) }
-        return holds(in: bmp, mask: &mask)
+        return holds(in: bmp, mask: &mask, labels: labels, index: index, colors: colors)
+    }
+
+    /// A lump fills this much of its own convex hull. A crescent fills about
+    /// half, a chalked black hold with the chalk read as cream about a third;
+    /// a ring of glare round a panel, under a quarter.
+    static let lumpFill = 0.3
+    /// A blob whose edge touches another route's pixels more than it touches
+    /// wall is a patch on that route's hold: chalk on a green sloper read as
+    /// a white hold, the lit face of a red hold read as orange.
+    static let patchShare = 0.5
+    /// Below this chroma a candidate is white, cream, grey or black: the
+    /// colours chalk and shadow come in, and the only ones the patch rule
+    /// is applied to.
+    static let paleChroma = 40.0
+    static let paleLightness = 70.0
+
+    /// White, cream, grey or black: chalk and shadow come in these, and a
+    /// muted blue does not.
+    static func isPale(_ c: Lab) -> Bool {
+        let chroma = (c.a * c.a + c.b * c.b).squareRoot()
+        return chroma < groundChroma || (c.l >= paleLightness && chroma < paleChroma)
     }
 
     /// How much a set of blobs looks like a route.
@@ -597,12 +680,12 @@ enum RouteScanner {
         guard mask[start] else { return nil }
 
         var comp = Component()
-        comp.keepsRows = true
+        comp.keepsPixels = true
         var stack = [start]
         mask[start] = false
         while let i = stack.popLast() {
             let px = i % bmp.width, py = i / bmp.width
-            comp.add(px, py)
+            comp.add(px, py, index: i)
             if px > 0, mask[i - 1] { mask[i - 1] = false; stack.append(i - 1) }
             if px < bmp.width - 1, mask[i + 1] { mask[i + 1] = false; stack.append(i + 1) }
             if py > 0, mask[i - bmp.width] { mask[i - bmp.width] = false; stack.append(i - bmp.width) }
@@ -629,26 +712,89 @@ enum RouteScanner {
     private struct Component {
         var minX = Int.max, minY = Int.max, maxX = Int.min, maxY = Int.min
         var count = 0
-        /// The leftmost and rightmost pixel of each row, which is all a
-        /// convex hull needs and far less than every pixel.
-        var rows: [Int: (Int, Int)] = [:]
-        var keepsRows = false
-        mutating func add(_ x: Int, _ y: Int) {
+        /// Every pixel, kept only when an outline or a neighbourhood is wanted.
+        var pixels: [Int32] = []
+        var keepsPixels = false
+        mutating func add(_ x: Int, _ y: Int, index: Int) {
             minX = min(minX, x); maxX = max(maxX, x)
             minY = min(minY, y); maxY = max(maxY, y)
             count += 1
-            if keepsRows {
-                if let r = rows[y] { rows[y] = (min(r.0, x), max(r.1, x)) } else { rows[y] = (x, x) }
+            if keepsPixels { pixels.append(Int32(index)) }
+        }
+
+        var boxWidth: Int { maxX - minX + 1 }
+        var boxHeight: Int { maxY - minY + 1 }
+
+        /// The blob as a small mask of its own box, with a one pixel margin.
+        func local(width: Int) -> (mask: [Bool], w: Int, h: Int) {
+            let w = boxWidth + 2, h = boxHeight + 2
+            var m = [Bool](repeating: false, count: w * h)
+            for p in pixels {
+                let x = Int(p) % width - minX + 1, y = Int(p) / width - minY + 1
+                m[y * w + x] = true
             }
+            return (m, w, h)
+        }
+
+        /// The boundary, traced round the blob, as points in the bitmap.
+        ///
+        /// Square tracing on the blob's own mask: walk the edge keeping the
+        /// blob on the right, which follows a U into its bend where a hull
+        /// bridges it. Thinned to a few dozen points for drawing.
+        func boundary(width: Int) -> [(Int, Int)] {
+            let (m, w, _) = local(width: width)
+            func on(_ x: Int, _ y: Int) -> Bool { x >= 0 && y >= 0 && x < w && y * w + x < m.count && m[y * w + x] }
+            guard let startIndex = m.firstIndex(of: true) else { return [] }
+            let sx = startIndex % w, sy = startIndex / w
+            // Moore neighbourhood, clockwise from the west.
+            let dirs = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)]
+            var out: [(Int, Int)] = [(sx, sy)]
+            var cx = sx, cy = sy
+            var back = 0   // the direction we came from, as an index into dirs
+            let limit = 4 * (w + m.count / w) + 8
+            repeat {
+                var found = false
+                for k in 0..<8 {
+                    let d = (back + k) % 8
+                    let nx = cx + dirs[d].0, ny = cy + dirs[d].1
+                    if on(nx, ny) {
+                        cx = nx; cy = ny
+                        back = (d + 5) % 8   // start next search just past where we came from
+                        out.append((cx, cy))
+                        found = true
+                        break
+                    }
+                }
+                if !found { break }
+            } while !(cx == sx && cy == sy) && out.count < limit
+            if out.count > 1, out.last! == (sx, sy) { out.removeLast() }
+            let step = max(1, out.count / 48)
+            var thinned: [(Int, Int)] = []
+            for (i, p) in out.enumerated() where i % step == 0 { thinned.append((p.0 + minX - 1, p.1 + minY - 1)) }
+            return thinned
         }
 
         /// The outline, normalised to the bitmap.
         func outline(width: Int, height: Int) -> [CGPoint] {
-            var pts: [(Int, Int)] = []
-            for (y, r) in rows { pts.append((r.0, y)); pts.append((r.1, y)) }
-            return RouteScanner.hull(pts).map {
+            boundary(width: width).map {
                 CGPoint(x: (Double($0.0) + 0.5) / Double(width), y: (Double($0.1) + 0.5) / Double(height))
             }
+        }
+
+        /// How much of its own convex hull the blob fills. A lump fills
+        /// nearly all of it; a ring of glare round a panel, a shadow along two
+        /// sides of a volume, fills a fraction and used to be drawn as a large
+        /// empty polygon.
+        func hullFill(width: Int) -> Double {
+            let hull = RouteScanner.hull(boundary(width: width))
+            guard hull.count >= 3 else { return 1 }
+            var a = 0.0
+            for i in hull.indices {
+                let p = hull[i], q = hull[(i + 1) % hull.count]
+                a += Double(p.0 * q.1 - q.0 * p.1)
+            }
+            let area = abs(a) / 2
+            return area < 1 ? 1 : min(1, Double(count) / area)
         }
     }
 
@@ -687,14 +833,14 @@ enum RouteScanner {
 
         for start in 0..<(width * height) where mask[start] {
             var comp = Component()
-            comp.keepsRows = outlines
+            comp.keepsPixels = outlines
             stack.removeAll(keepingCapacity: true)
             stack.append(start)
             mask[start] = false
 
             while let i = stack.popLast() {
                 let x = i % width, y = i / width
-                comp.add(x, y)
+                comp.add(x, y, index: i)
                 if x > 0, mask[i - 1] { mask[i - 1] = false; stack.append(i - 1) }
                 if x < width - 1, mask[i + 1] { mask[i + 1] = false; stack.append(i + 1) }
                 if y > 0, mask[i - width] { mask[i - width] = false; stack.append(i - width) }
@@ -743,26 +889,30 @@ enum RouteScanner {
         let point: CGPoint
     }
 
-    /// The start and finish stickers the setters put beside the holds, read
-    /// off the photograph. Empty where there are none or they cannot be read.
-    static func readTags(in image: CGImage) async -> [Tag] {
+    /// Everything written on the wall, read off the photograph: the start
+    /// and finish stickers with their kind, and where every piece of writing
+    /// is, so no sticker is taken for a hold. Empty where nothing can be read.
+    static func readTags(in image: CGImage) async -> (tags: [Tag], text: [CGRect]) {
         await withCheckedContinuation { continuation in
             let request = VNRecognizeTextRequest { request, _ in
                 let observations = request.results as? [VNRecognizedTextObservation] ?? []
                 var tags: [Tag] = []
+                var boxes: [CGRect] = []
                 for o in observations {
                     guard let text = o.topCandidates(1).first?.string.lowercased() else { continue }
-                    let point = CGPoint(x: o.boundingBox.midX, y: 1 - o.boundingBox.midY)
+                    let b = o.boundingBox
+                    boxes.append(CGRect(x: b.minX, y: 1 - b.maxY, width: b.width, height: b.height))
+                    let point = CGPoint(x: b.midX, y: 1 - b.midY)
                     if text.contains("start") { tags.append(Tag(kind: .start, point: point)) }
                     else if text.contains("finish") || text.contains("top") { tags.append(Tag(kind: .finish, point: point)) }
                 }
-                continuation.resume(returning: tags)
+                continuation.resume(returning: (tags, boxes))
             }
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = false
             let handler = VNImageRequestHandler(cgImage: image, orientation: .up)
             do { try handler.perform([request]) }
-            catch { continuation.resume(returning: []) }
+            catch { continuation.resume(returning: ([], [])) }
         }
     }
 

@@ -399,11 +399,13 @@ struct ScanScreen: View {
     private func readTheWall(_ cg: CGImage) {
         reading = true
         Task.detached {
-            let found = RouteScanner.palette(in: cg)
-            let stickers = await RouteScanner.readTags(in: cg)
+            let read = RouteScanner.palette(in: cg)
+            let writing = await RouteScanner.readTags(in: cg)
+            // Writing on a hold means it is not a hold.
+            let found = RouteScanner.withoutStickers(read, text: writing.text)
             await MainActor.run {
                 swatches = found
-                tags = stickers
+                tags = writing.tags
                 reading = false
                 if let first = found.first { pick(first) }
             }

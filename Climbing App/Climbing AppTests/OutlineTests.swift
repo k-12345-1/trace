@@ -93,3 +93,84 @@ struct UprightTests {
         #expect(ui.upright === ui)
     }
 }
+
+/// What is not a hold, and what shape a hold has.
+@Suite("Hold shapes and patches")
+struct HoldShapeRuleTests {
+    private func canvas(_ draw: (CGContext) -> Void) -> CGImage {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240), format: f).image { ctx in
+            UIColor(white: 0.55, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
+            draw(ctx.cgContext)
+        }.cgImage!
+    }
+    private func area(_ poly: [CGPoint]) -> Double {
+        guard poly.count >= 3 else { return 0 }
+        var a = 0.0
+        for i in poly.indices { let p = poly[i], q = poly[(i + 1) % poly.count]; a += p.x * q.y - q.x * p.y }
+        return abs(a) / 2
+    }
+
+    /// The outline follows a U into its bend. The defect: a hull bridged it.
+    @Test func aUShapedHoldKeepsItsBend() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor.red.cgColor)
+            // Under the sheet limit: a hold is a small share of a wall.
+            c.fill(CGRect(x: 90, y: 90, width: 12, height: 44))
+            c.fill(CGRect(x: 128, y: 90, width: 12, height: 44))
+            c.fill(CGRect(x: 90, y: 122, width: 50, height: 12))
+        }
+        let hold = try #require(RouteScanner.detectHolds(in: image, color: Lab(r: 255, g: 0, b: 0)).first)
+        let traced = area(hold.outline)
+        let boxArea = Double(hold.rect.width * hold.rect.height)
+        // The U covers 48% of its box; a hull would cover nearly all of it.
+        #expect(traced < boxArea * 0.7, "\(traced / boxArea)")
+        #expect(traced > boxArea * 0.3)
+    }
+
+    /// A ring is not a lump.
+    @Test func aRingOfGlareIsNotAHold() {
+        let image = canvas { c in
+            c.setFillColor(UIColor.red.cgColor)
+            c.fillEllipse(in: CGRect(x: 70, y: 70, width: 100, height: 100))
+            c.setFillColor(UIColor(white: 0.55, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 77, y: 77, width: 86, height: 86))
+        }
+        #expect(RouteScanner.detectHolds(in: image, color: Lab(r: 255, g: 0, b: 0)).isEmpty)
+    }
+
+    /// Chalk on a green hold is not a white hold.
+    @Test func aPatchOnAnotherRoutesHoldIsNotAHold() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 60, y: 60, width: 100, height: 100))
+            c.setFillColor(UIColor.white.cgColor)
+            c.fillEllipse(in: CGRect(x: 95, y: 95, width: 30, height: 30))   // chalk on the green
+            c.fillEllipse(in: CGRect(x: 180, y: 180, width: 30, height: 30)) // a white hold on the wall
+        }
+        let bmp = try #require(Bitmap(image, targetWidth: 240))
+        let green = Lab(r: 51, g: 153, b: 51), white = Lab(r: 255, g: 255, b: 255)
+        var labels = RouteScanner.segment(bmp, colors: [green, white], tolerance: 30)
+        let whites = RouteScanner.holds(in: bmp, labels: &labels, index: 1, colors: [green, white])
+        #expect(whites.count == 1, "\(whites.count)")
+        #expect(whites.first.map { $0.rect.midX > 0.6 } == true)
+    }
+
+    /// Writing on a hold means it is not a hold, and a colour that was only
+    /// stickers is not a route.
+    @Test func stickersAreNotHolds() {
+        func hold(_ x: Double, _ y: Double) -> RouteScanner.Hold {
+            RouteScanner.Hold(rect: CGRect(x: x, y: y, width: 0.04, height: 0.03), area: 0.0012)
+        }
+        let yellow = RouteScanner.Swatch(hex: "#FFFF00", lab: Lab(r: 255, g: 255, b: 0),
+                                         holds: [hold(0.1, 0.1), hold(0.5, 0.5), hold(0.8, 0.8)], score: 1)
+        let green = RouteScanner.Swatch(hex: "#00AA00", lab: Lab(r: 0, g: 170, b: 0),
+                                        holds: [hold(0.2, 0.2), hold(0.3, 0.3), hold(0.4, 0.4), hold(0.6, 0.6)], score: 1)
+        let text = [CGRect(x: 0.1, y: 0.1, width: 0.04, height: 0.03), CGRect(x: 0.5, y: 0.5, width: 0.04, height: 0.03),
+                    CGRect(x: 0.8, y: 0.8, width: 0.04, height: 0.03), CGRect(x: 0.6, y: 0.6, width: 0.03, height: 0.02)]
+        let kept = RouteScanner.withoutStickers([yellow, green], text: text)
+        #expect(kept.count == 1)
+        #expect(kept.first?.hex == "#00AA00")
+        #expect(kept.first?.holds.count == 3)
+    }
+}
