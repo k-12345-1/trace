@@ -174,3 +174,62 @@ struct HoldShapeRuleTests {
         #expect(kept.first?.holds.count == 3)
     }
 }
+
+/// What a dark blob is, and when a muted colour is the wall.
+@Suite("Shadows, panels and glare")
+struct DarkAndGlareTests {
+    private func canvas(_ draw: (CGContext) -> Void) -> CGImage {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240), format: f).image { ctx in
+            UIColor(white: 0.55, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
+            draw(ctx.cgContext)
+        }.cgImage!
+    }
+
+    /// A dark crescent under a red hold is its shadow.
+    @Test func theShadowUnderAHoldIsNotAHold() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor(white: 0.12, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 96, y: 112, width: 48, height: 14))   // the shadow
+            c.setFillColor(UIColor.red.cgColor)
+            c.fillEllipse(in: CGRect(x: 95, y: 90, width: 50, height: 30))    // the hold above it
+            c.setFillColor(UIColor(white: 0.12, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 40, y: 180, width: 30, height: 24))   // a black hold on the wall
+        }
+        let bmp = try #require(Bitmap(image, targetWidth: 240))
+        let red = Lab(r: 255, g: 0, b: 0), black = Lab(r: 30, g: 30, b: 30)
+        var labels = RouteScanner.segment(bmp, colors: [red, black], tolerance: 30)
+        let blacks = RouteScanner.holds(in: bmp, labels: &labels, index: 1, colors: [red, black])
+        #expect(blacks.count == 1, "\(blacks.count)")
+        #expect(blacks.first.map { $0.rect.midY > 0.6 } == true)
+    }
+
+    /// A dark blob bigger than any hold is panel.
+    @Test func aDarkSheetIsNotAHold() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor(white: 0.12, alpha: 1).cgColor)
+            c.fill(CGRect(x: 20, y: 20, width: 90, height: 60))   // 9.4% of the picture
+        }
+        let bmp = try #require(Bitmap(image, targetWidth: 240))
+        let black = Lab(r: 30, g: 30, b: 30)
+        var labels = RouteScanner.segment(bmp, colors: [black], tolerance: 30)
+        #expect(RouteScanner.holds(in: bmp, labels: &labels, index: 0, colors: [black]).isEmpty)
+    }
+
+    /// Glare a little pinker than the wall is the wall; a muted blue well
+    /// away from it is a route.
+    @Test func mutedColoursMustStandClearOfTheWall() throws {
+        let image = canvas { c in
+            // three glare patches, faintly pink
+            c.setFillColor(UIColor(red: 0.62, green: 0.53, blue: 0.54, alpha: 1).cgColor)
+            for (x, y) in [(30, 30), (120, 60), (60, 150)] { c.fillEllipse(in: CGRect(x: x, y: y, width: 26, height: 20)) }
+            // three muted blue holds
+            c.setFillColor(UIColor(red: 0.2, green: 0.32, blue: 0.45, alpha: 1).cgColor)
+            for (x, y) in [(170, 40), (180, 110), (150, 190)] { c.fillEllipse(in: CGRect(x: x, y: y, width: 26, height: 20)) }
+        }
+        let found = RouteScanner.palette(in: image)
+        let blue = Lab(r: 51, g: 82, b: 115), glare = Lab(r: 158, g: 135, b: 138)
+        #expect(found.contains { $0.lab.distance(to: blue) < 20 })
+        #expect(!found.contains { $0.lab.distance(to: glare) < 15 }, "\(found.map(\.hex))")
+    }
+}

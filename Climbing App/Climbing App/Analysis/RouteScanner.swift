@@ -129,8 +129,14 @@ enum RouteScanner {
     ///     routes. The dark candidate claims the shadowed rim of every hold,
     ///     and counted as "another route" it made every hold a patch.
     static func holds(in bmp: Bitmap, mask: inout [Bool],
-                      labels: [Int8]? = nil, index: Int = -1, colors: [Lab] = []) -> [Hold] {
+                      labels: [Int8]? = nil, index: Int = -1, colors: [Lab] = [],
+                      ground: [Lab] = []) -> [Hold] {
+        let wall = ground.isEmpty ? groundColors(in: bmp) : ground
+        let isWall: (Int) -> Bool = { i in i < bmp.width * bmp.height && isGround(bmp.lab(at: i), wall) }
         let colored = colors.map { ($0.a * $0.a + $0.b * $0.b).squareRoot() >= groundChroma }
+        // A dark candidate is black holds, and also every shadow a hold
+        // throws and every piece of dark panel. Two more rules for it.
+        let dark = colors.indices.contains(index) && colors[index].l < darkHold
         // Only a pale candidate can be a patch: chalk is white, and a cream
         // route is where chalk lands. A coloured hold's shaded rim can fall to
         // a candidate outside its hue family, and judged for enclosure every
@@ -152,13 +158,25 @@ enum RouteScanner {
             let fill = Double(component.count) / (w * h)
             let aspect = max(w / h, h / w)
             guard isHoldShaped(fill: fill, aspect: aspect) else { continue }
-            // And hollow ones: a ring of glare, a shadow down two sides of a
-            // volume, which box and hull both enclose.
-            guard component.hullFill(width: bmp.width) >= lumpFill else { continue }
+            // And hollow ones: a ring of glare round a panel encloses a
+            // hole. A snake of a hold does not, however little of its hull
+            // it fills, and the orange route on the first wall is snakes.
+            guard component.holeShare(width: bmp.width, isWall: isWall) < hollow,
+                  component.hullFill(width: bmp.width) >= lumpFill else { continue }
             // And patches on another route's hold.
             if pale, let labels, isPatch(component, labels: labels, index: index, colored: colored,
                                          width: bmp.width, height: bmp.height) {
                 continue
+            }
+            if dark {
+                // A dark blob bigger than any black hold is a panel.
+                guard Double(component.count) / total <= darkSheet else { continue }
+                // And a dark blob with a coloured hold sitting on top of it
+                // is that hold's shadow: light comes from above. A shadow
+                // is a thin crescent; a black volume under a blue hold is a
+                // hold, however much blue sits above it.
+                let thin = h <= w * shadowThinness && Double(component.count) / total <= shadowSize
+                if thin, let labels, isShadow(component, labels: labels, colored: colored, width: bmp.width) { continue }
             }
 
             found.append(Hold(
@@ -172,6 +190,36 @@ enum RouteScanner {
         }
         // Biggest first, so the review list leads with the holds that matter.
         return found.sorted { $0.area > $1.area }
+    }
+
+    /// The largest a black hold is, as a share of the picture. The black
+    /// panel on the first wall came in pieces of several per cent each.
+    static let darkSheet = 0.012
+    /// A dark blob whose top edge is this much under a coloured route's
+    /// pixels is a shadow the hold throws, not a hold.
+    static let shadowShare = 0.4
+    /// And it has to be the shape of one: no taller than this share of its
+    /// width, and no bigger than this share of the picture.
+    static let shadowThinness = 0.6
+    static let shadowSize = 0.003
+
+    /// Whether a dark blob is the shadow under a coloured hold: along its
+    /// top edge, the pixels just above it are mostly another route's.
+    private static func isShadow(_ c: Component, labels: [Int8], colored: [Bool], width: Int) -> Bool {
+        var top: [Int: Int] = [:]
+        for p in c.pixels {
+            let i = Int(p), x = i % width, y = i / width
+            if let t = top[x] { if y < t { top[x] = y } } else { top[x] = y }
+        }
+        var over = 0, n = 0
+        for (x, y) in top where y >= 2 {
+            n += 1
+            for dy in 1...2 {
+                let l = labels[(y - dy) * width + x]
+                if l >= 0, Int(l) < colored.count, colored[Int(l)] { over += 1; break }
+            }
+        }
+        return n > 0 && Double(over) / Double(n) >= shadowShare
     }
 
     /// Whether a blob sits on another route's hold rather than on the wall.
@@ -301,9 +349,23 @@ enum RouteScanner {
         let candidates = commonColors(in: bmp, apart: tolerance * 0.6, ground: ground)
             .filter { c in
                 let chroma = (c.lab.a * c.lab.a + c.lab.b * c.lab.b).squareRoot()
-                guard chroma < groundChroma else { return true }
+                // A grey, and a muted colour too, has to stand clear of the
+                // wall. Glare on a grey-blue panel comes back faintly pink
+                // and a lit slab faintly cream, each a shade of the wall
+                // with a little colour in it, and each was offered as a
+                // route of forty holds.
+                guard chroma < mutedChroma else { return true }
                 let nearest = ground.map { $0.distance(to: c.lab) }.min() ?? .infinity
-                return nearest >= neutralClearance
+                if nearest >= neutralClearance { return true }
+                // A muted colour that is clearly its own hue and clearly
+                // lighter or darker than the wall is a route: the blue on
+                // the second wall is both. Glare is the wall's own
+                // lightness with a little colour in it, and is neither.
+                guard chroma >= groundChroma else { return false }
+                return ground.allSatisfy { g in
+                    let hueDistance = ((g.a - c.lab.a) * (g.a - c.lab.a) + (g.b - c.lab.b) * (g.b - c.lab.b)).squareRoot()
+                    return hueDistance >= mutedHueClearance && abs(g.l - c.lab.l) >= mutedLightnessClearance
+                }
             }
         // One hue, one route. A yellow hold in the light, the same hold in
         // shadow and the same hold under chalk sit far apart in Lab, and the
@@ -336,7 +398,7 @@ enum RouteScanner {
                 .filter { $0.area <= maxAreaFraction }
                 .reduce(0.0) { $0 + $1.area } * total
             guard labelled > 0, sized / Double(labelled) >= routePurity else { continue }
-            let found = holds(in: bmp, labels: &labels, index: i, colors: joined.map(\.lab))
+            let found = holds(in: bmp, labels: &labels, index: i, colors: joined.map(\.lab), ground: ground)
             guard found.count >= minimumHolds else { continue }
             swatches.append(Swatch(hex: candidate.hex, lab: candidate.lab,
                                    holds: found,
@@ -357,9 +419,9 @@ enum RouteScanner {
     static func holds(in bmp: Bitmap, colors: [Lab], index: Int,
                       tolerance: Double) -> [Hold] {
         guard colors.indices.contains(index) else { return [] }
-        var labels = segment(bmp, colors: colors, tolerance: tolerance,
-                             ground: groundColors(in: bmp))
-        return holds(in: bmp, labels: &labels, index: index, colors: colors)
+        let ground = groundColors(in: bmp)
+        var labels = segment(bmp, colors: colors, tolerance: tolerance, ground: ground)
+        return holds(in: bmp, labels: &labels, index: index, colors: colors, ground: ground)
     }
 
     // MARK: Shades of one hue
@@ -430,6 +492,13 @@ enum RouteScanner {
     /// How far a neutral colour has to sit from the wall's own colours before
     /// it can be a route rather than a shade of the wall.
     static let neutralClearance = 25.0
+    /// Below this chroma a candidate is muted enough to be a shade of the
+    /// wall, and is held to the same clearance as a grey. A real muted
+    /// route, the blue on the second wall at 21, stands thirty from its
+    /// wall; glare stands under twenty.
+    static let mutedChroma = 28.0
+    static let mutedHueClearance = 18.0
+    static let mutedLightnessClearance = 8.0
     /// A pixel this faintly coloured, and darker than a route, can still be
     /// that route's hold in deep shadow. Below it there is no hue to read.
     static let shadowChroma = 7.0
@@ -544,16 +613,21 @@ enum RouteScanner {
         return labels
     }
 
-    static func holds(in bmp: Bitmap, labels: inout [Int8], index: Int, colors: [Lab] = []) -> [Hold] {
+    static func holds(in bmp: Bitmap, labels: inout [Int8], index: Int, colors: [Lab] = [],
+                      ground: [Lab] = []) -> [Hold] {
         var mask = [Bool](repeating: false, count: labels.count)
         for i in labels.indices { mask[i] = labels[i] == Int8(index) }
-        return holds(in: bmp, mask: &mask, labels: labels, index: index, colors: colors)
+        return holds(in: bmp, mask: &mask, labels: labels, index: index, colors: colors, ground: ground)
     }
 
     /// A lump fills this much of its own convex hull. A crescent fills about
     /// half, a chalked black hold with the chalk read as cream about a third;
     /// a ring of glare round a panel, under a quarter.
-    static let lumpFill = 0.3
+    static let lumpFill = 0.1
+    /// A blob enclosing this much background, against its own pixels, is a
+    /// ring: the ring on the fourth wall enclosed several times its own
+    /// area.
+    static let hollow = 0.5
     /// A blob whose edge touches another route's pixels more than it touches
     /// wall is a patch on that route's hold: chalk on a green sloper read as
     /// a white hold, the lit face of a red hold read as orange.
@@ -791,6 +865,37 @@ enum RouteScanner {
             boundary(width: width).map {
                 CGPoint(x: (Double($0.0) + 0.5) / Double(width), y: (Double($0.1) + 0.5) / Double(height))
             }
+        }
+
+        /// The share of the blob's own box that is background enclosed by
+        /// the blob: a hole. A ring of glare round a panel has one; a snake
+        /// of a hold has bays that open to the outside, and none. Found by
+        /// flooding the background in from the box's margin and seeing what
+        /// background is left.
+        func holeShare(width: Int, isWall: (Int) -> Bool) -> Double {
+            let (m, w, h) = local(width: width)
+            var seen = [Bool](repeating: false, count: w * h)
+            var stack: [Int] = []
+            for x in 0..<w { stack.append(x); stack.append((h - 1) * w + x) }
+            for y in 0..<h { stack.append(y * w); stack.append(y * w + w - 1) }
+            while let i = stack.popLast() {
+                guard i >= 0, i < w * h, !seen[i], !m[i] else { continue }
+                seen[i] = true
+                let x = i % w, y = i / w
+                if x > 0 { stack.append(i - 1) }
+                if x < w - 1 { stack.append(i + 1) }
+                if y > 0 { stack.append(i - w) }
+                if y < h - 1 { stack.append(i + w) }
+            }
+            // Only wall counts as hole. Chalk inside a black hold is not
+            // wall, whether or not any route claimed it.
+            var holes = 0
+            for i in 0..<(w * h) where !m[i] && !seen[i] {
+                let x = i % w - 1 + minX, y = i / w - 1 + minY
+                guard x >= 0, y >= 0, x < width else { continue }
+                if isWall(y * width + x) { holes += 1 }
+            }
+            return Double(holes) / Double(max(count, 1))
         }
 
         /// How much of its own convex hull the blob fills. A lump fills

@@ -70,7 +70,7 @@ enum CoverageEngine {
     /// claimed its own sticker for the yellow route.
     /// A sticker is about 0.03 by 0.02 of the picture; a hold that small
     /// never carries one.
-    static let tagHold = 0.001
+    static let tagHold = 0.0015
     /// Setters put the sticker just under its hold. A hold has to sit above
     /// or level with the sticker to own it: blue's finish sat between the
     /// blue hold above and a green one below, nearer the green.
