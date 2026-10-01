@@ -226,11 +226,23 @@ enum RouteScanner {
                 let nearest = ground.map { $0.distance(to: c.lab) }.min() ?? .infinity
                 return nearest >= neutralClearance
             }
+        // One hue, one route. A yellow hold in the light, the same hold in
+        // shadow and the same hold under chalk sit far apart in Lab, and the
+        // histogram keeps them as three colours; each then got a third of the
+        // route and the rest of its boxes went to its neighbours. Shades of
+        // one hue are joined here and their holds pooled.
+        let families = hueFamilies(candidates)
         var labels = segment(bmp, colors: candidates.map(\.lab), tolerance: tolerance,
                              ground: ground)
+        var family = [Int8](repeating: -1, count: candidates.count)
+        for (f, members) in families.enumerated() { for m in members { family[m] = Int8(f) } }
+        for i in labels.indices where labels[i] >= 0 { labels[i] = family[Int(labels[i])] }
+        let joined = families.map { members in
+            members.map { candidates[$0] }.max { $0.count < $1.count }!
+        }
         var swatches: [Swatch] = []
         let total = Double(bmp.width * bmp.height)
-        for (i, candidate) in candidates.enumerated() {
+        for (i, candidate) in joined.enumerated() {
             // A route is made of holds. A shade of the wall that happens to
             // leave a few hold-shaped scraps behind has most of its pixels in
             // speckle too small to be anything and in panels too big to be a
@@ -269,6 +281,44 @@ enum RouteScanner {
         var labels = segment(bmp, colors: colors, tolerance: tolerance,
                              ground: groundColors(in: bmp))
         return holds(in: bmp, labels: &labels, index: index)
+    }
+
+    // MARK: Shades of one hue
+
+    /// How far apart in hue two colours can be and still be one route, in
+    /// radians. About twenty degrees: orange and pink on the third wall are
+    /// twenty-six apart, the two pinks ten.
+    static let familyHue = 0.35
+    /// And how much more saturated one can be than the other. A yellow hold
+    /// in shadow keeps about three quarters of its chroma; a cream hold has
+    /// under half of a yellow one's, and is a different route.
+    static let familyChroma = 1.5
+    /// Below this chroma a colour has no hue worth grouping on.
+    static let familyMinChroma = 20.0
+
+    /// Candidates grouped by hue, each group led by its most common member.
+    /// Membership is judged against the leader, not the last member joined,
+    /// so a chain cannot walk from orange through yellow into green.
+    static func hueFamilies(_ candidates: [Candidate]) -> [[Int]] {
+        func chroma(_ l: Lab) -> Double { (l.a * l.a + l.b * l.b).squareRoot() }
+        func hue(_ l: Lab) -> Double { atan2(l.b, l.a) }
+        var families: [[Int]] = []
+        for i in candidates.indices.sorted(by: { candidates[$0].count > candidates[$1].count }) {
+            let c = candidates[i].lab
+            var joined = false
+            if chroma(c) >= familyMinChroma {
+                for f in families.indices {
+                    let lead = candidates[families[f][0]].lab
+                    guard chroma(lead) >= familyMinChroma else { continue }
+                    var dh = abs(hue(c) - hue(lead))
+                    if dh > .pi { dh = 2 * .pi - dh }
+                    let ratio = max(chroma(c), chroma(lead)) / min(chroma(c), chroma(lead))
+                    if dh < familyHue, ratio <= familyChroma { families[f].append(i); joined = true; break }
+                }
+            }
+            if !joined { families.append([i]) }
+        }
+        return families
     }
 
     // MARK: What the wall is made of
