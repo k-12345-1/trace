@@ -273,7 +273,10 @@ struct SubscriptionScreen: View {
                     MetricStrip(items: [
                         .init(value: billing.isPro ? "Pro" : "Free", label: "Plan"),
                         .init(value: billing.isComped ? "Comped" : billing.isPro ? billing.priceText : "—", label: "Price"),
-                        .init(value: "\(store.analysesUsed)", label: "Clips and scans")
+                        // What is left, not what was used. A count of three
+                        // beside a plan reads as a cap of three.
+                        .init(value: billing.isPro ? "Unlimited" : "\(store.freeAnalysesLeft) of \(Store.freeAnalyses)",
+                              label: billing.isPro ? "Climbs, scans" : "Free uses left")
                     ])
                     .padding(18)
                     .card()
