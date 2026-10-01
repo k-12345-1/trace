@@ -436,6 +436,7 @@ struct RouteDetailScreen: View {
     @ObservedObject private var store = Store.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showLine = true
+    @State private var showNumbers = true
     @State private var showFigure = false
     @State private var figureT = 0.0
     @State private var figurePlaying = false
@@ -527,17 +528,28 @@ struct RouteDetailScreen: View {
         .preferredColorScheme(.light)
     }
 
-    private let photoHeight: CGFloat = 420
+    /// The photo fills the width. Its height follows its own shape, capped so
+    /// the route's name and line are still reachable without a long scroll;
+    /// past the cap the picture crops top and bottom rather than leaving the
+    /// black bars it used to leave at the sides.
+    private var photoHeight: CGFloat {
+        guard let data = try? Data(contentsOf: live.photoURL), let ui = UIImage(data: data),
+              ui.size.width > 0 else { return 420 }
+        let w = UIScreen.main.bounds.width
+        return min(w * ui.size.height / ui.size.width, UIScreen.main.bounds.height * 0.72)
+    }
 
     @ViewBuilder
     private var photo: some View {
         if let data = try? Data(contentsOf: live.photoURL), let ui = UIImage(data: data) {
             GeometryReader { geo in
-                let r = fitted(image: ui.size, in: geo.size)
+                let r = filled(image: ui.size, in: geo.size)
                 let line = showLine ? LineEngine.read(holds: live.holds) : nil
                 ZStack {
                     Color.black
-                    Image(uiImage: ui).resizable().aspectRatio(contentMode: .fit)
+                    Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
 
                     // The line, drawn through the holds in the order they are
                     // met. Under the boxes, so it never hides a hold.
@@ -563,7 +575,7 @@ struct RouteDetailScreen: View {
                             .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
                     }
 
-                    if let line {
+                    if let line, showNumbers {
                         ForEach(Array(line.holds.enumerated()), id: \.offset) { i, hold in
                             Text("\(i + 1)")
                                 .font(Theme.mono(10, weight: .bold))
@@ -577,8 +589,9 @@ struct RouteDetailScreen: View {
 
                     // The figure, over everything, at wherever the scrubber is.
                     if showFigure, let line = LineEngine.read(holds: live.holds),
-                       let seq = BetaEngine.read(line: line), let pose = seq.pose(at: figureT) {
-                        BetaFigure(pose: pose, rect: r, span: seq.span)
+                       let seq = BetaEngine.read(line: line, body: store.body),
+                       let pose = seq.pose(at: figureT) {
+                        BetaFigure(pose: pose, rect: r, span: seq.span, shape: seq.shape)
                     }
                 }
             }
@@ -604,19 +617,29 @@ struct RouteDetailScreen: View {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle("The line")
                     Spacer()
-                    Button { withAnimation(.easeInOut(duration: 0.2)) { showLine.toggle() } } label: {
-                        Text(showLine ? "Hide on photo" : "Show on photo")
-                            .font(Theme.ui(13.5, .semibold))
-                            .foregroundStyle(Theme.accentText)
-                            .contentShape(Rectangle())
+                    HStack(spacing: 14) {
+                        Button { withAnimation(.easeInOut(duration: 0.2)) { showNumbers.toggle() } } label: {
+                            Text(showNumbers ? "Hide numbers" : "Show numbers")
+                                .font(Theme.ui(13.5, .semibold))
+                                .foregroundStyle(showLine ? Theme.accentText : Theme.ink3)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!showLine)
+                        Button { withAnimation(.easeInOut(duration: 0.2)) { showLine.toggle() } } label: {
+                            Text(showLine ? "Hide on photo" : "Show on photo")
+                                .font(Theme.ui(13.5, .semibold))
+                                .foregroundStyle(Theme.accentText)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
 
                 // Climb it: a figure moved through the stances. Off by default,
                 // because it is a drawing of one shape and not the beta, and it
                 // says so where it is switched on.
-                if let seq = BetaEngine.read(line: line) {
+                if let seq = BetaEngine.read(line: line, body: store.body) {
                     VStack(alignment: .leading, spacing: 10) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -702,10 +725,13 @@ struct RouteDetailScreen: View {
         .frame(height: 260)
     }
 
-    private func fitted(image: CGSize, in size: CGSize) -> CGRect {
+    /// Where the photo sits when it fills the frame and crops: the opposite
+    /// branch of fitting. The holds, the line and the figure are all placed
+    /// with this, so they land on the picture that is actually shown.
+    private func filled(image: CGSize, in size: CGSize) -> CGRect {
         guard image.width > 0, image.height > 0 else { return .zero }
         let ia = image.width / image.height, va = size.width / size.height
-        if va > ia {
+        if va < ia {
             let w = size.height * ia
             return CGRect(x: (size.width - w) / 2, y: 0, width: w, height: size.height)
         }

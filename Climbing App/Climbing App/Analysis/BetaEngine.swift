@@ -62,6 +62,8 @@ enum BetaEngine {
         let stances: [Pose]
         /// Arm span in photo units, the scale everything was drawn at.
         let span: Double
+        /// The proportions the figure was drawn with.
+        let shape: Shape
 
         /// The figure at a point through the route, 0 at the first stance and
         /// 1 at the last, eased between neighbours.
@@ -78,25 +80,59 @@ enum BetaEngine {
 
     // MARK: Proportions, in arm spans
 
+    /// The climber's shape, from their profile where they gave one.
+    ///
+    /// Everything is in arm spans because the span is what reaches between
+    /// holds. Height comes in as the ratio of height to span: a plus ape
+    /// index makes the legs and torso shorter against the arms, a minus one
+    /// longer, which is exactly the difference that decides whether a foot
+    /// reaches a hold while the hands stay where they are.
+    struct Shape {
+        /// Height over span. One for the average body.
+        let heightOverSpan: Double
+        var upperArm: Double { 0.19 }
+        var forearm: Double { 0.19 }
+        var shoulderWidth: Double { 0.22 }
+        var torso: Double { 0.30 * heightOverSpan }
+        var thigh: Double { 0.245 * heightOverSpan }
+        var shin: Double { 0.225 * heightOverSpan }
+        var headRadius: Double { 0.055 * heightOverSpan }
+        var arm: Double { upperArm + forearm }
+        var leg: Double { thigh + shin }
+
+        static let average = Shape(heightOverSpan: 1.0)
+
+        init(heightOverSpan: Double) { self.heightOverSpan = heightOverSpan }
+
+        init(_ body: BodyProfile) {
+            if let h = body.heightCM, let s = body.spanCM, h > 0, s > 0 {
+                self.init(heightOverSpan: min(max(h / s, 0.85), 1.15))
+            } else {
+                self.init(heightOverSpan: 1.0)
+            }
+        }
+    }
+
     /// Consecutive hand holds on a gym boulder, as a fraction of a span.
     static let spansPerGap = 2.6
-    static let upperArm = 0.19
-    static let forearm = 0.19
-    static let shoulderWidth = 0.22
-    static let torso = 0.30
-    static let thigh = 0.26
-    static let shin = 0.24
-    static let headAbove = 0.10
     /// A foot will not go higher than this above the hips, in spans. Hip
     /// height is a high step, and the coaches say not to.
     static let highestFoot = -0.05
+    /// A leg can take a hold a little past its straight length, because the
+    /// hips come across to meet it: a rock-over.
+    static let legStretch = 1.25
+    /// How far the hips move toward the feet when they are on holds, as a
+    /// share of the gap. Weight over the feet, which is the thing every
+    /// finding in this app is about.
+    static let hipsTowardFeet = 0.45
     /// Where a smeared foot goes when there is no hold for it.
     static let smearDrop = 0.44
     static let smearOut = 0.10
 
     // MARK: Reading
 
-    static func read(line: LineEngine.Line) -> Sequence? {
+    static func read(line: LineEngine.Line, body: BodyProfile = .empty) -> Sequence? {
+        let shape = Shape(body)
         let holds = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         guard holds.count >= 2 else { return nil }
         var gaps: [Double] = []
@@ -111,48 +147,72 @@ enum BetaEngine {
             // Left hand on the left of the pair, whichever came first.
             let (l, r) = a.x <= b.x ? (a, b) : (b, a)
             stances.append(stance(leftHand: l, rightHand: r, holds: holds,
-                                  handIndex: i + 1, span: span))
+                                  handIndex: i + 1, span: span, shape: shape))
         }
-        return Sequence(stances: stances, span: span)
+        return Sequence(stances: stances, span: span, shape: shape)
     }
 
-    /// The body hung from two hands.
+    /// The body hung from two hands, standing on what it can.
     static func stance(leftHand: CGPoint, rightHand: CGPoint, holds: [CGPoint],
-                       handIndex: Int, span: Double) -> Pose {
-        let arm = (upperArm + forearm) * span
+                       handIndex: Int, span: Double, shape: Shape = .average) -> Pose {
+        let arm = shape.arm * span
         let mid = CGPoint(x: (leftHand.x + rightHand.x) / 2, y: (leftHand.y + rightHand.y) / 2)
         let handGap = distance(leftHand, rightHand)
 
         // Shoulders below the hands, as far as the arms allow. Each shoulder
         // sits under its hand, so with the hands wide the arms open into a V
         // and with them close the shoulders drop straight down.
-        let half = min(handGap / 2, shoulderWidth * span / 2)
-        let reach = (arm * arm - max(0, handGap / 2 - half) * max(0, handGap / 2 - half)).squareRoot()
+        let half = min(handGap / 2, shape.shoulderWidth * span / 2)
+        let slack = max(0, handGap / 2 - half)
+        let reach = max(0, arm * arm - slack * slack).squareRoot()
         let drop = reach * 0.92   // arms nearly straight, not locked
-        let ls = CGPoint(x: mid.x - half, y: mid.y + drop)
-        let rs = CGPoint(x: mid.x + half, y: mid.y + drop)
-        let neck = CGPoint(x: mid.x, y: mid.y + drop)
-        let head = CGPoint(x: neck.x, y: neck.y - headAbove * span)
-        let hips = CGPoint(x: mid.x, y: neck.y + torso * span)
+        var neck = CGPoint(x: mid.x, y: mid.y + drop)
+        var hips = CGPoint(x: mid.x, y: neck.y + shape.torso * span)
+
+        // Feet first, because the feet decide where the hips go. The highest
+        // holds below the hips a leg can reach, one each side where possible,
+        // never a hold a hand is on. A leg may take a hold a little past its
+        // straight length, because the hips will come across to it.
+        let leg = shape.leg * span
+        let candidates = holds.enumerated().filter { k, _ in
+            k < handIndex - 1 || k > handIndex
+        }.filter { _, h in
+            h.y - hips.y >= highestFoot * span && distance(h, hips) <= leg * legStretch
+        }
+        var leftPick = candidates.filter { $0.element.x <= hips.x }.min { $0.element.y < $1.element.y }
+        var rightPick = candidates.filter { $0.element.x > hips.x }.min { $0.element.y < $1.element.y }
+        // One side empty: the other side's next hold beats smearing, both feet
+        // to one side with the hips brought over.
+        if leftPick == nil, let r = rightPick {
+            leftPick = candidates.filter { $0.offset != r.offset && $0.element.x > hips.x }
+                .min { $0.element.y < $1.element.y }
+        } else if rightPick == nil, let l = leftPick {
+            rightPick = candidates.filter { $0.offset != l.offset && $0.element.x <= hips.x }
+                .min { $0.element.y < $1.element.y }
+        }
+        if let l = leftPick, let r = rightPick, l.element.x > r.element.x { swap(&leftPick, &rightPick) }
+
+        // Weight over the feet. With feet on holds the hips come toward them,
+        // as far as the arms allow the shoulders to follow.
+        let onHolds = [leftPick, rightPick].compactMap { $0?.element }
+        if !onHolds.isEmpty {
+            let feetX = onHolds.map(\.x).reduce(0, +) / Double(onHolds.count)
+            var dx = (feetX - hips.x) * hipsTowardFeet
+            let used = max(distance(leftHand, CGPoint(x: neck.x - half, y: neck.y)),
+                           distance(rightHand, CGPoint(x: neck.x + half, y: neck.y)))
+            let limit = max(0, arm - used)
+            dx = min(max(dx, -limit), limit)
+            neck.x += dx; hips.x += dx
+        }
+        let ls = CGPoint(x: neck.x - half, y: neck.y)
+        let rs = CGPoint(x: neck.x + half, y: neck.y)
+        let head = CGPoint(x: neck.x, y: neck.y - shape.headRadius * span * 1.6)
 
         // Elbows bow outward a little, so a straight arm still reads as one.
         func elbow(_ hand: CGPoint, _ shoulder: CGPoint, out: Double) -> CGPoint {
             let m = CGPoint(x: (hand.x + shoulder.x) / 2, y: (hand.y + shoulder.y) / 2)
             return CGPoint(x: m.x + out * span * 0.05, y: m.y)
         }
-
-        // Feet: the highest holds below the hips each leg can reach, one to
-        // each side of the hips where possible, never on a hand hold.
-        let leg = (thigh + shin) * span
-        let candidates = holds.enumerated().filter { k, h in
-            k < handIndex - 1 || k > handIndex
-        }.filter { _, h in
-            h.y - hips.y >= highestFoot * span && distance(h, hips) <= leg * 0.98
-        }
-        let leftPick = candidates.filter { $0.element.x <= hips.x }
-            .min { $0.element.y < $1.element.y }
-        let rightPick = candidates.filter { $0.element.x > hips.x }
-            .min { $0.element.y < $1.element.y }
 
         func foot(_ pick: (offset: Int, element: CGPoint)?, side: Double) -> (CGPoint, Int?) {
             if let pick { return (pick.element, pick.offset) }
@@ -198,5 +258,5 @@ enum BetaEngine {
         return (dx * dx + dy * dy).squareRoot()
     }
 
-    static let caveat = "One shape through the line, drawn to show the order and the reaches. Trace cannot see hold types, the wall's angle, or which way a hold faces, so this is not the sequence, and the figure is sized from the route rather than from you."
+    static let caveat = "One shape through the line, drawn to show the order and the reaches. Trace cannot see hold types, the wall's angle, or which way a hold faces, so this is not the sequence. The figure has your proportions if you have given Trace your height and span, and is sized to the route, because a photograph cannot measure a person."
 }

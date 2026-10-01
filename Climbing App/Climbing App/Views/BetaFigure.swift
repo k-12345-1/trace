@@ -12,6 +12,7 @@ struct BetaFigure: View {
     let rect: CGRect
     /// Arm span in photo units, for sizing the marks.
     let span: Double
+    var shape: BetaEngine.Shape = .average
 
     private func at(_ p: CGPoint) -> CGPoint {
         CGPoint(x: rect.minX + p.x * rect.width, y: rect.minY + p.y * rect.height)
@@ -19,28 +20,39 @@ struct BetaFigure: View {
 
     var body: some View {
         Canvas { ctx, _ in
-            let w = max(2.5, rect.width * span * 0.045)
-            for (a, b) in pose.bones {
+            // A body, not a wire: limbs with the thickness of limbs, a torso
+            // between the shoulders and the hips, a head. Drawn in the live
+            // overlay's two inks so it reads as the same idea.
+            let limb = max(4, rect.width * span * 0.075)
+            let ink = Theme.blue.opacity(0.88)
+
+            let ls = at(pose.leftShoulder), rs = at(pose.rightShoulder), hp = at(pose.hips)
+            let hipHalf = max(limb * 0.6, (rs.x - ls.x) * 0.38)
+            var torso = Path()
+            torso.move(to: ls); torso.addLine(to: rs)
+            torso.addLine(to: CGPoint(x: hp.x + hipHalf, y: hp.y))
+            torso.addLine(to: CGPoint(x: hp.x - hipHalf, y: hp.y)); torso.closeSubpath()
+            ctx.stroke(torso, with: .color(Theme.chalk.opacity(0.95)),
+                       style: StrokeStyle(lineWidth: limb + 4, lineJoin: .round))
+            ctx.fill(torso, with: .color(ink))
+            ctx.stroke(torso, with: .color(ink), style: StrokeStyle(lineWidth: limb, lineJoin: .round))
+
+            for (a, b) in pose.bones where !(a == pose.leftShoulder && b == pose.rightShoulder) {
                 var path = Path()
                 path.move(to: at(a)); path.addLine(to: at(b))
                 ctx.stroke(path, with: .color(Theme.chalk.opacity(0.95)),
-                           style: StrokeStyle(lineWidth: w + 4, lineCap: .round))
-                ctx.stroke(path, with: .color(Theme.blue),
-                           style: StrokeStyle(lineWidth: w, lineCap: .round))
+                           style: StrokeStyle(lineWidth: limb + 4, lineCap: .round))
+                ctx.stroke(path, with: .color(ink),
+                           style: StrokeStyle(lineWidth: limb, lineCap: .round))
             }
-            let headR = rect.width * span * 0.055
+            let headR = max(5, rect.width * span * shape.headRadius)
             let h = at(pose.head)
             let headRect = CGRect(x: h.x - headR, y: h.y - headR, width: headR * 2, height: headR * 2)
-            ctx.fill(Path(ellipseIn: headRect), with: .color(Theme.chalk))
-            ctx.stroke(Path(ellipseIn: headRect.insetBy(dx: 1.5, dy: 1.5)),
-                       with: .color(Theme.blue), style: StrokeStyle(lineWidth: w * 0.8))
+            ctx.stroke(Path(ellipseIn: headRect), with: .color(Theme.chalk.opacity(0.95)),
+                       style: StrokeStyle(lineWidth: 4))
+            ctx.fill(Path(ellipseIn: headRect), with: .color(ink))
 
-            for p in pose.joints {
-                let q = at(p)
-                let r = w * 0.9
-                ctx.fill(Path(ellipseIn: CGRect(x: q.x - r, y: q.y - r, width: r * 2, height: r * 2)),
-                         with: .color(Theme.chalk))
-            }
+            let w = limb * 0.6
             // Feet: ringed on a hold, open on a smear.
             for (foot, hold) in [(pose.leftFoot, pose.leftFootHold), (pose.rightFoot, pose.rightFootHold)] {
                 let q = at(foot)
