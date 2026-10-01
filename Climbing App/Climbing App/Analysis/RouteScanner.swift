@@ -51,6 +51,12 @@ enum RouteScanner {
     static let curvedAspect = 2.0
     static let curvedFill = 0.22
 
+    /// A blob this many pixels thick at working width is a hold whatever
+    /// its outline, up to this aspect. The orange snakes on the first wall
+    /// run about twelve wide; an arete's shadow runs two.
+    static let thickHold = 7.0
+    static let snakeAspect = 6.0
+
     static func isHoldShaped(fill: Double, aspect: Double) -> Bool {
         aspect < holdAspect && (fill > holdFill || (aspect < curvedAspect && fill > curvedFill))
     }
@@ -147,17 +153,21 @@ enum RouteScanner {
         let maxPixels = Int(total * maxAreaFraction)
 
         var found: [Hold] = []
-        for component in components(mask: &mask, width: bmp.width, height: bmp.height,
-                                    minPixels: max(minPixels, 8), maxPixels: maxPixels,
-                                    outlines: true) {
+        for var component in components(mask: &mask, width: bmp.width, height: bmp.height,
+                                        minPixels: max(minPixels, 8), maxPixels: maxPixels,
+                                        outlines: true) {
             let w = Double(component.maxX - component.minX + 1)
             let h = Double(component.maxY - component.minY + 1)
             guard w > 2, h > 2 else { continue }
 
             // Reject stringy shapes: floor seams, tape lines, wall edges.
+            // Unless the string is thick: a snake of a hold is as tall and
+            // as thin in its box as a shadow line, and many pixels wide
+            // where the shadow is one or two.
             let fill = Double(component.count) / (w * h)
             let aspect = max(w / h, h / w)
-            guard isHoldShaped(fill: fill, aspect: aspect) else { continue }
+            let thick = component.thickness(width: bmp.width) >= thickHold && aspect < snakeAspect
+            guard isHoldShaped(fill: fill, aspect: aspect) || thick else { continue }
             // And hollow ones: a ring of glare round a panel encloses a
             // hole. A snake of a hold does not, however little of its hull
             // it fills, and the orange route on the first wall is snakes.
@@ -175,8 +185,8 @@ enum RouteScanner {
                 // is that hold's shadow: light comes from above. A shadow
                 // is a thin crescent; a black volume under a blue hold is a
                 // hold, however much blue sits above it.
-                let thin = h <= w * shadowThinness && Double(component.count) / total <= shadowSize
-                if thin, let labels, isShadow(component, labels: labels, colored: colored, width: bmp.width) { continue }
+                let small = Double(component.count) / total <= shadowSize
+                if small, let labels, isShadow(component, labels: labels, colored: colored, width: bmp.width) { continue }
             }
 
             found.append(Hold(
@@ -198,9 +208,8 @@ enum RouteScanner {
     /// A dark blob whose top edge is this much under a coloured route's
     /// pixels is a shadow the hold throws, not a hold.
     static let shadowShare = 0.4
-    /// And it has to be the shape of one: no taller than this share of its
-    /// width, and no bigger than this share of the picture.
-    static let shadowThinness = 0.6
+    /// And it has to be the size of one: no bigger than this share of the
+    /// picture. A black volume under a blue hold is a hold.
     static let shadowSize = 0.003
 
     /// Whether a dark blob is the shadow under a coloured hold: along its
@@ -822,12 +831,23 @@ enum RouteScanner {
             return (m, w, h)
         }
 
+        /// How many pixels the traced boundary ran, set by `boundary`.
+        var perimeterCache = 0
+
+        /// How thick the blob is, in pixels: twice its area over its
+        /// perimeter, which for a ribbon is the ribbon's width. A shadow
+        /// line down an arete is a pixel or two; a snake of a hold is many.
+        mutating func thickness(width: Int) -> Double {
+            if perimeterCache == 0 { _ = boundary(width: width) }
+            return perimeterCache > 0 ? 2 * Double(count) / Double(perimeterCache) : 0
+        }
+
         /// The boundary, traced round the blob, as points in the bitmap.
         ///
         /// Square tracing on the blob's own mask: walk the edge keeping the
         /// blob on the right, which follows a U into its bend where a hull
         /// bridges it. Thinned to a few dozen points for drawing.
-        func boundary(width: Int) -> [(Int, Int)] {
+        mutating func boundary(width: Int) -> [(Int, Int)] {
             let (m, w, _) = local(width: width)
             func on(_ x: Int, _ y: Int) -> Bool { x >= 0 && y >= 0 && x < w && y * w + x < m.count && m[y * w + x] }
             guard let startIndex = m.firstIndex(of: true) else { return [] }
@@ -854,6 +874,7 @@ enum RouteScanner {
                 if !found { break }
             } while !(cx == sx && cy == sy) && out.count < limit
             if out.count > 1, out.last! == (sx, sy) { out.removeLast() }
+            perimeterCache = out.count
             let step = max(1, out.count / 48)
             var thinned: [(Int, Int)] = []
             for (i, p) in out.enumerated() where i % step == 0 { thinned.append((p.0 + minX - 1, p.1 + minY - 1)) }
@@ -861,7 +882,7 @@ enum RouteScanner {
         }
 
         /// The outline, normalised to the bitmap.
-        func outline(width: Int, height: Int) -> [CGPoint] {
+        mutating func outline(width: Int, height: Int) -> [CGPoint] {
             boundary(width: width).map {
                 CGPoint(x: (Double($0.0) + 0.5) / Double(width), y: (Double($0.1) + 0.5) / Double(height))
             }
@@ -902,7 +923,7 @@ enum RouteScanner {
         /// nearly all of it; a ring of glare round a panel, a shadow along two
         /// sides of a volume, fills a fraction and used to be drawn as a large
         /// empty polygon.
-        func hullFill(width: Int) -> Double {
+        mutating func hullFill(width: Int) -> Double {
             let hull = RouteScanner.hull(boundary(width: width))
             guard hull.count >= 3 else { return 1 }
             var a = 0.0
