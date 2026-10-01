@@ -309,3 +309,20 @@ struct BetaTests {
         }
     }
 }
+
+extension BetaTests {
+    /// Hands further apart than two arms used to produce NaN for every other
+    /// joint, and a figure made of NaN is not drawn.
+    @Test("A stance the body cannot make still has a body")
+    func impossibleStanceStillDraws() throws {
+        let holds = [hold(0.10, 0.90), hold(0.90, 0.88), hold(0.50, 0.60), hold(0.50, 0.30)]
+        let line = try #require(LineEngine.read(holds: holds))
+        let seq = try #require(BetaEngine.read(line: line))
+        for s in seq.stances {
+            for p in s.joints + [s.head] {
+                #expect(p.x.isFinite && p.y.isFinite, "a joint went non-finite")
+            }
+            #expect(s.hips.y > min(s.leftHand.y, s.rightHand.y))
+        }
+    }
+}

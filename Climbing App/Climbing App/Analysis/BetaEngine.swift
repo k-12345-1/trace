@@ -163,9 +163,15 @@ enum BetaEngine {
         // sits under its hand, so with the hands wide the arms open into a V
         // and with them close the shoulders drop straight down.
         let half = min(handGap / 2, shape.shoulderWidth * span / 2)
-        let slack = max(0, handGap / 2 - half)
+        // Hands further apart than two arms is a stance this body cannot
+        // make. It used to take the square root of a negative number here
+        // and every joint but the hands became NaN, which on the screen was
+        // the climber vanishing at stance nine of twelve. Now the arms
+        // stretch to meet it and the shoulders sit just under the hands:
+        // wrong by a little, visibly, rather than gone.
+        let slack = min(max(0, handGap / 2 - half), arm * 0.95)
         let reach = max(0, arm * arm - slack * slack).squareRoot()
-        let drop = reach * 0.92   // arms nearly straight, not locked
+        let drop = max(reach * 0.92, arm * 0.25)   // arms nearly straight, not locked
         var neck = CGPoint(x: mid.x, y: mid.y + drop)
         var hips = CGPoint(x: mid.x, y: neck.y + shape.torso * span)
 

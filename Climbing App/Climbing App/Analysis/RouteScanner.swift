@@ -36,6 +36,12 @@ enum RouteScanner {
     static let maxAreaFraction = 0.06
     /// Analysis resolution. Big enough to separate holds, small enough to be instant.
     static let workingWidth = 420
+    /// What is hold shaped. A hold is a lump: it fills most of its box and is
+    /// not much longer than it is wide. The shadow line down an arete is
+    /// neither, and at five and a half to one it was passing as a hold and
+    /// being made the first move of the route.
+    static let holdAspect = 3.2
+    static let holdFill = 0.36
 
     // MARK: Color segmentation
 
@@ -100,7 +106,7 @@ enum RouteScanner {
                              width: w / Double(bmp.width), height: h / Double(bmp.height)),
                 area: Double(c.count) / total,
                 fill: fill, aspect: aspect,
-                passed: w > 2 && h > 2 && fill > 0.32 && aspect < 5.5 && c.count <= maxPixels))
+                passed: w > 2 && h > 2 && fill > holdFill && aspect < holdAspect && c.count <= maxPixels))
         }
         return out.sorted { $0.area > $1.area }
     }
@@ -120,7 +126,7 @@ enum RouteScanner {
             // Reject stringy shapes: floor seams, tape lines, wall edges.
             let fill = Double(component.count) / (w * h)
             let aspect = max(w / h, h / w)
-            guard fill > 0.32, aspect < 5.5 else { continue }
+            guard fill > holdFill, aspect < holdAspect else { continue }
 
             found.append(Hold(
                 rect: CGRect(x: Double(component.minX) / Double(bmp.width),
