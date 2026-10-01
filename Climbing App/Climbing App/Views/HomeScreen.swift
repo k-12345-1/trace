@@ -340,6 +340,13 @@ private struct GymTile<Face: View>: View {
 /// many of those went to the top.
 struct LibraryCard: View {
     let entry: LibraryEntry
+    @ObservedObject private var store = Store.shared
+
+    /// Where it was climbed, as the gym's own mark, when the climb is filed.
+    private var gym: Gym? {
+        guard let id = entry.latest.gymID ?? entry.attempts.compactMap(\.gymID).first else { return nil }
+        return store.gyms.first { $0.id == id }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -347,6 +354,15 @@ struct LibraryCard: View {
                 .frame(height: 112)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.rCard, style: .continuous))
+                .overlay(alignment: .topLeading) {
+                    if let gym {
+                        GymMark(name: gym.name, seed: gym.venueID ?? gym.id.uuidString, size: 26)
+                            .overlay(RoundedRectangle(cornerRadius: 26 * 0.22, style: .continuous)
+                                        .stroke(Theme.chalk.opacity(0.9), lineWidth: 1.5))
+                            .padding(8)
+                            .accessibilityLabel(gym.name)
+                    }
+                }
                 .overlay(alignment: .topTrailing) {
                     if entry.sendCount > 0 {
                         Image(systemName: "checkmark")
