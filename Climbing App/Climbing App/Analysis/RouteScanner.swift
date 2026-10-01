@@ -164,6 +164,7 @@ enum RouteScanner {
         if colors.indices.contains(index), colored[index], let labels {
             chalk = [Bool](repeating: false, count: bmp.width * bmp.height)
             for i in chalk.indices {
+                if bmp.isExcluded(i) { continue }
                 let j = Int(labels[i])
                 if j >= 0, colored.indices.contains(j), colored[j] { continue }
                 chalk[i] = isChalk(bmp.lab(at: i))
@@ -395,9 +396,12 @@ enum RouteScanner {
     /// the most common colors in any photograph of a wall, and they come out as
     /// single enormous blobs, which the size filter throws away: a color that
     /// leaves nothing hold shaped behind leaves no swatch.
+    /// - Parameter excluding: pixels at `paletteWidth` to read nothing
+    ///   from, the people in the shot. See `PeopleEngine`.
     static func palette(in image: CGImage, tolerance: Double = 30,
-                        limit: Int = 10) -> [Swatch] {
-        guard let bmp = Bitmap(image, targetWidth: paletteWidth) else { return [] }
+                        limit: Int = 10, excluding: [Bool]? = nil) -> [Swatch] {
+        guard var bmp = Bitmap(image, targetWidth: paletteWidth) else { return [] }
+        if let excluding, excluding.count == bmp.width * bmp.height { bmp.excluded = excluding }
 
         // What the wall is made of, taken out first.
         //
@@ -629,6 +633,7 @@ enum RouteScanner {
         var shadow = [Int8](repeating: -1, count: bmp.width * bmp.height)
         guard !colors.isEmpty, colors.count < 127 else { return labels }
         for i in 0..<(bmp.width * bmp.height) {
+            if bmp.isExcluded(i) { continue }
             let lab = bmp.lab(at: i)
             // Wall is wall, however close it happens to sit to a route colour.
             if isGround(lab, ground) { continue }
@@ -814,6 +819,7 @@ enum RouteScanner {
         var bins: [Int: Bin] = [:]
 
         for i in 0..<(bmp.width * bmp.height) {
+            if bmp.isExcluded(i) { continue }
             let lab = bmp.lab(at: i)
             if isGround(lab, ground) { continue }
             let key = (Int(lab.l / step) &* 73856093)
@@ -1223,6 +1229,15 @@ struct Bitmap {
     let height: Int
     private let pixels: [UInt8]
     private let labs: [Lab]
+    /// Pixels that are not the wall and not a route: the people standing
+    /// in the shot. No colour is read from them.
+    var excluded: [Bool]? = nil
+
+    /// Whether a pixel is one nothing should be read from.
+    func isExcluded(_ index: Int) -> Bool {
+        guard let excluded, index < excluded.count else { return false }
+        return excluded[index]
+    }
 
     init?(_ image: CGImage, targetWidth: Int) {
         let scale = min(1.0, Double(targetWidth) / Double(image.width))

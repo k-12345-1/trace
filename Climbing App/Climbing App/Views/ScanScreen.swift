@@ -464,7 +464,11 @@ struct ScanScreen: View {
     private func readTheWall(_ cg: CGImage) {
         reading = true
         Task.detached {
-            let read = RouteScanner.palette(in: cg)
+            // A climber standing in the shot is not a route.
+            let people = Bitmap(cg, targetWidth: RouteScanner.paletteWidth).flatMap {
+                PeopleEngine.mask(in: cg, width: $0.width, height: $0.height)
+            }
+            let read = RouteScanner.palette(in: cg, excluding: people)
             let writing = await RouteScanner.readTags(in: cg)
             // Writing on a hold means it is not a hold.
             var found = RouteScanner.withoutStickers(read, text: writing.text)
