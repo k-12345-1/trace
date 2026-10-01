@@ -257,30 +257,38 @@ struct ScanScreen: View {
             SectionHeader(micro: "Save it", title: "Which gym is this?")
 
             if !store.gyms.isEmpty {
-                VStack(spacing: 1) {
+                // Rows drawn like the fields under them, so the list and the
+                // text box read as one form rather than a box dropped into it.
+                VStack(spacing: 8) {
                     ForEach(store.gyms) { gym in
+                        let on = selectedGym?.id == gym.id
                         Button {
                             selectedGym = gym; gymName = ""
                         } label: {
                             HStack {
                                 Text(gym.name)
-                                    .font(Theme.body(14.5))
+                                    .font(Theme.ui(15))
                                     .foregroundStyle(Theme.ink)
                                 Spacer()
-                                if selectedGym?.id == gym.id {
-                                    MicroLabel(text: "Selected", color: Theme.accentText)
-                                }
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 24, height: 24)
+                                    .background(Circle().fill(Theme.blue))
+                                    .opacity(on ? 1 : 0)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 13)
-                            .background(selectedGym?.id == gym.id ? Theme.surface2 : Theme.surface)
-                            .contentShape(Rectangle())
+                            .background(on ? Theme.blueWash : Theme.surface2)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: Theme.r, style: .continuous)
+                                        .stroke(on ? Theme.blue : .clear, lineWidth: 1.5))
+                            .contentShape(RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(on ? .isSelected : [])
                     }
                 }
-                .background(Theme.line)
-                .overlay(Rectangle().stroke(Theme.line, lineWidth: 1))
             }
 
             field("New gym", text: $gymName, placeholder: "Brooklyn Boulders")

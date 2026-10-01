@@ -42,6 +42,15 @@ enum RouteScanner {
     /// being made the first move of the route.
     static let holdAspect = 3.2
     static let holdFill = 0.36
+    /// A curved hold, a crescent or a snake, fills little of its box and is
+    /// still a hold. Below this aspect the box is compact enough that a thin
+    /// fill is a bend rather than a line, and the fill rule is eased.
+    static let curvedAspect = 2.0
+    static let curvedFill = 0.22
+
+    static func isHoldShaped(fill: Double, aspect: Double) -> Bool {
+        aspect < holdAspect && (fill > holdFill || (aspect < curvedAspect && fill > curvedFill))
+    }
 
     // MARK: Color segmentation
 
@@ -106,7 +115,7 @@ enum RouteScanner {
                              width: w / Double(bmp.width), height: h / Double(bmp.height)),
                 area: Double(c.count) / total,
                 fill: fill, aspect: aspect,
-                passed: w > 2 && h > 2 && fill > holdFill && aspect < holdAspect && c.count <= maxPixels))
+                passed: w > 2 && h > 2 && isHoldShaped(fill: fill, aspect: aspect) && c.count <= maxPixels))
         }
         return out.sorted { $0.area > $1.area }
     }
@@ -126,7 +135,7 @@ enum RouteScanner {
             // Reject stringy shapes: floor seams, tape lines, wall edges.
             let fill = Double(component.count) / (w * h)
             let aspect = max(w / h, h / w)
-            guard fill > holdFill, aspect < holdAspect else { continue }
+            guard isHoldShaped(fill: fill, aspect: aspect) else { continue }
 
             found.append(Hold(
                 rect: CGRect(x: Double(component.minX) / Double(bmp.width),
@@ -171,6 +180,11 @@ enum RouteScanner {
     /// Fewer blobs than this is not a route, it is three holds that happen to
     /// match, or a logo on the mat.
     static let minimumHolds = 3
+    /// The share of a colour's pixels that have to sit in hold-sized blobs,
+    /// neither speckle nor sheet, for the colour to be a route. On the two
+    /// real walls every route is at 0.73 or above and every shade of wall and
+    /// shadow at 0.47 or below.
+    static let routePurity = 0.6
 
     /// Every route color Trace can see on this wall, best first.
     ///
@@ -215,7 +229,22 @@ enum RouteScanner {
         var labels = segment(bmp, colors: candidates.map(\.lab), tolerance: tolerance,
                              ground: ground)
         var swatches: [Swatch] = []
+        let total = Double(bmp.width * bmp.height)
         for (i, candidate) in candidates.enumerated() {
+            // A route is made of holds. A shade of the wall that happens to
+            // leave a few hold-shaped scraps behind has most of its pixels in
+            // speckle too small to be anything and in panels too big to be a
+            // hold. On a wall of grey-blue panels in uneven light two such
+            // shades led the list, boxed the wall, and were called routes.
+            // Judged on size alone, not shape: the orange route on the first
+            // wall is long curvy holds that fail the shape test and are holds.
+            var mask = [Bool](repeating: false, count: labels.count)
+            var labelled = 0
+            for j in labels.indices where labels[j] == Int8(i) { mask[j] = true; labelled += 1 }
+            let sized = blobs(in: bmp, mask: &mask)
+                .filter { $0.area <= maxAreaFraction }
+                .reduce(0.0) { $0 + $1.area } * total
+            guard labelled > 0, sized / Double(labelled) >= routePurity else { continue }
             let found = holds(in: bmp, labels: &labels, index: i)
             guard found.count >= minimumHolds else { continue }
             swatches.append(Swatch(hex: candidate.hex, lab: candidate.lab,
