@@ -52,3 +52,40 @@ struct PaperBand: View {
             .ignoresSafeArea(edges: .top)
     }
 }
+
+
+/// The page fading out as it passes under the clock.
+///
+/// This replaced a band of paper painted over the top of the page. The band
+/// was the page's own ground and grain, drawn again, and on the phone it came
+/// out a shade darker than the page beneath it, which is the tan strip at the
+/// top of every screen. Two drawings of the same paper can disagree; one
+/// cannot. So nothing is painted: the content itself is masked to fade over
+/// fourteen points as it reaches the status bar, and what shows through is the
+/// one ground the whole app sits on.
+///
+/// `amount` scales the fade from nothing (0) to the full height (1), for a
+/// screen that wants the fade to arrive as something scrolls away.
+struct FadesUnderTheTop: ViewModifier {
+    var amount: Double = 1
+
+    func body(content: Content) -> some View {
+        content.mask {
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: max(0, (geo.safeAreaInsets.top + 3) * amount))
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 14 * amount)
+                    Color.black
+                }
+                .ignoresSafeArea()
+            }
+        }
+    }
+}
+
+extension View {
+    func fadesUnderTheTop(_ amount: Double = 1) -> some View {
+        modifier(FadesUnderTheTop(amount: amount))
+    }
+}

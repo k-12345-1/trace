@@ -219,8 +219,8 @@ struct ProfileScreen: View {
     }
 
     private var subscriptionDetail: String {
-        Subscription.shared.isPro
-            ? "Trace Pro · active"
+        Subscription.shared.isComped ? "Trace Pro · comped"
+            : Subscription.shared.isPro ? "Trace Pro · active"
             : "Free · \(Store.shared.freeAnalysesLeft) of \(Store.freeAnalyses) left"
     }
 
@@ -258,7 +258,9 @@ struct SubscriptionScreen: View {
                         Text("Subscription")
                             .font(Theme.title(30))
                             .foregroundStyle(Theme.ink)
-                        Text(billing.isPro
+                        Text(billing.isComped
+                             ? "Trace Pro is on the house for this account. Nothing is billed."
+                             : billing.isPro
                              ? "Trace Pro is active on this Apple ID."
                              : "You are on the free plan.")
                             .font(Theme.ui(15))
@@ -270,7 +272,7 @@ struct SubscriptionScreen: View {
 
                     MetricStrip(items: [
                         .init(value: billing.isPro ? "Pro" : "Free", label: "Plan"),
-                        .init(value: billing.isPro ? billing.priceText : "—", label: "Price"),
+                        .init(value: billing.isComped ? "Comped" : billing.isPro ? billing.priceText : "—", label: "Price"),
                         .init(value: "\(store.analysesUsed)", label: "Clips and scans")
                     ])
                     .padding(18)
@@ -292,14 +294,19 @@ struct SubscriptionScreen: View {
                                     .contentShape(Capsule())
                             }
                             .buttonStyle(.plain)
+                        } else if billing.isComped {
+                            card("Nothing to cancel",
+                                 "This account has Pro without a subscription. There is no renewal, no charge, and nothing in Settings to turn off.")
                         } else {
                             card("Cancelling",
                                  "Open Settings, tap your name, then Subscriptions, and turn off renewal for Trace. Do it at least a day before the next charge to stop that charge. Everything on this phone stays where it is.")
                         }
+                        if !billing.isComped {
                         card("Where the payment goes",
                              "Through the App Store, billed to your Apple ID. Trace never sees your card or your billing details, and never receives a payment record with your name on it.")
                         card("Refunds",
                              "Handled by Apple under their own policy, at reportaproblem.apple.com. Trace cannot issue one.")
+                        }
 
                         Button {
                             Task { await billing.restore() }

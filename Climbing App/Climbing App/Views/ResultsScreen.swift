@@ -191,21 +191,11 @@ struct ResultsScreen: View {
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)
             .onPreferenceChange(StageBottomKey.self) { stageBottom = $0 }
-
-            // Fades in over the last twenty points of the footage leaving, so
-            // there is no frame where it snaps on.
-            VStack(spacing: 0) {
-                PaperBand().frame(height: 62)
-                LinearGradient(
-                    stops: [.init(color: Theme.ground, location: 0),
-                            .init(color: Theme.ground.opacity(0), location: 1)],
-                    startPoint: .top, endPoint: .bottom)
-                    .frame(height: 14)
-                Spacer(minLength: 0)
-            }
-            .ignoresSafeArea(edges: .top)
-            .opacity(coverOpacity)
-            .allowsHitTesting(false)
+            // Arrives over the last twenty points of the footage leaving, so
+            // there is no frame where it snaps on. A fade on the page itself
+            // rather than paper painted over it, for the reason in
+            // FadesUnderTheTop.
+            .fadesUnderTheTop(coverOpacity)
         }
         .reachesTheTop()
         .toolbar(.hidden, for: .navigationBar)

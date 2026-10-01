@@ -108,6 +108,9 @@ struct MainTabs: View {
             // tan across the top of every screen. The paper band above does
             // that job already, in the page's own color.
             .modifier(NoScrollEdgeTint())
+            // The page fades out under the clock rather than being covered
+            // by a second coat of paper. See FadesUnderTheTop for why.
+            .fadesUnderTheTop(topBleed ? 0 : 1)
 
             // A solid band under the bar, fading in at its top edge.
             //
@@ -140,40 +143,6 @@ struct MainTabs: View {
             .ignoresSafeArea(.keyboard, edges: .bottom)
             }
 
-            // The same band at the other end, for the same reason.
-            //
-            // A scroll view's top inset places its content, it does not clip
-            // it, so everything on every page slides up under the clock and the
-            // battery as you read. It is standard iOS and it still looks like a
-            // fault: the first line of a paragraph arrives with the time
-            // printed through it. The paywall was where it showed worst, a
-            // screen where confusion costs a sale, and it is the screen a
-            // reviewer opens first.
-            //
-            // Painted in the page's own paper rather than a blur, so it reads
-            // as the page beginning rather than as a bar laid over it, and it
-            // fades out downward so there is no line where it ends.
-            if !topBleed {
-            VStack(spacing: 0) {
-                PaperBand().frame(height: 0)
-                Spacer(minLength: 0)
-            }
-            .overlay(alignment: .top) {
-                VStack(spacing: 0) {
-                    PaperBand()
-                        .frame(height: 62)
-                    LinearGradient(
-                        stops: [
-                            .init(color: Theme.ground, location: 0),
-                            .init(color: Theme.ground.opacity(0), location: 1)
-                        ],
-                        startPoint: .top, endPoint: .bottom)
-                        .frame(height: 14)
-                }
-                .ignoresSafeArea(edges: .top)
-            }
-            .allowsHitTesting(false)
-            }
 
             // Tapping anywhere off the panel closes it, which is the only way
             // out that a modal would have given us for free.

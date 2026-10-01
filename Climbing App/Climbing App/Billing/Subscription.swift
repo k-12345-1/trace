@@ -37,6 +37,9 @@ final class Subscription: ObservableObject {
 
     /// What the store says right now.
     @Published private(set) var isPro = false
+    /// Pro without a purchase: the account is on the comped list. Shown as
+    /// such, so nobody reads a price they were never charged.
+    @Published private(set) var isComped = false
     /// The products, once the App Store has handed them over. Empty while
     /// loading, and empty forever if the device is offline, which the paywall
     /// has to survive.
@@ -131,7 +134,8 @@ final class Subscription: ObservableObject {
 
     /// The live entitlement, straight from StoreKit.
     func refresh() async {
-        if Self.isComped(Store.shared.account?.email) { isPro = true; return }
+        isComped = Self.isComped(Store.shared.account?.email)
+        if isComped { isPro = true; return }
         for await result in Transaction.currentEntitlements {
             guard case .verified(let t) = result,
                   Plan(rawValue: t.productID) != nil,
