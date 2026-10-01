@@ -182,3 +182,18 @@ struct WallExtentTests {
         }
     }
 }
+
+/// The top of the wall counts only where its edge was seen.
+@Suite("Top edge extent")
+struct TopExtentTests {
+    @Test func theTopStopsWhereTheEdgeStops() {
+        // A horizontal line at y = 100 of 400, seen across the left half.
+        let top = FaceEngine.Line(theta: .pi / 2, rho: 100, support: 1, run: 0...150)
+        let r = FaceEngine.Reading(seams: [], floor: nil, top: top)
+        #expect(!r.onTheWall(CGPoint(x: 0.25, y: 0.1), width: 300, height: 400))   // above the edge, under it
+        #expect(r.onTheWall(CGPoint(x: 0.25, y: 0.5), width: 300, height: 400))
+        #expect(r.onTheWall(CGPoint(x: 0.9, y: 0.1), width: 300, height: 400))     // past the edge: wall carries on
+        let whole = FaceEngine.Line(theta: .pi / 2, rho: 100, support: 1)
+        #expect(!FaceEngine.Reading(seams: [], floor: nil, top: whole).onTheWall(CGPoint(x: 0.9, y: 0.1), width: 300, height: 400))
+    }
+}

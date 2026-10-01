@@ -23,6 +23,12 @@ enum FaceEngine {
         let rho: Double
         /// Share of the line's run across the picture that is seam.
         let support: Double
+        /// Where along x, in bitmap pixels, the seam was actually found.
+        /// A line runs across the whole picture; the edge it was read
+        /// from may not. The top of the first wall is a straight edge
+        /// across the grey panels, and past them a black overhang runs
+        /// on up to the ceiling with holds the whole way.
+        var run: ClosedRange<Double>? = nil
 
         /// Which side of the line a point is on, in bitmap pixels.
         func side(_ p: CGPoint) -> Bool {
@@ -34,6 +40,14 @@ enum FaceEngine {
             let s = sin(theta)
             guard abs(s) > 1e-6 else { return nil }
             return (rho - x * cos(theta)) / s
+        }
+
+        /// Whether the edge was seen at this x, with slack of a few per
+        /// cent of the picture. True when no run was recorded.
+        func covers(x: Double, width: Int) -> Bool {
+            guard let run else { return true }
+            let slack = Double(width) * FaceEngine.runSlack
+            return x >= run.lowerBound - slack && x <= run.upperBound + slack
         }
 
         /// Where it crosses the picture, normalised, for drawing and tests.
@@ -150,7 +164,9 @@ enum FaceEngine {
         func onTheWall(_ p: CGPoint, width: Int, height: Int) -> Bool {
             let q = CGPoint(x: p.x * Double(width), y: p.y * Double(height))
             if let floor, let y = floor.y(atX: q.x), q.y > y { return false }
-            if let top, let y = top.y(atX: q.x), q.y < y { return false }
+            // The top counts only where it was seen, with a little slack:
+            // past the end of the edge the wall may well carry on up.
+            if let top, let y = top.y(atX: q.x), q.y < y, top.covers(x: q.x, width: width) { return false }
             return true
         }
     }
@@ -196,8 +212,8 @@ enum FaceEngine {
             let theta = Double(a) * angleStep * .pi / 180
             let rho = Double(r) - diag
             if taken.contains(where: { near($0, theta: theta, rho: rho) }) { continue }
-            if let support = walk(theta: theta, rho: rho, mask: mask, width: w, height: h, diag: diag) {
-                let line = Line(theta: theta, rho: rho, support: support)
+            if let (support, run) = walk(theta: theta, rho: rho, mask: mask, width: w, height: h, diag: diag) {
+                let line = Line(theta: theta, rho: rho, support: support, run: run)
                 taken.append(line)
                 if isFloor(line, width: w, height: h) {
                     // The floor is the highest such line, the top the lowest:
@@ -226,18 +242,26 @@ enum FaceEngine {
         return dt < mergeAngle && dr < mergeRho
     }
 
+    /// How far past the end of an edge's run it still counts, as a share
+    /// of the picture's width.
+    static let runSlack = 0.03
+
     /// The longest continuous run of seam along the line, with small gaps
-    /// allowed, as a share of the line's length inside the picture. Nil when
-    /// it is not a seam.
-    static func walk(theta: Double, rho: Double, mask: [Bool], width: Int, height: Int, diag: Double) -> Double? {
+    /// allowed, as a share of the line's length inside the picture, and
+    /// the x-span of that run. Nil when it is not a seam.
+    static func walk(theta: Double, rho: Double, mask: [Bool], width: Int, height: Int,
+                     diag: Double) -> (support: Double, run: ClosedRange<Double>)? {
         let c = cos(theta), s = sin(theta)
         let dx = -s, dy = c
         let px = rho * c, py = rho * s
         var inside = 0
         var runLength = 0, runHits = 0, gap = 0
+        var runStart = 0.0
         var bestLength = 0, bestHits = 0
+        var bestStart = 0.0, bestEnd = 0.0
         for t in stride(from: -diag, through: diag, by: 1.0) {
-            let x = Int((px + t * dx).rounded()), y = Int((py + t * dy).rounded())
+            let fx = px + t * dx
+            let x = Int(fx.rounded()), y = Int((py + t * dy).rounded())
             guard x >= 0, y >= 0, x < width, y < height else { continue }
             inside += 1
             var hit = mask[y * width + x]
@@ -248,9 +272,9 @@ enum FaceEngine {
                 }
             }
             if hit {
-                if runLength == 0 { runHits = 0 }
+                if runLength == 0 { runHits = 0; runStart = fx }
                 runLength += gap + 1; runHits += 1; gap = 0
-                if runLength > bestLength { bestLength = runLength; bestHits = runHits }
+                if runLength > bestLength { bestLength = runLength; bestHits = runHits; bestStart = runStart; bestEnd = fx }
             } else {
                 gap += 1
                 if gap > maximumGap { runLength = 0; gap = 0 }
@@ -259,7 +283,8 @@ enum FaceEngine {
         guard inside > 0, bestLength > 0 else { return nil }
         let density = Double(bestHits) / Double(bestLength)
         let runShare = Double(bestLength) / diag
-        return density >= minimumSupport && runShare >= minimumRun ? density : nil
+        guard density >= minimumSupport, runShare >= minimumRun else { return nil }
+        return (density, min(bestStart, bestEnd)...max(bestStart, bestEnd))
     }
 
     // MARK: Faces
