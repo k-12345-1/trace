@@ -243,7 +243,10 @@ enum BetaEngine {
     static let reachCost = 0.6
     static let sameHandCost = 0.35
     static let crossCost = 0.8
-    static let smearCost = 0.25
+    /// A smeared foot costs this per stance. On a ladder every hand move
+    /// needs a foot move, which is how people climb, and at a quarter a
+    /// smear tied with the foot move and won: every plan smeared.
+    static let smearCost = 0.5
     static let hipsOffCost = 1.2
     /// How far the hips may sit off the feet, in spans, before it costs.
     static let hipsLean = 0.12
@@ -303,11 +306,13 @@ enum BetaEngine {
             poses[p] = q
             return q
         }
-        func costOfStanding(_ p: Position) -> Double {
+        func costOfStanding(_ p: Position, smears: Bool = true) -> Double {
             let q = pose(p)
             var c = 0.0
-            if p.leftFoot < 0 { c += smearCost }
-            if p.rightFoot < 0 { c += smearCost }
+            if smears {
+                if p.leftFoot < 0 { c += smearCost }
+                if p.rightFoot < 0 { c += smearCost }
+            }
             // Hips off the feet, past the bit of lean a body stands with
             // for free. Without the dead zone standing on one foot cost
             // more than smearing both, and every plan smeared.
@@ -325,10 +330,12 @@ enum BetaEngine {
         if firstPose.leftFootHold != nil { origin.leftFoot = index(of: firstPose.leftFoot) }
         if firstPose.rightFootHold != nil { origin.rightFoot = index(of: firstPose.rightFoot) }
 
-        struct State: Hashable { let p: Position; let last: Int }   // last: 0 lh, 1 rh, 2 lf, 3 rf, 4 none
+        // last: 0 lh, 1 rh, 2 lf, 3 rf, 4 none. run: how many times in a
+        // row that hand has moved, so the third goes dearer than the second.
+        struct State: Hashable { let p: Position; let last: Int; let run: Int }
         var best: [State: Double] = [:]
         var from: [State: (State, Step)] = [:]
-        let start = State(p: origin, last: 4)
+        let start = State(p: origin, last: 4, run: 0)
         best[start] = 0
         var open: [(Double, State)] = [(0, start)]
         var goal: State?
@@ -371,11 +378,15 @@ enum BetaEngine {
                     guard feetHold else { continue }
                     let reach = distance(all[j], all[current]) / max(arm, 1e-6)
                     var c = reachCost * reach * reach
-                    if st.last == mover { c += sameHandCost }
+                    // The same hand again costs more each time: once is a
+                    // bump, twice is a lock-off held while the other arm
+                    // does nothing, which the planner used to prefer.
+                    let run = st.last == mover ? st.run + 1 : 0
+                    if run > 0 { c += sameHandCost * Double(run * run) }
                     if all[next.leftHand].x > all[next.rightHand].x + 0.02 { c += crossCost }
                     if j == staying { c += matchCost }
                     c += costOfStanding(next)
-                    let ns = State(p: next, last: mover)
+                    let ns = State(p: next, last: mover, run: min(run, 3))
                     let nd = d + c
                     if nd < (best[ns] ?? .infinity) {
                         best[ns] = nd
@@ -400,13 +411,15 @@ enum BetaEngine {
                     if mover == 2 { next.leftFoot = j } else { next.rightFoot = j }
                     // Left foot stays left of the right foot.
                     if next.leftFoot >= 0, next.rightFoot >= 0, all[next.leftFoot].x > all[next.rightFoot].x { continue }
+                    // A foot move pays for its own effort and the stance's
+                    // balance, not for smears: it is the thing that ends one.
                     var c = footMoveCost
                     if j >= 0, current >= 0 {
                         let travel = distance(all[j], all[current]) / max(leg, 1e-6)
                         c += footReachCost * travel * travel
                     }
-                    c += costOfStanding(next)
-                    let ns = State(p: next, last: mover)
+                    c += costOfStanding(next, smears: false)
+                    let ns = State(p: next, last: mover, run: 0)
                     let nd = d + c
                     if nd < (best[ns] ?? .infinity) {
                         best[ns] = nd
