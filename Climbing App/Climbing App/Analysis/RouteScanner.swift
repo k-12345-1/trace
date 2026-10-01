@@ -201,6 +201,15 @@ enum RouteScanner {
                                          share: isChalk(colors[index]) ? chalkPatchShare : patchShare) {
                 continue
             }
+            // A hold stands clear of the wall. A lit panel is wall that
+            // has drifted a shade toward cream, a chalk streak is wall gone
+            // a shade whiter, and either can read as a muted route's
+            // colour blob by blob. Their pixels sit a little way from the
+            // wall's colours; a hold's sit far. Not for a dark candidate,
+            // whose black holds on a black panel are near the wall by
+            // nature and are judged by shape above.
+            if !dark, colors.indices.contains(index),
+               clearance(of: component, in: bmp, wall: wallApart(from: colors[index], wall)) < holdClearance { continue }
             if dark {
                 // A dark blob bigger than any black hold is a panel.
                 guard Double(component.count) / total <= darkSheet else { continue }
@@ -223,6 +232,34 @@ enum RouteScanner {
         }
         // Biggest first, so the review list leads with the holds that matter.
         return found.sorted { $0.area > $1.area }
+    }
+
+    /// How far, in Lab, a hold's pixels sit from the wall on median. The
+    /// lit panel on the fifth wall sat at 14.7 and the chalk streak on it
+    /// at 15.4; the cream volumes on that wall at 31 and more.
+    static let holdClearance = 18.0
+
+    /// The wall colours that are not the candidate's own. A white route
+    /// on a wall where white has been called scenery would otherwise be
+    /// judged against itself and lose every hold.
+    private static func wallApart(from color: Lab, _ wall: [Lab]) -> [Lab] {
+        wall.filter { $0.distance(to: color) >= groundReach }
+    }
+
+    /// The median distance of a blob's pixels from the nearest wall colour,
+    /// over a sample of them.
+    private static func clearance(of component: Component, in bmp: Bitmap, wall: [Lab]) -> Double {
+        guard !wall.isEmpty, !component.pixels.isEmpty else { return .infinity }
+        let step = max(1, component.pixels.count / 400)
+        var ds: [Double] = []
+        var i = 0
+        while i < component.pixels.count {
+            let lab = bmp.lab(at: Int(component.pixels[i]))
+            ds.append(wall.map { $0.distance(to: lab) }.min() ?? .infinity)
+            i += step
+        }
+        ds.sort()
+        return ds[ds.count / 2]
     }
 
     /// The largest a black hold is, as a share of the picture. The black
