@@ -343,12 +343,11 @@ enum BetaEngine {
         var from: [State: (State, Step)] = [:]
         let start = State(p: origin, last: 4, run: 0)
         best[start] = 0
-        var open: [(Double, State)] = [(0, start)]
+        var open = Heap<State>()
+        open.push(0, start)
         var goal: State?
         var looked = 0
-        while !open.isEmpty, looked < searchLimit {
-            open.sort { $0.0 > $1.0 }
-            let (d, st) = open.removeLast()
+        while let (d, st) = open.pop(), looked < searchLimit {
             if d > (best[st] ?? .infinity) { continue }
             looked += 1
             if finishSet.contains(st.p.leftHand), finishSet.contains(st.p.rightHand) { goal = st; break }
@@ -399,7 +398,7 @@ enum BetaEngine {
                     if nd < (best[ns] ?? .infinity) {
                         best[ns] = nd
                         from[ns] = (st, Step(limb: mover == 0 ? .leftHand : .rightHand, to: j, match: j == staying))
-                        open.append((nd, ns))
+                        open.push(nd, ns)
                     }
                 }
             }
@@ -434,7 +433,7 @@ enum BetaEngine {
                     if nd < (best[ns] ?? .infinity) {
                         best[ns] = nd
                         from[ns] = (st, Step(limb: mover == 2 ? .leftFoot : .rightFoot, to: j, match: false))
-                        open.append((nd, ns))
+                        open.push(nd, ns)
                     }
                 }
             }
@@ -611,6 +610,40 @@ enum BetaEngine {
         guard h.y - highestHips >= highestFoot * span else { return false }
         let settledY = min(max(h.y - leg * 0.95, highestHips), hips.y)
         return distance(h, CGPoint(x: hips.x, y: settledY)) <= leg * legStretch
+    }
+
+    /// A binary min-heap on cost. The search used to sort its whole open
+    /// list on every pop, which on a twenty-hold route was six seconds.
+    struct Heap<T> {
+        private var items: [(Double, T)] = []
+        var isEmpty: Bool { items.isEmpty }
+        mutating func push(_ cost: Double, _ item: T) {
+            items.append((cost, item))
+            var i = items.count - 1
+            while i > 0 {
+                let parent = (i - 1) / 2
+                guard items[i].0 < items[parent].0 else { break }
+                items.swapAt(i, parent); i = parent
+            }
+        }
+        mutating func pop() -> (Double, T)? {
+            guard !items.isEmpty else { return nil }
+            let top = items[0]
+            let last = items.removeLast()
+            if !items.isEmpty {
+                items[0] = last
+                var i = 0
+                while true {
+                    let l = 2 * i + 1, r = l + 1
+                    var m = i
+                    if l < items.count, items[l].0 < items[m].0 { m = l }
+                    if r < items.count, items[r].0 < items[m].0 { m = r }
+                    guard m != i else { break }
+                    items.swapAt(i, m); i = m
+                }
+            }
+            return top
+        }
     }
 
     // MARK: Helpers
