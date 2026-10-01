@@ -32,7 +32,8 @@ struct ScanScreen: View {
     /// Whether the chosen route looks whole in this photograph.
     private var coverage: CoverageEngine.Coverage? {
         guard !kept.isEmpty else { return nil }
-        return CoverageEngine.read(holds: kept.map(\.rect), tags: tags)
+        let others = swatches.filter { $0.id != chosen?.id }.flatMap { $0.holds.map(\.rect) }
+        return CoverageEngine.read(holds: kept.map(\.rect), tags: tags, others: others)
     }
     @State private var reading = false
 

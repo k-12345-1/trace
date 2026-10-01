@@ -64,8 +64,26 @@ enum CoverageEngine {
     static let nearTop = 0.05
     /// How far a sticker can sit from a hold and still be its sticker.
     static let tagReach = 0.07
+    /// A blob smaller than this, as a share of the picture, is a sticker or
+    /// a bolt hole, not a hold a sticker could belong to. The stickers are
+    /// coloured, and a yellow "Finish" came back as a yellow speck that then
+    /// claimed its own sticker for the yellow route.
+    /// A sticker is about 0.03 by 0.02 of the picture; a hold that small
+    /// never carries one.
+    static let tagHold = 0.001
+    /// Setters put the sticker just under its hold. A hold has to sit above
+    /// or level with the sticker to own it: blue's finish sat between the
+    /// blue hold above and a green one below, nearer the green.
+    static let tagBelowHold = 0.01
 
-    static func read(holds: [CGRect], tags: [RouteScanner.Tag] = [], allTags: Bool = false) -> Coverage {
+    /// - Parameters:
+    ///   - holds: this route's holds.
+    ///   - tags: every sticker read off the photograph.
+    ///   - others: every other route's holds. A sticker belongs to the one
+    ///     hold nearest it on the whole wall, so a start under a yellow hold
+    ///     is not also the green route's start because a green hold sits
+    ///     beside it.
+    static func read(holds: [CGRect], tags: [RouteScanner.Tag] = [], others: [CGRect] = []) -> Coverage {
         var out = Coverage(continues: [], sawStart: false, sawFinish: false, tagsRead: !tags.isEmpty)
         guard !holds.isEmpty else { return out }
 
@@ -77,9 +95,16 @@ enum CoverageEngine {
             if h.maxY >= 1 - cut { out.continues.insert(.below) }
         }
 
-        // The stickers that belong to this route.
+        // The stickers that belong to this route: those whose nearest hold on
+        // the wall is one of these, and close enough to be its sticker.
+        func gap(_ h: CGRect, _ t: RouteScanner.Tag) -> Double? {
+            guard Double(h.width * h.height) >= tagHold, h.midY <= t.point.y + tagBelowHold else { return nil }
+            return max(0, hypot(h.midX - t.point.x, h.midY - t.point.y) - max(h.width, h.height) / 2)
+        }
         func near(_ t: RouteScanner.Tag) -> Bool {
-            holds.contains { hypot($0.midX - t.point.x, $0.midY - t.point.y) <= tagReach + max($0.width, $0.height) / 2 }
+            guard let mine = holds.compactMap({ gap($0, t) }).min(), mine <= tagReach else { return false }
+            let theirs = others.compactMap { gap($0, t) }.min() ?? .infinity
+            return mine <= theirs
         }
         out.sawStart = tags.contains { $0.kind == .start && near($0) }
         out.sawFinish = tags.contains { $0.kind == .finish && near($0) }

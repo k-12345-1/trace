@@ -56,7 +56,10 @@ struct CoverageTests {
     @Test func stickersOnOtherRoutesSayNothing() {
         let holds = [hold(0.5, 0.8), hold(0.5, 0.6), hold(0.5, 0.4)]
         let c = CoverageEngine.read(holds: holds, tags: [tag(.start, 0.1, 0.9), tag(.finish, 0.9, 0.1)])
-        #expect(c.looksComplete)
+        #expect(c.looksComplete && !c.sawStart && !c.sawFinish)
+        // And a sticker nearer another route's hold is that route's.
+        let shared = CoverageEngine.read(holds: holds, tags: [tag(.start, 0.5, 0.86)], others: [hold(0.5, 0.845)])
+        #expect(!shared.sawStart)
     }
 
     @Test func theSentenceListsEdges() {
@@ -89,15 +92,19 @@ struct CoverageTests {
         let tags = [tag(.finish, 0.33, 0.15), tag(.finish, 0.46, 0.17), tag(.finish, 0.53, 0.10),
                     tag(.start, 0.15, 0.70), tag(.start, 0.45, 0.73), tag(.start, 0.77, 0.79),
                     tag(.start, 0.57, 0.83), tag(.finish, 0.05, 0.19)]
-        let b = CoverageEngine.read(holds: blue.holds.map(\.rect), tags: tags)
+        func read(_ s: RouteScanner.Swatch) -> CoverageEngine.Coverage {
+            let others = found.filter { $0.id != s.id }.flatMap { $0.holds.map(\.rect) }
+            return CoverageEngine.read(holds: s.holds.map(\.rect), tags: tags, others: others)
+        }
+        let b = read(blue)
         #expect(b.sawStart && b.sawFinish && b.looksComplete, "\(b)")
-        let p = CoverageEngine.read(holds: pink.holds.map(\.rect), tags: tags)
+        let p = read(pink)
         #expect(p.sawFinish && !p.continues.contains(.left) && !p.continues.contains(.above), "\(p)")
-        let g = CoverageEngine.read(holds: green.holds.map(\.rect), tags: tags)
-        #expect(g.continues.contains(.left) && !g.sawStart, "\(g)")
-        let y = CoverageEngine.read(holds: yellow.holds.map(\.rect), tags: tags)
+        let g = read(green)
+        #expect(g.continues.contains(.left), "\(g)")
+        let y = read(yellow)
         #expect(y.continues.contains(.left) && y.sawStart && !y.sawFinish, "\(y)")
-        let k = CoverageEngine.read(holds: black.holds.map(\.rect), tags: tags)
+        let k = read(black)
         #expect(k.continues.contains(.right), "\(k)")
         #expect(black.holds.count >= 8, "\(black.holds.count)")
     }
