@@ -47,6 +47,22 @@ struct FaceTests {
         #expect(FaceEngine.lines(in: sheet, wallL: 64).count <= 1)
     }
 
+    /// The mat meeting the wall is not a seam.
+    @Test func theFloorIsNotASeam() {
+        let bmp = canvas { c in
+            c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
+            c.move(to: CGPoint(x: 0, y: 350)); c.addLine(to: CGPoint(x: 300, y: 330)); c.strokePath()
+        }
+        #expect(FaceEngine.lines(in: bmp, wallL: 64).isEmpty)
+        // The same tilt high in the picture is a seam, since a wall's top
+        // edge or a roof's lip can run that way.
+        let high = canvas { c in
+            c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
+            c.move(to: CGPoint(x: 0, y: 120)); c.addLine(to: CGPoint(x: 300, y: 100)); c.strokePath()
+        }
+        #expect(FaceEngine.lines(in: high, wallL: 64).count == 1)
+    }
+
     @Test func holdsOnTheFarSideAreSetAside() {
         let line = FaceEngine.Line(theta: 0, rho: 150, support: 1)   // x = 150 of 300
         func hold(_ x: Double, _ y: Double) -> RouteScanner.Hold {
@@ -72,8 +88,14 @@ struct FaceTests {
         let bmp = try #require(Bitmap(image, targetWidth: RouteScanner.workingWidth))
         let lines = FaceEngine.lines(in: bmp)
         #expect(lines.count <= FaceEngine.mostLines)
-        // The seam between the slab and the vertical panel, among the wall's
-        // base and the right panel's edge.
+        // No floor: the mat's edge runs across the bottom of this picture.
+        for l in lines { #expect(!FaceEngine.isFloor(l, width: bmp.width, height: bmp.height)) }
+        #expect(!lines.contains { l in
+            guard let (a, b) = l.endpoints(width: bmp.width, height: bmp.height) else { return false }
+            return abs(l.theta * 180 / .pi - 90) <= 25 && (a.y + b.y) / 2 > 0.8
+        })
+        // The seam between the slab and the vertical panel, among the right
+        // panel's edge.
         let seam = lines.compactMap { $0.endpoints(width: bmp.width, height: bmp.height) }.first { a, b in
             let ends = [a, b].sorted { $0.x < $1.x }
             return ends[0].x == 0 && abs(ends[0].y - 0.88) < 0.08 && ends[1].x == 1 && abs(ends[1].y - 0.10) < 0.08
@@ -81,8 +103,8 @@ struct FaceTests {
         #expect(seam != nil, "\(lines.map { $0.endpoints(width: bmp.width, height: bmp.height).map { "\($0)" } ?? "" })")
     }
 
-    /// The third wall: the left panel's vertical edge, the slab's two edges,
-    /// the right panel's seam and the floor.
+    /// The third wall: the left panel's vertical edge, the slab's two edges
+    /// and the right panel's seam. Not the floor.
     @Test("The third wall's panels")
     func theThirdWall() throws {
         let url = try #require(Bundle(for: FaceToken.self).url(forResource: "wall3", withExtension: "jpg"))
