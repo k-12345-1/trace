@@ -442,6 +442,7 @@ struct RouteDetailScreen: View {
     @State private var figurePlaying = false
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
+    @State private var looksLike: String?
 
     var body: some View {
         ZStack {
@@ -470,6 +471,11 @@ struct RouteDetailScreen: View {
                                     Text(live.grade)
                                         .font(Theme.ui(13, .semibold))
                                         .foregroundStyle(Theme.accentText)
+                                }
+                                if let looksLike {
+                                    Text(looksLike)
+                                        .font(Theme.ui(13))
+                                        .foregroundStyle(Theme.ink2)
                                 }
                                 Text(live.scannedAt.formatted(date: .abbreviated, time: .omitted))
                                     .font(Theme.ui(13))
@@ -524,6 +530,14 @@ struct RouteDetailScreen: View {
             .ignoresSafeArea(edges: .top)
         }
         .reachesTheTop()
+        .task {
+            guard let image = UIImage(contentsOfFile: live.photoURL.path)?.cgImage else { return }
+            let colour = Lab(hexString: live.colorHex), holds = live.holds, p = store.holdPrototypes
+            let features = await Task.detached(priority: .utility) {
+                HoldShapeEngine.features(of: holds, colour: colour, in: image)
+            }.value
+            looksLike = HoldShapeEngine.guess(features, prototypes: p).sentence
+        }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
     }

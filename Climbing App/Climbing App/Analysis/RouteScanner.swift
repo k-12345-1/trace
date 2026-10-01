@@ -679,6 +679,12 @@ struct Lab {
 
     init(l: Double, a: Double, b: Double) { self.l = l; self.a = a; self.b = b }
 
+    init(hexString: String) {
+        let cleaned = hexString.hasPrefix("#") ? String(hexString.dropFirst()) : hexString
+        let v = UInt32(cleaned, radix: 16) ?? 0x888888
+        self.init(r: UInt8((v >> 16) & 0xFF), g: UInt8((v >> 8) & 0xFF), b: UInt8(v & 0xFF))
+    }
+
     init(r: UInt8, g: UInt8, b bb: UInt8) {
         func linear(_ c: UInt8) -> Double {
             let v = Double(c) / 255

@@ -22,6 +22,8 @@ final class Store: ObservableObject {
     @Published private(set) var routes: [Route] = []
     /// Your height and reach. Optional: everything works without it, in body lengths.
     @Published private(set) var body: BodyProfile = .empty
+    /// Where each hold type sits for this climber, moved by their corrections.
+    @Published private(set) var holdPrototypes = HoldShapeEngine.defaultPrototypes
     /// How many route scans have been completed on this phone, ever.
     ///
     /// Counted rather than derived from `routes.count`, because deleting a route
@@ -46,6 +48,7 @@ final class Store: ObservableObject {
     nonisolated private static var accountURL: URL { documents.appendingPathComponent("account.json") }
     nonisolated private static var bodyURL: URL { documents.appendingPathComponent("body.json") }
     nonisolated private static var scansURL: URL { documents.appendingPathComponent("scans.json") }
+    nonisolated private static var holdSenseURL: URL { documents.appendingPathComponent("holdsense.json") }
 
     nonisolated static var routePhotosDirectory: URL {
         let url = documents.appendingPathComponent("Routes", isDirectory: true)
@@ -88,6 +91,10 @@ final class Store: ObservableObject {
         }
         if let data = try? Data(contentsOf: Self.bodyURL) {
             body = (try? decoder.decode(BodyProfile.self, from: data)) ?? .empty
+        }
+        if let data = try? Data(contentsOf: Self.holdSenseURL),
+           let learned = try? decoder.decode([ClimbNotes.HoldType: HoldShapeEngine.Features].self, from: data) {
+            holdPrototypes = HoldShapeEngine.defaultPrototypes.merging(learned) { _, l in l }
         }
         // The tokens live in the keychain, never beside the climbs.
         session = Keychain.load()
@@ -437,7 +444,7 @@ final class Store: ObservableObject {
             Thumbnails.remove(for: climb)
         }
         for url in [Self.indexURL, Self.focusURL, Self.gymsURL, Self.routesURL,
-                    Self.accountURL, Self.bodyURL, Self.scansURL] {
+                    Self.accountURL, Self.bodyURL, Self.scansURL, Self.holdSenseURL] {
             try? FileManager.default.removeItem(at: url)
         }
         EfficiencyCache.forgetEverything()
@@ -449,6 +456,24 @@ final class Store: ObservableObject {
         Keychain.clear()
         session = nil
         account = nil
+    }
+
+    // MARK: Hold sense
+
+    /// The scanned route a climb is an attempt on, by name, same gym first.
+    func route(for climb: Climb) -> Route? {
+        let key = climb.label.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !key.isEmpty else { return nil }
+        let named = routes.filter { $0.name.trimmingCharacters(in: .whitespaces).lowercased() == key }
+        return named.first { $0.gymID == climb.gymID } ?? named.first
+    }
+
+    /// The climber's tags, set against what Trace guessed, moving the guess.
+    func learnHolds(from features: [HoldShapeEngine.Features?], chosen: Set<ClimbNotes.HoldType>) {
+        var p = holdPrototypes
+        HoldShapeEngine.learn(from: features, chosen: chosen, prototypes: &p)
+        holdPrototypes = p
+        try? JSONEncoder().encode(p).write(to: Self.holdSenseURL, options: .atomic)
     }
 
     // MARK: Body

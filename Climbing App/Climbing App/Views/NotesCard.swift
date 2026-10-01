@@ -16,6 +16,10 @@ struct NotesCard: View {
     @State private var draft = ClimbNotes()
     @State private var loaded = false
     @FocusState private var writing: Bool
+    /// What the scan of this route looks like it is made of, for the chips to
+    /// offer. Nil until read, and empty when there is no scan to read.
+    @State private var holdFeatures: [HoldShapeEngine.Features?] = []
+    @State private var guess: HoldShapeEngine.Guess?
 
     private var live: ClimbNotes {
         store.climbs.first { $0.id == climb.id }?.notes ?? ClimbNotes()
@@ -43,10 +47,16 @@ struct NotesCard: View {
             }
 
             tags(title: "Made of", options: ClimbNotes.HoldType.allCases.map { ($0.rawValue, $0.label) },
-                 chosen: Set(draft.holdTypes.map(\.rawValue))) { raw in
+                 chosen: Set(draft.holdTypes.map(\.rawValue)),
+                 suggested: draft.holdTypes.isEmpty ? Set((guess?.suggested ?? []).map(\.rawValue)) : [],
+                 hint: hint) { raw in
                 guard let h = ClimbNotes.HoldType(rawValue: raw) else { return }
                 if draft.holdTypes.contains(h) { draft.holdTypes.remove(h) } else { draft.holdTypes.insert(h) }
                 save()
+                // Every answer about the holds is a lesson about the guess.
+                if !holdFeatures.isEmpty, !draft.holdTypes.isEmpty {
+                    store.learnHolds(from: holdFeatures, chosen: draft.holdTypes)
+                }
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -77,6 +87,7 @@ struct NotesCard: View {
             guard !loaded else { return }
             draft = live
             loaded = true
+            await readTheScan()
         }
         .onDisappear { save() }
     }
@@ -84,6 +95,26 @@ struct NotesCard: View {
     private func save() {
         guard loaded, draft != live else { return }
         store.setNotes(draft, for: climb)
+    }
+
+    /// "Trace thinks: mostly crimps". Only while the climber has not answered,
+    /// and only when there is a scan of this route to look at.
+    private var hint: String? {
+        guard draft.holdTypes.isEmpty, let sentence = guess?.sentence else { return nil }
+        return "Trace thinks: \(sentence.lowercased()). Tap to confirm or correct."
+    }
+
+    private func readTheScan() async {
+        guard let route = store.route(for: climb),
+              let image = UIImage(contentsOfFile: route.photoURL.path)?.cgImage else { return }
+        let colour = Lab(hexString: route.colorHex)
+        let holds = route.holds
+        let prototypes = store.holdPrototypes
+        let features = await Task.detached(priority: .utility) {
+            HoldShapeEngine.features(of: holds, colour: colour, in: image)
+        }.value
+        holdFeatures = features
+        guess = HoldShapeEngine.guess(features, prototypes: prototypes)
     }
 
     /// Five steps, with both ends named and the chosen one said out loud.
@@ -140,6 +171,7 @@ extension NotesCard {
     /// A row of tags to tap on and off. What the route was, said once, so the
     /// progress screen can sort routes by what they were made of.
     fileprivate func tags(title: String, options: [(String, String)], chosen: Set<String>,
+                          suggested: Set<String> = [], hint: String? = nil,
                           tap: @escaping (String) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             Text(title)
@@ -149,14 +181,18 @@ extension NotesCard {
                 HStack(spacing: 7) {
                     ForEach(options, id: \.0) { raw, label in
                         let on = chosen.contains(raw)
+                        // A guess is drawn as a dashed ring: offered, not said.
+                        let offered = !on && suggested.contains(raw)
                         Button { tap(raw) } label: {
                             Text(label)
                                 .font(Theme.ui(12.5, .semibold))
-                                .foregroundStyle(on ? .white : Theme.ink3)
+                                .foregroundStyle(on ? .white : offered ? Theme.accentText : Theme.ink3)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
-                                .background(on ? Theme.blue : Theme.surface2, in: Capsule())
-                                .overlay(Capsule().stroke(Theme.line, lineWidth: on ? 0 : 1))
+                                .background(on ? Theme.blue : offered ? Theme.blueWash : Theme.surface2, in: Capsule())
+                                .overlay(Capsule().stroke(offered ? Theme.blue : Theme.line,
+                                                          style: StrokeStyle(lineWidth: on ? 0 : 1,
+                                                                             dash: offered ? [4, 3] : [])))
                                 .contentShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -167,6 +203,12 @@ extension NotesCard {
                 .padding(.horizontal, 1)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            if let hint {
+                Text(hint)
+                    .font(Theme.ui(12))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
