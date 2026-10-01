@@ -255,7 +255,13 @@ enum BetaEngine {
     static let footReachCost = 0.3
     /// The most positions the search will look at before giving up and
     /// leaving the feet to geometry.
-    static let searchLimit = 60_000
+    static let searchLimit = 12_000
+    /// How many of the nearest holds a limb considers at each step. A hand
+    /// does not go to the far side of the wall when there are holds beside
+    /// it, and considering every hold made a twenty-hold route a thirteen
+    /// second search.
+    static let nearestHands = 4
+    static let nearestFeet = 3
 
     /// The cheapest way from the start to the finish, one limb at a time.
     ///
@@ -353,9 +359,11 @@ enum BetaEngine {
             for mover in 0...1 {
                 let current = mover == 0 ? st.p.leftHand : st.p.rightHand
                 let staying = mover == 0 ? st.p.rightHand : st.p.leftHand
-                for j in handIndex where j != current {
-                    guard j == staying || distance(all[j], all[staying]) <= span * 0.95 else { continue }
-                    guard all[j].y <= all[current].y + handDrop * span else { continue }
+                let handTargets = handIndex.filter { j in
+                    j != current && (j == staying || distance(all[j], all[staying]) <= span * 0.95)
+                        && all[j].y <= all[current].y + handDrop * span
+                }.sorted { distance(all[$0], all[current]) < distance(all[$1], all[current]) }.prefix(nearestHands)
+                for j in handTargets {
                     guard j == staying || !occupied.contains(j) || j == st.p.leftFoot || j == st.p.rightFoot else { continue }
                     var next = st.p
                     if mover == 0 { next.leftHand = j } else { next.rightHand = j }
@@ -402,10 +410,12 @@ enum BetaEngine {
                 var targets: [Int] = [-1]
                 let handsMid = (all[st.p.leftHand].y + all[st.p.rightHand].y) / 2
                 let highestHips = handsMid + arm * 0.25 + shape.torso * span
-                for j in 0..<n where j != current && !occupied.contains(j) {
-                    guard footReachable(all[j], hips: here.hips, highestHips: highestHips, span: span, leg: leg) else { continue }
-                    targets.append(j)
+                let reachable = (0..<n).filter { j in
+                    j != current && !occupied.contains(j)
+                        && footReachable(all[j], hips: here.hips, highestHips: highestHips, span: span, leg: leg)
                 }
+                let anchor = current >= 0 ? all[current] : here.hips
+                targets += reachable.sorted { distance(all[$0], anchor) < distance(all[$1], anchor) }.prefix(nearestFeet)
                 for j in targets where j != current {
                     var next = st.p
                     if mover == 2 { next.leftFoot = j } else { next.rightFoot = j }
