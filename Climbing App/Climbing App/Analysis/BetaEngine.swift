@@ -245,6 +245,8 @@ enum BetaEngine {
     static let crossCost = 0.8
     static let smearCost = 0.25
     static let hipsOffCost = 1.2
+    /// How far the hips may sit off the feet, in spans, before it costs.
+    static let hipsLean = 0.12
     static let matchCost = 0.15
     static let footMoveCost = 0.3
     static let footReachCost = 0.3
@@ -306,8 +308,11 @@ enum BetaEngine {
             var c = 0.0
             if p.leftFoot < 0 { c += smearCost }
             if p.rightFoot < 0 { c += smearCost }
+            // Hips off the feet, past the bit of lean a body stands with
+            // for free. Without the dead zone standing on one foot cost
+            // more than smearing both, and every plan smeared.
             let feetX = (q.leftFoot.x + q.rightFoot.x) / 2
-            c += hipsOffCost * min(1, abs(q.hips.x - feetX) / span)
+            c += hipsOffCost * max(0, min(1, abs(q.hips.x - feetX) / span) - hipsLean)
             return c
         }
 
@@ -411,10 +416,22 @@ enum BetaEngine {
                 }
             }
         }
-        guard let goal else { return nil }
+        // No way to the finish, which happens when the top hold is a speck
+        // or sits out of reach of everything: the plan goes as high as the
+        // search got, so the climber sees the sequence that exists rather
+        // than nothing.
+        let end: State
+        if let goal { end = goal } else {
+            guard let highest = best.keys.min(by: {
+                let a = (all[$0.p.leftHand].y + all[$0.p.rightHand].y) / 2
+                let b = (all[$1.p.leftHand].y + all[$1.p.rightHand].y) / 2
+                return a != b ? a < b : (best[$0] ?? 0) < (best[$1] ?? 0)
+            }), highest != start else { return nil }
+            end = highest
+        }
         var steps: [Step] = []
-        var states: [Position] = [goal.p]
-        var cursor = goal
+        var states: [Position] = [end.p]
+        var cursor = end
         while let (prev, step) = from[cursor] {
             steps.append(step); states.append(prev.p); cursor = prev
         }

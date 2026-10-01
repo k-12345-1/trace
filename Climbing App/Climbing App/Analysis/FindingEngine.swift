@@ -24,6 +24,9 @@ enum FindingEngine {
     /// How long a move takes on real footage, used only to count in moves when
     /// the moves themselves could not be read.
     static let secondsPerMove = 3.0
+    /// Dynamic moves before their timing is reported. The real clip had
+    /// one, half a second early, and was told it had a costly habit.
+    static let minimumDynamicMoves = 2
 
     static func findings(from m: Metrics, frames: [PoseFrame],
                          priorJerk: [Double] = []) -> [Finding] {
@@ -71,7 +74,8 @@ enum FindingEngine {
         }
 
         // Dynamic moves caught off the apex.
-        if m.hasDynamicMoves && m.meanDeadpointError > 120 {
+        // One dynamic move is one sample, and a sample is not a habit.
+        if m.deadpointOffsets.count >= minimumDynamicMoves && m.meanDeadpointError > 120 {
             let severity: Severity = m.meanDeadpointError > 320 ? .costly
                                    : m.meanDeadpointError > 200 ? .moderate : .minor
             let ms = Int(m.meanDeadpointError.rounded())

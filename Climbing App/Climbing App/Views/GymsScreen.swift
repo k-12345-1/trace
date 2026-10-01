@@ -442,6 +442,13 @@ struct RouteDetailScreen: View {
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
     @State private var looksLike: String?
+    /// The line and the planned sequence, read once per route rather than
+    /// once per place on the page that draws them. The plan is a search
+    /// and on a route of twenty holds it takes a second or two.
+    @State private var planned: (line: LineEngine.Line, seq: BetaEngine.Sequence?)?
+    private var line: LineEngine.Line? { planned?.line }
+    private var seq: BetaEngine.Sequence? { planned?.seq }
+    private var planKey: String { "\(live.holds.count)-\(live.startHolds ?? [])-\(live.finishHolds ?? [])" }
 
     var body: some View {
         ZStack {
@@ -537,6 +544,16 @@ struct RouteDetailScreen: View {
             .ignoresSafeArea(edges: .top)
         }
         .reachesTheTop()
+        .task(id: planKey) {
+            // Off the main thread: the search is the slow part of the page.
+            let holds = live.holds, starts = live.startHolds ?? [], finishes = live.finishHolds ?? []
+            let shape = store.figureShape
+            let result = await Task.detached(priority: .userInitiated) { () -> (LineEngine.Line, BetaEngine.Sequence?)? in
+                guard let l = LineEngine.read(holds: holds, starts: starts, finishes: finishes) else { return nil }
+                return (l, BetaEngine.read(line: l, shape: shape))
+            }.value
+            planned = result
+        }
         .task {
             guard let image = UIImage(contentsOfFile: live.photoURL.path)?.cgImage else { return }
             let colour = Lab(hexString: live.colorHex), holds = live.holds, p = store.holdPrototypes
@@ -565,7 +582,7 @@ struct RouteDetailScreen: View {
         if let data = try? Data(contentsOf: live.photoURL), let ui = UIImage(data: data) {
             GeometryReader { geo in
                 let r = filled(image: ui.size, in: geo.size)
-                let line = showLine ? LineEngine.read(holds: live.holds, starts: live.startHolds ?? [], finishes: live.finishHolds ?? []) : nil
+                let line = showLine ? self.line : nil
                 ZStack {
                     Color.black
                     Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
@@ -578,7 +595,7 @@ struct RouteDetailScreen: View {
                         Path { p in
                             // Through the hand holds in the order the plan
                             // uses them, or by height when there is no plan.
-                            let plan = BetaEngine.read(line: line, shape: store.figureShape)?.plan
+                            let plan = seq?.plan
                             let points = (plan.map { $0.handOrder.map { line.holds[$0] } } ?? line.hands).map {
                                 CGPoint(x: r.minX + $0.midX * r.width,
                                         y: r.minY + $0.midY * r.height)
@@ -604,7 +621,7 @@ struct RouteDetailScreen: View {
                         // limb first takes it: hand holds in a solid disc,
                         // foot holds in a ring. A hold the plan never uses
                         // has no number.
-                        let plan = BetaEngine.read(line: line, shape: store.figureShape)?.plan
+                        let plan = seq?.plan
                         let handSet = Set(line.hands)
                         ForEach(Array(line.holds.enumerated()), id: \.offset) { i, hold in
                             let number = plan.map { $0.order.firstIndex(of: i) } ?? line.hands.firstIndex(of: hold)
@@ -627,9 +644,7 @@ struct RouteDetailScreen: View {
                     }
 
                     // The figure, over everything, at wherever the scrubber is.
-                    if showFigure, let line = LineEngine.read(holds: live.holds, starts: live.startHolds ?? [], finishes: live.finishHolds ?? []),
-                       let seq = BetaEngine.read(line: line, shape: store.figureShape),
-                       let pose = seq.pose(at: figureT) {
+                    if showFigure, let seq, let pose = seq.pose(at: figureT) {
                         BetaFigure(pose: pose, rect: r, span: seq.span, shape: seq.shape)
                     }
                 }
@@ -651,7 +666,7 @@ struct RouteDetailScreen: View {
     /// which gaps are long, and it cannot say which hand to use.
     @ViewBuilder
     private var suggestedLine: some View {
-        if let line = LineEngine.read(holds: live.holds, starts: live.startHolds ?? [], finishes: live.finishHolds ?? []) {
+        if let line {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle("The line")
@@ -685,7 +700,7 @@ struct RouteDetailScreen: View {
                 // Climb it: a figure moved through the stances. Off by default,
                 // because it is a drawing of one shape and not the beta, and it
                 // says so where it is switched on.
-                if let seq = BetaEngine.read(line: line, shape: store.figureShape) {
+                if let seq {
                     VStack(alignment: .leading, spacing: 10) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -729,8 +744,7 @@ struct RouteDetailScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                let steps = BetaEngine.read(line: line, shape: store.figureShape)?.plan
-                    .map { BetaEngine.describe($0, line: line) } ?? LineEngine.sequence(line)
+                let steps = seq?.plan.map { BetaEngine.describe($0, line: line) } ?? LineEngine.sequence(line)
                 if !steps.isEmpty {
                     VStack(alignment: .leading, spacing: 7) {
                         ForEach(Array(steps.enumerated()), id: \.offset) { _, step in

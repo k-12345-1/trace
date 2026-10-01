@@ -112,3 +112,38 @@ struct PlanTests {
         #expect(words.contains { $0.hasPrefix("Left foot") || $0.hasPrefix("Right foot") })
     }
 }
+
+/// What the planner does when the finish cannot be reached, and when the
+/// feet could stand.
+@Suite("Planning at the edges")
+struct PlanEdgeTests {
+    private func hold(_ x: Double, _ y: Double, _ s: Double = 0.05) -> CGRect {
+        CGRect(x: x - s / 2, y: y - s / 2, width: s, height: s)
+    }
+
+    /// A top hold far out of reach of everything still leaves a plan, as
+    /// high as the body can get. Before this the route page showed nothing.
+    @Test func anUnreachableTopStillPlansAsHighAsItCan() throws {
+        var holds: [CGRect] = []
+        for i in 0..<5 { holds.append(hold(i % 2 == 0 ? 0.45 : 0.55, 0.85 - Double(i) * 0.09)) }
+        holds.append(hold(0.95, 0.05))   // a speck of the colour on the ceiling
+        let line = try #require(LineEngine.read(holds: holds, starts: [0, 1]))
+        let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
+        let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let last = try #require(plan.states.last)
+        #expect(all[last.leftHand].y <= 0.5 || all[last.rightHand].y <= 0.5, "\(plan.states)")
+        #expect(plan.steps.count >= 2)
+    }
+
+    /// Standing on one foot is not worse than smearing both: on a ladder
+    /// with foot holds the plan stands.
+    @Test func thePlanStandsWhenItCan() throws {
+        var holds: [CGRect] = []
+        for i in 0..<6 { holds.append(hold(i % 2 == 0 ? 0.45 : 0.55, 0.78 - Double(i) * 0.1)) }
+        for i in 0..<5 { holds.append(hold(i % 2 == 0 ? 0.42 : 0.58, 0.92 - Double(i) * 0.1, 0.015)) }
+        let line = try #require(LineEngine.read(holds: holds, starts: [0, 1], finishes: [5]))
+        let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
+        let planted = plan.states.filter { $0.leftFoot >= 0 || $0.rightFoot >= 0 }.count
+        #expect(planted * 2 >= plan.states.count, "\(planted) of \(plan.states.count)")
+    }
+}

@@ -427,3 +427,14 @@ struct StorageTests {
         #expect(restored.metrics.comPath.count == climb.metrics.comPath.count)
     }
 }
+
+/// One dynamic move is a sample, not a habit.
+@Suite("Dynamics need a pattern")
+struct DynamicsSampleTests {
+    @Test func oneMistimedThrowIsNotAFinding() {
+        let one = Fixture.metrics(deadpoints: [-0.5])
+        #expect(!FindingEngine.findings(from: one, frames: []).contains { $0.kind == .mistimedDynamics })
+        let two = Fixture.metrics(deadpoints: [-0.5, -0.4])
+        #expect(FindingEngine.findings(from: two, frames: []).contains { $0.kind == .mistimedDynamics })
+    }
+}
