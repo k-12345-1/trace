@@ -26,6 +26,14 @@ struct ScanScreen: View {
     /// Every route color Trace can see on this wall, best first.
     @State private var swatches: [RouteScanner.Swatch] = []
     @State private var chosen: RouteScanner.Swatch?
+    /// The start and finish stickers the photograph could read.
+    @State private var tags: [RouteScanner.Tag] = []
+
+    /// Whether the chosen route looks whole in this photograph.
+    private var coverage: CoverageEngine.Coverage? {
+        guard !kept.isEmpty else { return nil }
+        return CoverageEngine.read(holds: kept.map(\.rect), tags: tags)
+    }
     @State private var reading = false
 
     @State private var pickerItem: PhotosPickerItem?
@@ -232,6 +240,21 @@ struct ScanScreen: View {
                     .foregroundStyle(Theme.ink3)
             }
 
+            // Whether the photograph has the whole route. Said once, under
+            // the count, so a scan of two thirds of a boulder is not saved
+            // as a boulder.
+            if let sentence = coverage?.sentence {
+                HStack(alignment: .top, spacing: 7) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.accentText)
+                    Text(sentence)
+                        .font(Theme.ui(13))
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             // No tolerance slider. Asking a climber to tune a colour distance
             // until their route appears is asking them to do the computer's job
             // with a control whose effect nobody can predict. The two things
@@ -374,8 +397,10 @@ struct ScanScreen: View {
         reading = true
         Task.detached {
             let found = RouteScanner.palette(in: cg)
+            let stickers = await RouteScanner.readTags(in: cg)
             await MainActor.run {
                 swatches = found
+                tags = stickers
                 reading = false
                 if let first = found.first { pick(first) }
             }
@@ -443,7 +468,8 @@ struct ScanScreen: View {
             colorHex: colorHex,
             photoFilename: filename,
             holds: kept.map { $0.rect },
-            outlines: kept.map { $0.outline }
+            outlines: kept.map { $0.outline },
+            continues: coverage.map { Array($0.continues) }
         ))
         dismiss()
     }

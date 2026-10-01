@@ -48,6 +48,10 @@ struct Route: Codable, Identifiable, Hashable {
     /// scanned before outlines existed, which then draw boxes; an empty
     /// outline draws a box for that hold alone.
     var outlines: [[CGPoint]]? = nil
+    /// The edges the route probably continues past, as read when it was
+    /// scanned. Nil on routes scanned before this was read; empty when the
+    /// scan looked whole.
+    var continues: [CoverageEngine.Edge]? = nil
 
     /// The outline for a hold, when there is one worth drawing.
     func outline(at i: Int) -> [CGPoint]? {

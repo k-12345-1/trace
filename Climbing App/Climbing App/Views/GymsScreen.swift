@@ -476,6 +476,14 @@ struct RouteDetailScreen: View {
                                         .font(Theme.ui(13))
                                         .foregroundStyle(Theme.ink2)
                                 }
+                                if let edges = live.continues, !edges.isEmpty,
+                                   let note = CoverageEngine.Coverage(continues: Set(edges), sawStart: false,
+                                                                      sawFinish: false, tagsRead: false).sentence {
+                                    Text(note)
+                                        .font(Theme.ui(13))
+                                        .foregroundStyle(Theme.ink2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                                 Text(live.scannedAt.formatted(date: .abbreviated, time: .omitted))
                                     .font(Theme.ui(13))
                                     .foregroundStyle(Theme.ink3)

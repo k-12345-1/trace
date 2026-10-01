@@ -297,7 +297,7 @@ enum RouteScanner {
     /// And how much more saturated one can be than the other. A yellow hold
     /// in shadow keeps about three quarters of its chroma; a cream hold has
     /// under half of a yellow one's, and is a different route.
-    static let familyChroma = 1.5
+    static let familyChroma = 1.6
     /// Below this chroma a colour has no hue worth grouping on.
     static let familyMinChroma = 20.0
 
@@ -384,8 +384,16 @@ enum RouteScanner {
             .map(\.lab)
     }
 
+    /// A neutral this dark is not a wall: walls are mid grey, and what is near
+    /// black on one is a black route, a shadow under a volume, or a bolt
+    /// hole. Those are told apart by shape below, not written off here. On
+    /// the fourth wall the black route and its shadows together covered five
+    /// per cent of the picture and the route was never offered.
+    static let darkHold = 35.0
+
     static func isScenery(_ lab: Lab, in bmp: Bitmap) -> Bool {
-        if (lab.a * lab.a + lab.b * lab.b).squareRoot() < groundChroma { return true }
+        let chroma = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+        if chroma < groundChroma, lab.l >= darkHold { return true }
         let total = bmp.width * bmp.height
         var mask = [Bool](repeating: false, count: total)
         for i in 0..<total { mask[i] = bmp.lab(at: i).distance(to: lab) < groundReach }
@@ -718,6 +726,37 @@ enum RouteScanner {
                 let strings = (request.results as? [VNRecognizedTextObservation] ?? [])
                     .compactMap { $0.topCandidates(1).first?.string }
                 continuation.resume(returning: grades(in: strings))
+            }
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = false
+            let handler = VNImageRequestHandler(cgImage: image, orientation: .up)
+            do { try handler.perform([request]) }
+            catch { continuation.resume(returning: []) }
+        }
+    }
+
+    /// A start or finish sticker, and where it is.
+    struct Tag: Equatable {
+        enum Kind { case start, finish }
+        let kind: Kind
+        /// Normalised, origin top left.
+        let point: CGPoint
+    }
+
+    /// The start and finish stickers the setters put beside the holds, read
+    /// off the photograph. Empty where there are none or they cannot be read.
+    static func readTags(in image: CGImage) async -> [Tag] {
+        await withCheckedContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, _ in
+                let observations = request.results as? [VNRecognizedTextObservation] ?? []
+                var tags: [Tag] = []
+                for o in observations {
+                    guard let text = o.topCandidates(1).first?.string.lowercased() else { continue }
+                    let point = CGPoint(x: o.boundingBox.midX, y: 1 - o.boundingBox.midY)
+                    if text.contains("start") { tags.append(Tag(kind: .start, point: point)) }
+                    else if text.contains("finish") || text.contains("top") { tags.append(Tag(kind: .finish, point: point)) }
+                }
+                continuation.resume(returning: tags)
             }
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = false
