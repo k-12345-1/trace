@@ -152,10 +152,29 @@ enum RouteScanner {
         let minPixels = Int(total * minAreaFraction)
         let maxPixels = Int(total * maxAreaFraction)
 
+        // Chalk. A hold that has been climbed is white where hands went,
+        // and read by colour that white is a hole in it or a bite out of
+        // its edge. Any bright, colourless pixel not already another
+        // route's is chalk a coloured hold can take back, below, when it
+        // sits against it. Wall is not excluded here: once a white route
+        // and its chalk cover enough of the picture white is called wall,
+        // and the chalk on every hold with it. The size cap in adoptChalk
+        // is what keeps a hold from flooding into a white panel.
+        var chalk: [Bool] = []
+        if colors.indices.contains(index), colored[index], let labels {
+            chalk = [Bool](repeating: false, count: bmp.width * bmp.height)
+            for i in chalk.indices {
+                let j = Int(labels[i])
+                if j >= 0, colored.indices.contains(j), colored[j] { continue }
+                chalk[i] = isChalk(bmp.lab(at: i))
+            }
+        }
+
         var found: [Hold] = []
         for var component in components(mask: &mask, width: bmp.width, height: bmp.height,
                                         minPixels: max(minPixels, 8), maxPixels: maxPixels,
                                         outlines: true) {
+            if !chalk.isEmpty { adoptChalk(into: &component, chalk: &chalk, width: bmp.width, height: bmp.height) }
             let w = Double(component.maxX - component.minX + 1)
             let h = Double(component.maxY - component.minY + 1)
             guard w > 2, h > 2 else { continue }
@@ -174,8 +193,12 @@ enum RouteScanner {
             guard component.holeShare(width: bmp.width, isWall: isWall) < hollow,
                   component.hullFill(width: bmp.width) >= lumpFill else { continue }
             // And patches on another route's hold.
+            // A white blob is held to a lower line: chalk on the lip of a
+            // hold runs past the hold's edge, and the coloured hold has
+            // already taken it in above.
             if pale, let labels, isPatch(component, labels: labels, index: index, colored: colored,
-                                         width: bmp.width, height: bmp.height) {
+                                         width: bmp.width, height: bmp.height,
+                                         share: isChalk(colors[index]) ? chalkPatchShare : patchShare) {
                 continue
             }
             if dark {
@@ -233,7 +256,7 @@ enum RouteScanner {
 
     /// Whether a blob sits on another route's hold rather than on the wall.
     private static func isPatch(_ c: Component, labels: [Int8], index: Int, colored: [Bool],
-                                width: Int, height: Int) -> Bool {
+                                width: Int, height: Int, share: Double = patchShare) -> Bool {
         var other = 0, free = 0
         for p in c.pixels {
             let i = Int(p), x = i % width, y = i / width
@@ -248,7 +271,7 @@ enum RouteScanner {
                 // wall under another name, and says nothing.
             }
         }
-        return other + free > 0 && Double(other) / Double(other + free) > patchShare
+        return other + free > 0 && Double(other) / Double(other + free) > share
     }
 
     // MARK: Stickers
@@ -646,12 +669,66 @@ enum RouteScanner {
     /// is applied to.
     static let paleChroma = 40.0
     static let paleLightness = 70.0
+    /// And a white blob is a patch when this much of its edge is on a
+    /// coloured route: chalk on a lip hangs over the edge of the hold.
+    static let chalkPatchShare = 0.25
 
     /// White, cream, grey or black: chalk and shadow come in these, and a
     /// muted blue does not.
     static func isPale(_ c: Lab) -> Bool {
         let chroma = (c.a * c.a + c.b * c.b).squareRoot()
         return chroma < groundChroma || (c.l >= paleLightness && chroma < paleChroma)
+    }
+
+    /// Chalk is bright and has little hue: lighter than this and under the
+    /// pale line in chroma. Not the grey line: where chalk meets the hold's
+    /// colour the pixels blend, and judged by the grey line that blended
+    /// rim walled the chalk off from the hold it sits on.
+    static let chalkLightness = 62.0
+    /// A chalk patch is at most this share of the hold it sits on. A white
+    /// hold leaning on a green one is not chalk, and a white hold is seldom
+    /// much smaller than its neighbour.
+    static let chalkShare = 0.8
+
+    /// White pixels, the colour chalk comes in.
+    static func isChalk(_ c: Lab) -> Bool {
+        c.l >= chalkLightness && (c.a * c.a + c.b * c.b).squareRoot() < paleChroma
+    }
+
+    /// Give a coloured blob the chalk sitting on it: every chalk pixel
+    /// reached from its edge, so long as the patch stays smaller than the
+    /// blob. A patch that grows past that is a white hold or a lit panel,
+    /// and the blob keeps its own pixels only.
+    private static func adoptChalk(into component: inout Component, chalk: inout [Bool],
+                                   width: Int, height: Int) {
+        let cap = Int(Double(component.count) * chalkShare)
+        guard cap > 0 else { return }
+        var taken: [Int] = []
+        var stack: [Int] = []
+        for p in component.pixels {
+            let i = Int(p), x = i % width, y = i / width
+            if x > 0, chalk[i - 1] { stack.append(i - 1) }
+            if x < width - 1, chalk[i + 1] { stack.append(i + 1) }
+            if y > 0, chalk[i - width] { stack.append(i - width) }
+            if y < height - 1, chalk[i + width] { stack.append(i + width) }
+        }
+        while let i = stack.popLast() {
+            guard chalk[i] else { continue }
+            chalk[i] = false
+            taken.append(i)
+            if taken.count > cap { break }
+            let x = i % width, y = i / width
+            if x > 0, chalk[i - 1] { stack.append(i - 1) }
+            if x < width - 1, chalk[i + 1] { stack.append(i + 1) }
+            if y > 0, chalk[i - width] { stack.append(i - width) }
+            if y < height - 1, chalk[i + width] { stack.append(i + width) }
+        }
+        if taken.count > cap {
+            // Too big to be chalk: hand the pixels back.
+            for i in taken { chalk[i] = true }
+            return
+        }
+        for i in taken { component.add(i % width, i / width, index: i) }
     }
 
     /// How much a set of blobs looks like a route.
@@ -848,15 +925,49 @@ enum RouteScanner {
         /// blob on the right, which follows a U into its bend where a hull
         /// bridges it. Thinned to a few dozen points for drawing.
         mutating func boundary(width: Int) -> [(Int, Int)] {
+            let out = fullBoundary(width: width)
+            let step = max(1, out.count / 48)
+            var thinned: [(Int, Int)] = []
+            for (i, p) in out.enumerated() where i % step == 0 { thinned.append(p) }
+            return thinned
+        }
+
+        /// The boundary with the pixel staircase averaged out: each point is
+        /// the mean of a window of its neighbours round the loop. Still
+        /// thinned to a few dozen points, which the drawing then runs a
+        /// curve through.
+        mutating func smoothBoundary(width: Int) -> [(Double, Double)] {
+            let trace = fullBoundary(width: width)
+            guard trace.count >= 3 else { return trace.map { (Double($0.0), Double($0.1)) } }
+            let n = trace.count
+            let half = max(1, min(6, n / 12))
+            var smooth: [(Double, Double)] = []
+            smooth.reserveCapacity(n)
+            for i in 0..<n {
+                var sx = 0.0, sy = 0.0
+                for k in -half...half {
+                    let p = trace[((i + k) % n + n) % n]
+                    sx += Double(p.0); sy += Double(p.1)
+                }
+                let c = Double(2 * half + 1)
+                smooth.append((sx / c, sy / c))
+            }
+            let step = max(1, n / 40)
+            var thinned: [(Double, Double)] = []
+            for (i, p) in smooth.enumerated() where i % step == 0 { thinned.append(p) }
+            return thinned
+        }
+
+        /// The whole traced loop in bitmap coordinates, unthinned.
+        private mutating func fullBoundary(width: Int) -> [(Int, Int)] {
             let (m, w, _) = local(width: width)
             func on(_ x: Int, _ y: Int) -> Bool { x >= 0 && y >= 0 && x < w && y * w + x < m.count && m[y * w + x] }
             guard let startIndex = m.firstIndex(of: true) else { return [] }
             let sx = startIndex % w, sy = startIndex / w
-            // Moore neighbourhood, clockwise from the west.
             let dirs = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)]
             var out: [(Int, Int)] = [(sx, sy)]
             var cx = sx, cy = sy
-            var back = 0   // the direction we came from, as an index into dirs
+            var back = 0
             let limit = 4 * (w + m.count / w) + 8
             repeat {
                 var found = false
@@ -865,7 +976,7 @@ enum RouteScanner {
                     let nx = cx + dirs[d].0, ny = cy + dirs[d].1
                     if on(nx, ny) {
                         cx = nx; cy = ny
-                        back = (d + 5) % 8   // start next search just past where we came from
+                        back = (d + 5) % 8
                         out.append((cx, cy))
                         found = true
                         break
@@ -875,16 +986,13 @@ enum RouteScanner {
             } while !(cx == sx && cy == sy) && out.count < limit
             if out.count > 1, out.last! == (sx, sy) { out.removeLast() }
             perimeterCache = out.count
-            let step = max(1, out.count / 48)
-            var thinned: [(Int, Int)] = []
-            for (i, p) in out.enumerated() where i % step == 0 { thinned.append((p.0 + minX - 1, p.1 + minY - 1)) }
-            return thinned
+            return out.map { ($0.0 + minX - 1, $0.1 + minY - 1) }
         }
 
         /// The outline, normalised to the bitmap.
         mutating func outline(width: Int, height: Int) -> [CGPoint] {
-            boundary(width: width).map {
-                CGPoint(x: (Double($0.0) + 0.5) / Double(width), y: (Double($0.1) + 0.5) / Double(height))
+            smoothBoundary(width: width).map {
+                CGPoint(x: ($0.0 + 0.5) / Double(width), y: ($0.1 + 0.5) / Double(height))
             }
         }
 

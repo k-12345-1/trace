@@ -156,6 +156,46 @@ struct HoldShapeRuleTests {
         #expect(whites.first.map { $0.rect.midX > 0.6 } == true)
     }
 
+    /// Chalk on the lip of a green hold is part of the green hold: the
+    /// hold's box reaches round the chalk, and a white hold on the wall is
+    /// left alone.
+    @Test func chalkOnAHoldIsPartOfTheHold() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 60, y: 60, width: 60, height: 60))
+            c.setFillColor(UIColor.white.cgColor)
+            c.fillEllipse(in: CGRect(x: 100, y: 78, width: 30, height: 24))   // chalk over the right lip
+            c.fillEllipse(in: CGRect(x: 180, y: 180, width: 30, height: 30))  // a white hold on the wall
+        }
+        let bmp = try #require(Bitmap(image, targetWidth: 240))
+        let green = Lab(r: 51, g: 153, b: 51), white = Lab(r: 255, g: 255, b: 255)
+        var labels = RouteScanner.segment(bmp, colors: [green, white], tolerance: 30)
+        let greens = RouteScanner.holds(in: bmp, labels: &labels, index: 0, colors: [green, white])
+        #expect(greens.count == 1, "\(greens.count)")
+        let g = try #require(greens.first)
+        // The chalk runs to x = 130 of 240; without it the green stops at 120.
+        #expect(g.rect.maxX > 126.0 / 240, "\(g.rect.maxX * 240)")
+        #expect(g.rect.maxX < 134.0 / 240)
+        var labels2 = RouteScanner.segment(bmp, colors: [green, white], tolerance: 30)
+        let whites = RouteScanner.holds(in: bmp, labels: &labels2, index: 1, colors: [green, white])
+        #expect(whites.count == 1, "\(whites.count)")
+        #expect(whites.first.map { $0.rect.midX > 0.6 } == true)
+    }
+
+    /// A smoothed outline has no pixel staircase: points are not all on
+    /// integer pixel centres, and the loop closes.
+    @Test func outlinesAreSmooth() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor.red.cgColor)
+            c.fillEllipse(in: CGRect(x: 60, y: 60, width: 60, height: 44))
+        }
+        let holds = RouteScanner.detectHolds(in: image, color: Lab(r: 255, g: 0, b: 0))
+        let outline = try #require(holds.first?.outline)
+        #expect(outline.count >= 20)
+        let offGrid = outline.filter { abs($0.x * 240 - 0.5 - ($0.x * 240 - 0.5).rounded()) > 0.05 }
+        #expect(offGrid.count > outline.count / 4)
+    }
+
     /// Writing on a hold means it is not a hold, and a colour that was only
     /// stickers is not a route.
     @Test func stickersAreNotHolds() {
