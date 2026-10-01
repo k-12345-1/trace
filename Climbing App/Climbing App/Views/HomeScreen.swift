@@ -183,7 +183,6 @@ struct HomeScreen: View {
 
     private func tile(_ gym: Gym) -> some View {
         let counts = store.routeCount(in: gym)
-        let colors = store.routes(in: gym).prefix(9).map { Color(hexString: $0.colorHex) }
         return GymTile(
             // No count under the name. A tile is a way into a gym, and how
             // many routes have been scanned there is a fact about the gym's
@@ -200,22 +199,10 @@ struct HomeScreen: View {
                         .resizable()
                         .scaledToFit()
                         .padding(14)
-                } else if colors.isEmpty {
-                    Text(initials(of: gym.name))
-                        .font(Theme.serif(34, .semibold))
-                        .foregroundStyle(Theme.blue)
                 } else {
-                    // The wall itself, as the colors set on it. It is the only
-                    // picture of a gym Trace actually has.
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5),
-                                             count: 3), spacing: 5) {
-                        ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(color)
-                                .aspectRatio(1, contentMode: .fit)
-                        }
-                    }
-                    .padding(14)
+                    // The gym's own mark, the same one it wears in Explore
+                    // and on its page, so a gym is one thing everywhere.
+                    GymMark(name: gym.name, seed: gym.venueID ?? gym.id.uuidString, size: 118)
                 }
             }
         }
