@@ -27,6 +27,8 @@ struct ProgressScreen: View {
                         // what the rest of the screen is detail on.
                         PatternSection()
                         Hairline()
+                        StyleSection()
+                        Hairline()
                         focusSection
                         Hairline()
                         entropyTrend

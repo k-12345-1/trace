@@ -189,6 +189,13 @@ struct Metrics: Codable {
     /// Foot moves that landed near hip height.
     var highStepShare: Double?
 
+    /// How the climb was climbed, for sorting routes by style.
+    /// Share of the hand moves that were thrown off a rising body rather than
+    /// reached statically. Nil when there were too few reaches to say.
+    var dynamicShare: Double?
+    /// The middle hand move, in torso lengths. Nil for the same reason.
+    var reachTorsos: Double?
+
     /// Below this we do not draw and we do not coach. Confidently wrong feedback
     /// is the failure mode that kills the product.
     var isTrustworthy: Bool { trackingConfidence >= 0.55 }
@@ -238,6 +245,8 @@ struct Metrics: Codable {
         lockOffHeldSeconds = try c.decodeIfPresent(Double.self, forKey: .lockOffHeldSeconds) ?? 0
         elbowsFlaredSeconds = try c.decodeIfPresent(Double.self, forKey: .elbowsFlaredSeconds) ?? 0
         highStepShare      = try c.decodeIfPresent(Double.self, forKey: .highStepShare)
+        dynamicShare       = try c.decodeIfPresent(Double.self, forKey: .dynamicShare)
+        reachTorsos        = try c.decodeIfPresent(Double.self, forKey: .reachTorsos)
     }
 
     init(entropy: Double, logJerk: Double, pathRatio: Double, staticElbowAngle: Double,
@@ -249,7 +258,10 @@ struct Metrics: Codable {
          movingJerk: Double? = nil,
          feetStayedShare: Double? = nil, squareReachShare: Double? = nil,
          lockOffHeldSeconds: Double = 0, elbowsFlaredSeconds: Double = 0,
-         highStepShare: Double? = nil) {
+         highStepShare: Double? = nil,
+         dynamicShare: Double? = nil, reachTorsos: Double? = nil) {
+        self.dynamicShare = dynamicShare
+        self.reachTorsos = reachTorsos
         self.feetStayedShare = feetStayedShare
         self.squareReachShare = squareReachShare
         self.lockOffHeldSeconds = lockOffHeldSeconds

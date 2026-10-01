@@ -162,6 +162,7 @@ enum MetricsEngine {
             ? distance(path.first!, path.last!) : 0
         let stops = pauses(path: path, times: times, torso: medianTorso(tracked) ?? 0.2)
         let technique = TechniqueEngine.read(frames: tracked)
+        let style = StyleEngine.read(frames: tracked)
 
         return Metrics(
             entropy: geometricEntropy(path: path, length: length),
@@ -189,7 +190,9 @@ enum MetricsEngine {
             squareReachShare: technique.squareShare,
             lockOffHeldSeconds: technique.lockOffHeldSeconds,
             elbowsFlaredSeconds: technique.flaredSeconds,
-            highStepShare: technique.highStepShare
+            highStepShare: technique.highStepShare,
+            dynamicShare: style?.dynamicShare,
+            reachTorsos: style?.reachTorsos
         )
     }
 

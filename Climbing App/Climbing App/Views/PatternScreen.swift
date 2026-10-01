@@ -152,3 +152,89 @@ struct PatternSection: View {
         return "\(have) route\(have == 1 ? "" : "s") so far. \(need) more and Trace will read your movement across them. It counts routes rather than attempts, because ten goes at one problem mostly measure how tired you got on it."
     }
 }
+
+
+/// The kinds of route you fall off, worst first.
+struct StyleSection: View {
+    @ObservedObject private var store = Store.shared
+
+    private var report: StyleEngine.Report? { StyleEngine.report(from: store.climbs) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 3) {
+                SectionTitle("Where you fall off")
+                Text(report.map { "Across \($0.routes) routes, by the kind of climb" }
+                     ?? "Which kinds of route get the better of you")
+                    .font(Theme.ui(13.5))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let report {
+                VStack(spacing: 8) {
+                    ForEach(report.buckets) { row($0) }
+                }
+                footnote(report)
+            } else {
+                waiting
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 22)
+        .padding(.bottom, 8)
+    }
+
+    private func row(_ b: StyleEngine.Bucket) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(b.title)
+                    .font(Theme.ui(15, .semibold))
+                    .foregroundStyle(Theme.ink)
+                HStack(spacing: 8) {
+                    Circle().fill(color(b.sendRate)).frame(width: 9, height: 9)
+                    Text("Sent \(b.sent) of \(b.routes)")
+                        .font(Theme.ui(12.5, .semibold)).monospacedDigit()
+                        .foregroundStyle(color(b.sendRate))
+                }
+                if let fault = b.commonFault {
+                    Text("Most often: \(fault.title)")
+                        .font(Theme.ui(12.5))
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    /// The ember ramp, by send rate: a bucket you never send is the dark end.
+    private func color(_ rate: Double) -> Color {
+        rate >= 0.8 ? Theme.ember[0] : rate >= 0.6 ? Theme.ember[1]
+      : rate >= 0.4 ? Theme.ember[3] : Theme.ember[4]
+    }
+
+    private func footnote(_ r: StyleEngine.Report) -> some View {
+        let tags = r.untagged > 0
+            ? " \(r.untagged) route\(r.untagged == 1 ? " has" : "s have") no tags: hold types and wall angle come from the notes on a climb, and only tagged routes count there."
+            : ""
+        return Text("Static against dynamic and the size of the moves are read off the footage. A bucket needs \(StyleEngine.minimumPerBucket) routes before it is shown.\(tags)")
+            .font(Theme.ui(12))
+            .foregroundStyle(Theme.ink3)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 2)
+    }
+
+    private var waiting: some View {
+        Text("Once \(StyleEngine.minimumRoutes) routes are in, Trace sorts them by kind, static or dynamic, big moves or small, and says which kind you send least. Tag the holds and the angle on a climb's notes and those get sorted too.")
+            .font(Theme.body(14))
+            .foregroundStyle(Theme.ink2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .card()
+    }
+}

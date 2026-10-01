@@ -25,8 +25,45 @@ struct ClimbNotes: Codable, Equatable {
     var holds: Int?
     /// Anything the two scales do not hold.
     var note: String = ""
+    /// What the route was made of, which no camera can tell from a blob of
+    /// colour. Tagged once by the climber, read across routes by the style
+    /// report.
+    var holdTypes: Set<HoldType> = []
+    /// How steep it was. From a phone on the floor facing the wall, lean is
+    /// depth, so this too is said rather than measured.
+    var angle: WallAngle?
 
-    var isEmpty: Bool { effort == nil && holds == nil && note.isEmpty }
+    var isEmpty: Bool {
+        effort == nil && holds == nil && note.isEmpty && holdTypes.isEmpty && angle == nil
+    }
+
+    init(effort: Int? = nil, holds: Int? = nil, note: String = "",
+         holdTypes: Set<HoldType> = [], angle: WallAngle? = nil) {
+        self.effort = effort; self.holds = holds; self.note = note
+        self.holdTypes = holdTypes; self.angle = angle
+    }
+
+    /// Decoded leniently, so a note written before the tags existed still reads.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        effort = try c.decodeIfPresent(Int.self, forKey: .effort)
+        holds = try c.decodeIfPresent(Int.self, forKey: .holds)
+        note = try c.decodeIfPresent(String.self, forKey: .note) ?? ""
+        holdTypes = try c.decodeIfPresent(Set<HoldType>.self, forKey: .holdTypes) ?? []
+        angle = try c.decodeIfPresent(WallAngle.self, forKey: .angle)
+    }
+
+    enum HoldType: String, Codable, CaseIterable, Identifiable {
+        case jugs, crimps, slopers, pinches, pockets, volumes
+        var id: String { rawValue }
+        var label: String { rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
+    }
+
+    enum WallAngle: String, Codable, CaseIterable, Identifiable {
+        case slab, vertical, overhang, roof
+        var id: String { rawValue }
+        var label: String { rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
+    }
 
     static let effortEnds = (low: "Easy", high: "At my limit")
     static let holdEnds = (low: "Slick", high: "Positive")

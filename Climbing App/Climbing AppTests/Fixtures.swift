@@ -101,7 +101,9 @@ enum Fixture {
                         offset: Double = 0, deadpoints: [Double] = [],
                         confidence: Double = 0.9,
                         moveWaste: Double? = nil,
-                        movingJerk: Double? = nil) -> Metrics {
+                        movingJerk: Double? = nil,
+                        dynamicShare: Double? = nil,
+                        reachTorsos: Double? = nil) -> Metrics {
         Metrics(entropy: entropy, logJerk: jerk, pathRatio: ratio,
                 staticElbowAngle: elbow, pauseCount: 0, pauseTotal: 0,
                 footAdjustments: feet, comOffsetFromFeet: offset,
@@ -112,7 +114,8 @@ enum Fixture {
                 // be judged on it has to carry the per-move number. Defaulting
                 // it to the whole-climb one would put the two back in the same
                 // pot, which is the thing that went wrong.
-                movingJerk: movingJerk)
+                movingJerk: movingJerk,
+                dynamicShare: dynamicShare, reachTorsos: reachTorsos)
     }
 
     static func climb(path: [CGPoint], entropy: Double, kind: LeakKind? = nil,
