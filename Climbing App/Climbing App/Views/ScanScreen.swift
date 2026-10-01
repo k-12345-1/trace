@@ -369,7 +369,9 @@ struct ScanScreen: View {
 
     // MARK: Work
 
-    private func adopt(_ ui: UIImage) {
+    private func adopt(_ picked: UIImage) {
+        // One set of pixels, one way up: see UIImage.upright.
+        let ui = picked.upright
         image = ui
         reset()
         guard let cg = ui.cgImage else { return }
@@ -416,6 +418,10 @@ struct ScanScreen: View {
         colorHex = swatch.hex
         holds = swatch.holds
         dropped = []
+        // Taps belong to the colour they were made on. Left in place they
+        // carried from one route to the next, and a green route came back
+        // with five holds that had been tapped on the beige one.
+        added = []
     }
 
     /// A hold the scan missed, pointed at.

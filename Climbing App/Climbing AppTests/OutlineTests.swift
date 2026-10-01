@@ -63,3 +63,33 @@ struct OutlineTests {
         #expect(route.outline(at: 0) == nil)
     }
 }
+
+/// A photograph taken on its side is read the way up it is shown.
+@Suite("Upright photographs")
+struct UprightTests {
+    @Test func aSidewaysStillComesUpright() {
+        let w = 300, h = 200
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        let r = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: f)
+        let raw = r.image { ctx in
+            UIColor.gray.setFill(); ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            UIColor.red.setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 60, height: 60))
+        }.cgImage!
+        // Stored sideways: the pixels are 300 by 200, the picture is shown 200 by 300.
+        let sideways = UIImage(cgImage: raw, scale: 1, orientation: .right)
+        #expect(sideways.cgImage!.width == 300)
+        let up = sideways.upright
+        #expect(up.cgImage!.width == 200 && up.cgImage!.height == 300)
+        #expect(up.imageOrientation == .up)
+        // The red square was top-left in the buffer; rotated right it is top-right.
+        let hold = RouteScanner.hold(in: up.cgImage!, at: CGPoint(x: 0.9, y: 0.1))
+        #expect(hold != nil)
+        #expect(RouteScanner.hold(in: up.cgImage!, at: CGPoint(x: 0.1, y: 0.1)) == nil)
+    }
+
+    @Test func anUprightPhotoIsLeftAlone() {
+        let r = UIGraphicsImageRenderer(size: CGSize(width: 50, height: 50), format: { let f = UIGraphicsImageRendererFormat(); f.scale = 1; return f }())
+        let ui = r.image { ctx in UIColor.gray.setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 50, height: 50)) }
+        #expect(ui.upright === ui)
+    }
+}
