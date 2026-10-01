@@ -44,6 +44,16 @@ struct Route: Codable, Identifiable, Hashable {
     var sent: Bool = false
     /// Free text, kept so a scanned route can be matched to climbs logged by label.
     var note: String = ""
+    /// One outline per hold, normalised, in the holds' order. Nil on routes
+    /// scanned before outlines existed, which then draw boxes; an empty
+    /// outline draws a box for that hold alone.
+    var outlines: [[CGPoint]]? = nil
+
+    /// The outline for a hold, when there is one worth drawing.
+    func outline(at i: Int) -> [CGPoint]? {
+        guard let outlines, outlines.count == holds.count, outlines[i].count >= 3 else { return nil }
+        return outlines[i]
+    }
 
     var photoURL: URL { Store.routePhotosDirectory.appendingPathComponent(photoFilename) }
 

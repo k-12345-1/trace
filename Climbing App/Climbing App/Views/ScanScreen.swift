@@ -136,13 +136,10 @@ struct ScanScreen: View {
                 // Everything Trace thinks is on the route.
                 ForEach(holds + added) { hold in
                     let dropped = self.dropped.contains(hold.id)
-                    Rectangle()
+                    HoldOutline(outline: hold.outline, box: hold.rect, frame: rect)
                         .stroke(dropped ? Theme.ink3.opacity(0.5) : Theme.accent,
-                                lineWidth: dropped ? 1 : 2)
-                        .frame(width: hold.rect.width * rect.width + 8,
-                               height: hold.rect.height * rect.height + 8)
-                        .position(x: rect.minX + hold.rect.midX * rect.width,
-                                  y: rect.minY + hold.rect.midY * rect.height)
+                                style: StrokeStyle(lineWidth: dropped ? 1 : 2.5, lineJoin: .round))
+                        .contentShape(HoldOutline(outline: hold.outline, box: hold.rect, frame: rect))
                         .onTapGesture { toggle(hold) }
                 }
 
@@ -445,7 +442,8 @@ struct ScanScreen: View {
             grade: grade.trimmingCharacters(in: .whitespaces),
             colorHex: colorHex,
             photoFilename: filename,
-            holds: kept.map { $0.rect }
+            holds: kept.map { $0.rect },
+            outlines: kept.map { $0.outline }
         ))
         dismiss()
     }

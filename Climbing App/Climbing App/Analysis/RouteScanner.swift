@@ -21,6 +21,9 @@ enum RouteScanner {
         var id = UUID()
         var rect: CGRect
         var area: Double
+        /// The hold's outline, normalised, as the convex hull of its pixels.
+        /// Empty for a hold placed by hand with nothing under it.
+        var outline: [CGPoint] = []
     }
 
     struct Result {
@@ -127,7 +130,8 @@ enum RouteScanner {
 
         var found: [Hold] = []
         for component in components(mask: &mask, width: bmp.width, height: bmp.height,
-                                    minPixels: max(minPixels, 8), maxPixels: maxPixels) {
+                                    minPixels: max(minPixels, 8), maxPixels: maxPixels,
+                                    outlines: true) {
             let w = Double(component.maxX - component.minX + 1)
             let h = Double(component.maxY - component.minY + 1)
             guard w > 2, h > 2 else { continue }
@@ -142,7 +146,8 @@ enum RouteScanner {
                              y: Double(component.minY) / Double(bmp.height),
                              width: w / Double(bmp.width),
                              height: h / Double(bmp.height)),
-                area: Double(component.count) / total
+                area: Double(component.count) / total,
+                outline: component.outline(width: bmp.width, height: bmp.height)
             ))
         }
         // Biggest first, so the review list leads with the holds that matter.
@@ -584,6 +589,7 @@ enum RouteScanner {
         guard mask[start] else { return nil }
 
         var comp = Component()
+        comp.keepsRows = true
         var stack = [start]
         mask[start] = false
         while let i = stack.popLast() {
@@ -606,7 +612,8 @@ enum RouteScanner {
                                  y: Double(comp.minY) / Double(bmp.height),
                                  width: w / Double(bmp.width),
                                  height: h / Double(bmp.height)),
-                    area: Double(comp.count) / total)
+                    area: Double(comp.count) / total,
+                    outline: comp.outline(width: bmp.width, height: bmp.height))
     }
 
     // MARK: Connected components
@@ -614,22 +621,65 @@ enum RouteScanner {
     private struct Component {
         var minX = Int.max, minY = Int.max, maxX = Int.min, maxY = Int.min
         var count = 0
+        /// The leftmost and rightmost pixel of each row, which is all a
+        /// convex hull needs and far less than every pixel.
+        var rows: [Int: (Int, Int)] = [:]
+        var keepsRows = false
         mutating func add(_ x: Int, _ y: Int) {
             minX = min(minX, x); maxX = max(maxX, x)
             minY = min(minY, y); maxY = max(maxY, y)
             count += 1
+            if keepsRows {
+                if let r = rows[y] { rows[y] = (min(r.0, x), max(r.1, x)) } else { rows[y] = (x, x) }
+            }
         }
+
+        /// The outline, normalised to the bitmap.
+        func outline(width: Int, height: Int) -> [CGPoint] {
+            var pts: [(Int, Int)] = []
+            for (y, r) in rows { pts.append((r.0, y)); pts.append((r.1, y)) }
+            return RouteScanner.hull(pts).map {
+                CGPoint(x: (Double($0.0) + 0.5) / Double(width), y: (Double($0.1) + 0.5) / Double(height))
+            }
+        }
+    }
+
+    /// Convex hull by monotone chain. Integer points, so there is no rounding
+    /// to argue with; counter-clockwise in image coordinates.
+    static func hull(_ input: [(Int, Int)]) -> [(Int, Int)] {
+        struct P: Hashable { let x: Int; let y: Int }
+        var seen = Set<P>()
+        for q in input { seen.insert(P(x: q.0, y: q.1)) }
+        var pts: [(Int, Int)] = seen.map { ($0.x, $0.y) }
+        pts.sort { a, b in a.0 != b.0 ? a.0 < b.0 : a.1 < b.1 }
+        guard pts.count >= 3 else { return pts }
+        func cross(_ o: (Int, Int), _ a: (Int, Int), _ b: (Int, Int)) -> Int {
+            (a.0 - o.0) * (b.1 - o.1) - (a.1 - o.1) * (b.0 - o.0)
+        }
+        var lower: [(Int, Int)] = []
+        for p in pts {
+            while lower.count >= 2, cross(lower[lower.count - 2], lower[lower.count - 1], p) <= 0 { lower.removeLast() }
+            lower.append(p)
+        }
+        var upper: [(Int, Int)] = []
+        for p in pts.reversed() {
+            while upper.count >= 2, cross(upper[upper.count - 2], upper[upper.count - 1], p) <= 0 { upper.removeLast() }
+            upper.append(p)
+        }
+        return Array(lower.dropLast()) + Array(upper.dropLast())
     }
 
     /// Flood fill with an explicit stack. Recursion would blow the stack on a
     /// large blob, and a wall photo has plenty of those.
     private static func components(mask: inout [Bool], width: Int, height: Int,
-                                   minPixels: Int, maxPixels: Int) -> [Component] {
+                                   minPixels: Int, maxPixels: Int,
+                                   outlines: Bool = false) -> [Component] {
         var out: [Component] = []
         var stack: [Int] = []
 
         for start in 0..<(width * height) where mask[start] {
             var comp = Component()
+            comp.keepsRows = outlines
             stack.removeAll(keepingCapacity: true)
             stack.append(start)
             mask[start] = false

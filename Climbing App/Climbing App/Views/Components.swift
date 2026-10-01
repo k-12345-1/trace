@@ -401,3 +401,31 @@ extension FindingCard {
         .accessibilityLabel(up ? "Helpful" : "Not helpful")
     }
 }
+
+
+/// A hold's outline on a photograph: the polygon where there is one, the box
+/// where there is not, both placed in the photo's frame.
+struct HoldOutline: Shape {
+    var outline: [CGPoint]
+    var box: CGRect
+    var frame: CGRect
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        func at(_ q: CGPoint) -> CGPoint {
+            CGPoint(x: frame.minX + q.x * frame.width, y: frame.minY + q.y * frame.height)
+        }
+        if outline.count >= 3 {
+            p.move(to: at(outline[0]))
+            for q in outline.dropFirst() { p.addLine(to: at(q)) }
+            p.closeSubpath()
+        } else {
+            let r = CGRect(x: frame.minX + box.minX * frame.width - 4,
+                           y: frame.minY + box.minY * frame.height - 4,
+                           width: box.width * frame.width + 8,
+                           height: box.height * frame.height + 8)
+            p.addRoundedRect(in: r, cornerSize: CGSize(width: 4, height: 4))
+        }
+        return p
+    }
+}

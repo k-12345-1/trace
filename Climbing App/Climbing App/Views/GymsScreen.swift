@@ -582,11 +582,9 @@ struct RouteDetailScreen: View {
                     }
 
                     if showBoxes {
-                        ForEach(Array(live.holds.enumerated()), id: \.offset) { _, hold in
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .stroke(Theme.blueLight, lineWidth: 2)
-                                .frame(width: hold.width * r.width + 8, height: hold.height * r.height + 8)
-                                .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
+                        ForEach(Array(live.holds.enumerated()), id: \.offset) { i, hold in
+                            HoldOutline(outline: live.outline(at: i) ?? [], box: hold, frame: r)
+                                .stroke(Theme.blueLight, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
                         }
                     }
 
