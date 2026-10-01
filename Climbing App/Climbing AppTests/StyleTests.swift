@@ -115,3 +115,29 @@ struct StyleTests {
 }
 
 private final class StyleToken {}
+
+@Suite("A climb's own style")
+struct ClimbStyleTests {
+    private func climb(_ label: String, sent: Bool = false, dynamic: Double? = 0.1,
+                       reach: Double? = 0.8, holds: Set<ClimbNotes.HoldType> = [],
+                       angle: ClimbNotes.WallAngle? = nil) -> Climb {
+        Climb(recordedAt: Date(), videoFilename: "x.mov", label: label,
+              metrics: Fixture.metrics(dynamicShare: dynamic, reachTorsos: reach),
+              findings: [], frames: [], sent: sent,
+              notes: holds.isEmpty && angle == nil ? nil : ClimbNotes(holdTypes: holds, angle: angle))
+    }
+
+    @Test func theWordsSayWhatItWas() {
+        let c = climb("a", dynamic: 0.5, reach: 1.3, holds: [.slopers, .crimps], angle: .overhang)
+        #expect(StyleEngine.words(for: c) == ["Dynamic", "Big moves", "Overhang", "Crimps", "Slopers"])
+        #expect(StyleEngine.words(for: climb("b", dynamic: nil, reach: nil)).isEmpty)
+    }
+
+    @Test func theClimbIsSetAgainstItsOwnKind() {
+        var climbs = (0..<4).map { climb("s\($0)", sent: true, dynamic: 0.1, reach: 0.5) }
+        climbs += (0..<3).map { climb("d\($0)", dynamic: 0.8, reach: 1.5) }
+        let mine = climbs.last!
+        let ids = Set(StyleEngine.buckets(for: mine, in: climbs).map(\.id))
+        #expect(ids == ["dynamic", "big"])
+    }
+}

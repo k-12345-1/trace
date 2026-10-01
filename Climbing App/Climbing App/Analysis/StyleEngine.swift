@@ -155,4 +155,31 @@ enum StyleEngine {
         let counts = Dictionary(grouping: faults, by: { $0 })
         return counts.max { $0.value.count < $1.value.count }?.key
     }
+
+    // MARK: One climb, in words
+
+    /// What this climb was, as the report would file it. Measured words first,
+    /// then the tags. Empty when nothing could be read and nothing was said.
+    static func words(for climb: Climb) -> [String] {
+        var out: [String] = []
+        if let d = climb.metrics.dynamicShare { out.append(d >= dynamicCut ? "Dynamic" : "Static") }
+        if let r = climb.metrics.reachTorsos { out.append(r >= bigReach ? "Big moves" : "Small moves") }
+        if let a = climb.notes?.angle { out.append(a.label) }
+        if let h = climb.notes?.holdTypes, !h.isEmpty {
+            out += ClimbNotes.HoldType.allCases.filter { h.contains($0) }.map(\.label)
+        }
+        return out
+    }
+
+    /// The buckets this climb falls in, from the report across every route,
+    /// so the climb can be set against the others of its kind.
+    static func buckets(for climb: Climb, in climbs: [Climb]) -> [Bucket] {
+        guard let report = report(from: climbs) else { return [] }
+        var ids: Set<String> = []
+        if let d = climb.metrics.dynamicShare { ids.insert(d >= dynamicCut ? "dynamic" : "static") }
+        if let r = climb.metrics.reachTorsos { ids.insert(r >= bigReach ? "big" : "small") }
+        if let a = climb.notes?.angle { ids.insert("angle.\(a.rawValue)") }
+        for h in climb.notes?.holdTypes ?? [] { ids.insert("hold.\(h.rawValue)") }
+        return report.buckets.filter { ids.contains($0.id) }
+    }
 }

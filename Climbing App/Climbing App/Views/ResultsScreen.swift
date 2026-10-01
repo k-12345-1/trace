@@ -169,6 +169,7 @@ struct ResultsScreen: View {
                     // A clip Trace could not track is exactly the climb whose
                     // only record is what the climber says about it.
                     NotesCard(climb: climb)
+                    ClimbStyleCard(climb: climb)
                     if ResultsReadout.of(climb) == .cameraMoved {
                         cameraMoved
                     } else if ResultsReadout.of(climb) == .measurements {

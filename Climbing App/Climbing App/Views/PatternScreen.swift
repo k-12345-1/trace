@@ -238,3 +238,51 @@ struct StyleSection: View {
             .card()
     }
 }
+
+
+/// What kind of climb this one was, on its own results screen, and how the
+/// climber does on that kind. Lives under the notes because the tags that
+/// feed it are set there.
+struct ClimbStyleCard: View {
+    let climb: Climb
+    @ObservedObject private var store = Store.shared
+
+    private var live: Climb { store.climbs.first { $0.id == climb.id } ?? climb }
+    private var words: [String] { StyleEngine.words(for: live) }
+
+    var body: some View {
+        if !words.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle("This kind of climb")
+                FlowOfChips(words.map { w in (w, {}) })
+                ForEach(StyleEngine.buckets(for: live, in: store.climbs)) { b in
+                    HStack(spacing: 8) {
+                        Text("\(b.title):")
+                            .font(Theme.ui(13, .semibold))
+                            .foregroundStyle(Theme.ink2)
+                        Text("sent \(b.sent) of \(b.routes)")
+                            .font(Theme.ui(13)).monospacedDigit()
+                            .foregroundStyle(Theme.ink2)
+                        if let f = b.commonFault {
+                            Text("· \(f.title)")
+                                .font(Theme.ui(13))
+                                .foregroundStyle(Theme.ink3)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                Text(StyleEngine.buckets(for: live, in: store.climbs).isEmpty
+                     ? "Once four routes are in, this says how you do on climbs of this kind."
+                     : "How you have done on routes of each kind, from every route you have climbed.")
+                    .font(Theme.ui(12))
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.bottom, 20)
+        }
+    }
+}
