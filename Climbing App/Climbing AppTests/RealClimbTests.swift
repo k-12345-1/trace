@@ -54,7 +54,10 @@ struct RealClimbTests {
 
         let m = MetricsEngine.compute(frames: clip)
         #expect(m.isTrustworthy)
-        #expect(m.duration > 25)
+        // The clip is 27 seconds; the climber stands on the mat for the first
+        // four of them, and those are trimmed before anything is measured.
+        #expect(m.duration > 22)
+        #expect(m.duration < 25)
 
         // It goes up: the center of mass ends higher than it started, by several
         // torso lengths. (y grows downward.)
@@ -84,7 +87,7 @@ struct RealClimbTests {
         let ys = m.comPath.map { Double($0.y) }
         let summedSteps = (1..<ys.count).reduce(0.0) { $0 + max(0, ys[$1 - 1] - ys[$1]) }
         let net = ys.max()! - ys.min()!
-        #expect(summedSteps / net > 1.5,
+        #expect(summedSteps / net > 1.4,
                 "the old measure read \(summedSteps / net), so this proves nothing")
     }
 

@@ -126,3 +126,15 @@ struct StoreStateTests {
         }
     }
 }
+
+@Suite("Comped accounts")
+struct CompedTests {
+    @Test func theOwnerIsComped() {
+        #expect(Subscription.isComped("knrobinson1023@gmail.com"))
+        #expect(Subscription.isComped("  KNRobinson1023@Gmail.com "))
+    }
+    @Test func everyoneElseIsNot() {
+        #expect(!Subscription.isComped("someone@example.com"))
+        #expect(!Subscription.isComped(nil))
+    }
+}

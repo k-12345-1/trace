@@ -42,6 +42,13 @@ struct PaperBand: View {
                     .opacity(0.55)
                     .blendMode(.multiply)
             }
+            // Flattened before it meets the page. Laid over the grained page
+            // without this, the multiply reaches through to the grain below
+            // and the band comes out a shade darker than the paper it is
+            // meant to be part of, which is the tan strip at the top of every
+            // screen. The page's own ground has nothing under it but the
+            // window, so it never showed the fault.
+            .compositingGroup()
             .ignoresSafeArea(edges: .top)
     }
 }

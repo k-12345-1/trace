@@ -1,5 +1,6 @@
 import Foundation
 import StoreKit
+import Combine
 
 /// Trace Pro: one subscription, billed monthly or yearly, bought through the
 /// App Store.
@@ -73,6 +74,26 @@ final class Subscription: ObservableObject {
             }
         }
         Task { await load(); await refresh() }
+        // A comp is tied to the account, so signing in or out re-reads it.
+        accountWatch = Store.shared.$account
+            .map { $0?.email }
+            .removeDuplicates()
+            .sink { [weak self] _ in Task { await self?.refresh() } }
+    }
+
+    private var accountWatch: AnyCancellable?
+
+    // MARK: Comps
+
+    /// Accounts that have Pro without paying for it. The owner's own, so the
+    /// app can be used and demonstrated without a live subscription on every
+    /// phone it is installed on. An address here is not a secret and the App
+    /// Store sees it as nothing: StoreKit is never asked.
+    nonisolated static let comped: Set<String> = ["knrobinson1023@gmail.com"]
+
+    nonisolated static func isComped(_ email: String?) -> Bool {
+        guard let email else { return false }
+        return comped.contains(email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
     }
 
     deinit { updates?.cancel() }
@@ -110,6 +131,7 @@ final class Subscription: ObservableObject {
 
     /// The live entitlement, straight from StoreKit.
     func refresh() async {
+        if Self.isComped(Store.shared.account?.email) { isPro = true; return }
         for await result in Transaction.currentEntitlements {
             guard case .verified(let t) = result,
                   Plan(rawValue: t.productID) != nil,

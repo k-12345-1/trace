@@ -133,3 +133,43 @@ struct GymMarkTests {
         #expect(GymMark(name: "!!!", seed: "x").initialsForTesting == "G")
     }
 }
+
+/// Which Explore rows get the check.
+@Suite("Explore recognizing your gyms")
+struct ExploreMatchTests {
+    private func venue(_ id: String, _ name: String) -> Venue {
+        Venue(id: id, name: name, city: "Cambridge", state: "MA", street: nil,
+              website: nil, latitude: 42.37, longitude: -71.12)
+    }
+    private let central = [
+        ("1", "Central Rock Gym Harvard"), ("2", "Central Rock Gym Cambridge"),
+        ("3", "Central Rock Gym Watertown"), ("4", "Boston Bouldering Project")
+    ]
+    private var venues: [Venue] { central.map { venue($0.0, $0.1) } }
+
+    /// The defect: a gym typed as "Central Rock Gym" lit up every Central Rock.
+    @Test func aNameThatFitsSeveralVenuesClaimsNone() {
+        let gyms = [Gym(name: "Central Rock Gym")]
+        for v in venues {
+            #expect(ExploreScreen.mine(v, among: venues, gyms: gyms) == nil, Comment(rawValue: v.name))
+        }
+    }
+
+    @Test func aNameThatFitsOneVenueClaimsIt() {
+        let gyms = [Gym(name: "Central Rock Harvard")]
+        #expect(ExploreScreen.mine(venues[0], among: venues, gyms: gyms) != nil)
+        #expect(ExploreScreen.mine(venues[1], among: venues, gyms: gyms) == nil)
+    }
+
+    @Test func anExactNameAlwaysClaims() {
+        let gyms = [Gym(name: "central rock gym cambridge")]
+        #expect(ExploreScreen.mine(venues[1], among: venues, gyms: gyms) != nil)
+        #expect(ExploreScreen.mine(venues[0], among: venues, gyms: gyms) == nil)
+    }
+
+    @Test func aVenueIdBeatsEverything() {
+        let gyms = [Gym(name: "Whatever", venueID: "3")]
+        #expect(ExploreScreen.mine(venues[2], among: venues, gyms: gyms) != nil)
+        #expect(ExploreScreen.mine(venues[0], among: venues, gyms: gyms) == nil)
+    }
+}

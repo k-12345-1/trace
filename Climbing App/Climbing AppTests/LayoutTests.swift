@@ -221,3 +221,39 @@ struct LayoutTests {
         check("progress", NavigationStack { ProgressScreen() })
     }
 }
+
+/// The band at the top of every page is the page, not a strip laid over it.
+@Suite("The paper band")
+@MainActor
+struct PaperBandTests {
+    /// Mean red channel of a horizontal slice of a rendered view.
+    private func meanRed(_ image: UIImage, rows: Range<Int>) -> Double {
+        let cg = image.cgImage!
+        let w = cg.width, h = cg.height
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        let ctx = CGContext(data: &data, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                            space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        var total = 0.0, n = 0.0
+        for y in rows where y < h { for x in 0..<w { total += Double(data[(y * w + x) * 4]); n += 1 } }
+        return total / n
+    }
+
+    private func render<V: View>(_ v: V) -> UIImage {
+        let r = ImageRenderer(content: v.frame(width: 120, height: 240))
+        r.scale = 1
+        return r.uiImage!
+    }
+
+    /// The defect: the band came out a shade darker than the page under it.
+    @Test func theBandMatchesThePage() {
+        let image = render(ZStack(alignment: .top) {
+            PaperGround()
+            PaperBand().frame(height: 100)
+        })
+        let band = meanRed(image, rows: 10..<90)
+        let page = meanRed(image, rows: 140..<230)
+        #expect(abs(band - page) < 2, "band \(band) page \(page)")
+    }
+}

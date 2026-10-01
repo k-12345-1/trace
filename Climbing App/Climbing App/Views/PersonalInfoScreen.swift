@@ -70,7 +70,7 @@ struct PersonalInfoScreen: View {
                     Hairline().padding(.horizontal, 20)
                     weight
                     apeIndex
-                    save
+                    save.padding(.top, 28)
                 }
                 .padding(.bottom, 156)
                 .holdsThePageWidth()

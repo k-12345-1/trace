@@ -122,3 +122,38 @@ struct AscentTests {
         #expect(MetricsEngine.ascent([]).isEmpty)
     }
 }
+
+/// The clip is not the climb at the front either.
+@Suite("Leaving the ground")
+struct LeadInTests {
+    private func at(_ t: Double, _ y: Double) -> PoseFrame {
+        Fixture.body(t: t, comY: y, feetX: 0.5, wrist: CGPoint(x: 0.5, y: y - 0.3))
+    }
+
+    /// Two seconds standing on the mat, then up. The torso in the fixture is
+    /// 0.20, so a rise of 0.07 is the threshold.
+    @Test func standingOnTheMatIsNotClimbing() {
+        var frames = (0..<60).map { at(Double($0) / 30, 0.88 + (($0 % 2 == 0) ? 0.002 : -0.002)) }
+        frames += (0..<90).map { at(2.0 + Double($0) / 30, 0.88 - Double($0) * 0.0066) }
+        let kept = MetricsEngine.ascent(frames)
+        #expect((kept.first?.time ?? 0) > 1.6, "\(kept.first?.time ?? -1)")
+        #expect((kept.first?.time ?? 9) < 2.3, "\(kept.first?.time ?? -1)")
+        let m = MetricsEngine.compute(frames: frames)
+        #expect(m.duration < 3.5)
+    }
+
+    /// A clip that opens with the body already climbing keeps its first move.
+    @Test func aClipThatStartsMidMoveIsNotTrimmed() {
+        let frames = (0..<90).map { at(Double($0) / 30, 0.88 - Double($0) * 0.0066) }
+        #expect(MetricsEngine.ascent(frames).first?.time == 0)
+    }
+
+    /// The findings read the trimmed clip, so none of them can start on the mat.
+    @Test func noFindingStartsOnTheMat() {
+        var frames = (0..<60).map { at(Double($0) / 30, 0.88) }
+        frames += (0..<90).map { at(2.0 + Double($0) / 30, 0.88 - Double($0) * 0.0066) }
+        let climbing = MetricsEngine.ascent(frames)
+        let findings = FindingEngine.findings(from: MetricsEngine.compute(frames: frames), frames: climbing)
+        for f in findings { #expect(f.start >= 1.6, "\(f.kind) at \(f.start)") }
+    }
+}

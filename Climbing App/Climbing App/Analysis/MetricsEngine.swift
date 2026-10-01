@@ -92,11 +92,23 @@ enum MetricsEngine {
     static let ascentTop = 0.10
     static let topPercentile = 0.02
 
+    /// How far the hips have to rise, in torso lengths, before the clip counts
+    /// as climbing. A foot stepping onto the first hold lifts them about a
+    /// third of a torso; chalking up and reaching for the start holds does not.
+    static let groundRise = 0.35
+    /// Where the rise is taken to begin: the last frame before the threshold
+    /// where the hips were still within this much of their starting level.
+    static let riseBegins = 0.08
+    /// A lead-in shorter than this is kept, because a clip that opens with the
+    /// body already moving loses its first move to any trim.
+    static let shortestLeadIn = 0.5
+
     static func ascent(_ frames: [PoseFrame]) -> [PoseFrame] {
         let usable = frames.filter { $0.com != nil }
         guard usable.count >= 4,
               let torso = medianTorso(usable), torso > 0.01
         else { return frames }
+        let frames = afterLeavingTheGround(frames, torso: torso)
 
         let heights = usable.map { $0.com!.y }.sorted()
         let peak = heights[min(heights.count - 1,
@@ -109,6 +121,31 @@ enum MetricsEngine {
         }
         // Never trim away so much that there is nothing left to read.
         return kept.count >= 4 ? kept : frames
+    }
+
+    /// Everything from the moment the body left the ground.
+    ///
+    /// A clip starts with the climber standing on the mat, chalking up and
+    /// putting hands on the start holds, and none of that is climbing either.
+    /// Judged over it, the first finding lands at 0:00 and says the hips
+    /// wandered on a route that had not begun. The starting level is the
+    /// median of the first half second, so one misplaced frame cannot set it,
+    /// and the cut is where the rise began rather than where it crossed the
+    /// line, so the first move is kept whole.
+    static func afterLeavingTheGround(_ frames: [PoseFrame], torso: Double) -> [PoseFrame] {
+        guard let t0 = frames.first?.time else { return frames }
+        let opening = frames.filter { $0.com != nil && $0.time - t0 <= shortestLeadIn }
+            .map { $0.com!.y }.sorted()
+        guard opening.count >= 3 else { return frames }
+        let ground = opening[opening.count / 2]
+        let rise: (PoseFrame) -> Double? = { f in f.com.map { (ground - $0.y) / torso } }
+
+        guard let crossed = frames.firstIndex(where: { (rise($0) ?? 0) >= groundRise })
+        else { return frames }
+        let began = frames[..<crossed].lastIndex(where: { (rise($0) ?? 0) <= riseBegins }) ?? 0
+        guard frames[began].time - t0 >= shortestLeadIn,
+              frames.count - began >= 4 else { return frames }
+        return Array(frames[began...])
     }
 
     static func compute(frames all: [PoseFrame]) -> Metrics {

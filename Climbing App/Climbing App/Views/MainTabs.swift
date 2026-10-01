@@ -103,6 +103,11 @@ struct MainTabs: View {
             }
             .onPreferenceChange(FullBleedKey.self) { fullBleed = $0 }
             .onPreferenceChange(TopBleedKey.self) { topBleed = $0 }
+            // iOS 26 tints the top of every scroll view where it passes under
+            // the clock, which on this paper reads as a strip of a different
+            // tan across the top of every screen. The paper band above does
+            // that job already, in the page's own color.
+            .modifier(NoScrollEdgeTint())
 
             // A solid band under the bar, fading in at its top edge.
             //
@@ -663,5 +668,12 @@ struct PickedMovie: Transferable {
             try FileManager.default.copyItem(at: received.file, to: dest)
             return PickedMovie(url: dest)
         }
+    }
+}
+
+/// The system's scroll-edge tint, off. A no-op before iOS 26.
+struct NoScrollEdgeTint: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) { content.scrollEdgeEffectHidden(true, for: .all) } else { content }
     }
 }

@@ -317,19 +317,31 @@ struct ExploreScreen: View {
     /// and at eight hundred venues that one loose match would light up rows all
     /// over the list.
     private func mine(_ venue: Venue) -> Gym? {
-        if let byID = store.gyms.first(where: { $0.venueID == venue.id }) { return byID }
-        if let byName = store.gyms.first(where: {
+        Self.mine(venue, among: GymDirectory.all, gyms: store.gyms)
+    }
+
+    /// The loose word match is only trusted when it picks out one venue. A gym
+    /// typed as "Central Rock Gym" is a subset of every Central Rock in the
+    /// directory, and you climbed at one of them, not all of them, so no row
+    /// gets the check until the name says which. The exact and id matches
+    /// above it are unaffected.
+    static func mine(_ venue: Venue, among venues: [Venue], gyms: [Gym]) -> Gym? {
+        if let byID = gyms.first(where: { $0.venueID == venue.id }) { return byID }
+        if let byName = gyms.first(where: {
             $0.name.caseInsensitiveCompare(venue.name) == .orderedSame
         }) { return byName }
 
-        let wanted = Self.words(venue.name)
-        guard wanted.count >= 2 else { return nil }
-        return store.gyms.first { gym in
-            guard gym.venueID == nil else { return false }   // already spoken for
-            let mine = Self.words(gym.name)
-            guard mine.count >= 2 else { return false }
-            return mine.isSubset(of: wanted) || wanted.isSubset(of: mine)
-        }
+        guard let gym = gyms.first(where: { looselyMatches($0, venue) }) else { return nil }
+        let claimed = venues.filter { looselyMatches(gym, $0) }
+        return claimed.count == 1 ? gym : nil
+    }
+
+    private static func looselyMatches(_ gym: Gym, _ venue: Venue) -> Bool {
+        guard gym.venueID == nil else { return false }   // already spoken for
+        let wanted = words(venue.name)
+        let mine = words(gym.name)
+        guard wanted.count >= 2, mine.count >= 2 else { return false }
+        return mine.isSubset(of: wanted) || wanted.isSubset(of: mine)
     }
 
     private static let filler: Set<String> = ["gym", "the", "climbing", "center", "center", "co"]
