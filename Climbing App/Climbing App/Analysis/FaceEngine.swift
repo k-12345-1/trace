@@ -71,16 +71,21 @@ enum FaceEngine {
     static let thinShare = 0.45
     /// The most seams a wall is given. A photograph has a handful of panels.
     static let mostLines = 5
-    /// The floor. A line this close to horizontal, in degrees, and this far
-    /// down the picture, is the mat meeting the wall, not a seam between
-    /// panels. The ground is a horizontal plane, and a route is not on it.
+    /// The floor and the top. A line this close to horizontal, in degrees,
+    /// low in the picture is the mat meeting the wall; high in the picture
+    /// it is the wall meeting the ceiling. Neither is a seam between panels:
+    /// the ground is a horizontal plane and no route is on it, and nothing
+    /// is climbed above the wall. In between, a near-horizontal line is a
+    /// roof's lip and counts.
     static let floorTilt = 25.0
     static let floorFrom = 0.6
+    static let topTo = 0.3
 
     static func isFloor(_ line: Line, width: Int, height: Int) -> Bool {
         let tilt = abs(line.theta * 180 / .pi - 90)
         guard tilt <= floorTilt, let (a, b) = line.endpoints(width: width, height: height) else { return false }
-        return (a.y + b.y) / 2 >= floorFrom
+        let y = (a.y + b.y) / 2
+        return y >= floorFrom || y <= topTo
     }
 
     /// Seam pixels: dark lines and lightness steps, among low chroma pixels.

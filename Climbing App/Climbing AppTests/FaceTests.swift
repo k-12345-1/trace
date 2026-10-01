@@ -47,20 +47,25 @@ struct FaceTests {
         #expect(FaceEngine.lines(in: sheet, wallL: 64).count <= 1)
     }
 
-    /// The mat meeting the wall is not a seam.
+    /// The mat meeting the wall is not a seam, and neither is the ceiling.
     @Test func theFloorIsNotASeam() {
         let bmp = canvas { c in
             c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
             c.move(to: CGPoint(x: 0, y: 350)); c.addLine(to: CGPoint(x: 300, y: 330)); c.strokePath()
         }
         #expect(FaceEngine.lines(in: bmp, wallL: 64).isEmpty)
-        // The same tilt high in the picture is a seam, since a wall's top
-        // edge or a roof's lip can run that way.
-        let high = canvas { c in
+        // Nor is the wall meeting the ceiling.
+        let top = canvas { c in
             c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
-            c.move(to: CGPoint(x: 0, y: 120)); c.addLine(to: CGPoint(x: 300, y: 100)); c.strokePath()
+            c.move(to: CGPoint(x: 0, y: 80)); c.addLine(to: CGPoint(x: 300, y: 60)); c.strokePath()
         }
-        #expect(FaceEngine.lines(in: high, wallL: 64).count == 1)
+        #expect(FaceEngine.lines(in: top, wallL: 64).isEmpty)
+        // The same tilt across the middle is a roof's lip, and counts.
+        let lip = canvas { c in
+            c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
+            c.move(to: CGPoint(x: 0, y: 210)); c.addLine(to: CGPoint(x: 300, y: 190)); c.strokePath()
+        }
+        #expect(FaceEngine.lines(in: lip, wallL: 64).count == 1)
     }
 
     @Test func holdsOnTheFarSideAreSetAside() {
