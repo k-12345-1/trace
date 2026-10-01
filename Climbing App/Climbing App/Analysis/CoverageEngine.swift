@@ -102,8 +102,17 @@ enum CoverageEngine {
 
     /// The holds the start stickers sit under, in this route.
     static func startHolds(holds: [CGRect], tags: [RouteScanner.Tag], others: [CGRect] = []) -> [Int] {
+        tagged(.start, holds: holds, tags: tags, others: others)
+    }
+
+    /// And the finish stickers.
+    static func finishHolds(holds: [CGRect], tags: [RouteScanner.Tag], others: [CGRect] = []) -> [Int] {
+        tagged(.finish, holds: holds, tags: tags, others: others)
+    }
+
+    private static func tagged(_ kind: RouteScanner.Tag.Kind, holds: [CGRect], tags: [RouteScanner.Tag], others: [CGRect]) -> [Int] {
         var out: [Int] = []
-        for t in tags where t.kind == .start {
+        for t in tags where t.kind == kind {
             if let i = holdIndex(for: t, holds: holds, others: others), !out.contains(i) { out.append(i) }
         }
         return out

@@ -61,6 +61,9 @@ enum LineEngine {
         /// How many holds the start stickers named. Two is a hand on each;
         /// one is both hands matched on it; none is a start nobody marked.
         let startCount: Int
+        /// The holds under the finish stickers. Empty when none were read,
+        /// in which case the top hand hold is the finish.
+        let finishes: [CGRect]
         let moves: [Move]
         /// The longest move on the route, which is where it is most likely to
         /// stop you. Not "the crux": a crux can be a bad hold on a short move,
@@ -96,7 +99,7 @@ enum LineEngine {
     /// - Parameter starts: the holds the start stickers sit under, as
     ///   indices into `holds`. Empty when none were read, in which case the
     ///   start is the lowest hand-sized holds.
-    static func read(holds: [CGRect], starts: [Int] = []) -> Line? {
+    static func read(holds: [CGRect], starts: [Int] = [], finishes: [Int] = []) -> Line? {
         guard holds.count >= minimumHolds else { return nil }
         let ordered = order(holds)
         guard ordered.count >= minimumHolds else { return nil }
@@ -104,11 +107,12 @@ enum LineEngine {
         // Hands and feet. A start hold is a hand hold whatever its size;
         // everything below the lowest start is feet; a chip is feet.
         let startRects = starts.compactMap { holds.indices.contains($0) ? holds[$0] : nil }
+        let finishRects = finishes.compactMap { holds.indices.contains($0) ? holds[$0] : nil }
         let areas = holds.map { Double($0.width * $0.height) }.sorted()
         let middle = areas[areas.count / 2]
         let lowestStartY = startRects.map(\.midY).max()
         func isHand(_ h: CGRect) -> Bool {
-            if startRects.contains(h) { return true }
+            if startRects.contains(h) || finishRects.contains(h) { return true }
             if let y = lowestStartY, h.midY > y + belowStart { return false }
             return Double(h.width * h.height) >= middle * footChip
         }
@@ -146,7 +150,7 @@ enum LineEngine {
         }
 
         return Line(holds: ordered, hands: hands, feet: feet, startCount: startRects.count,
-                    moves: moves, longest: moves.max { $0.reach < $1.reach })
+                    finishes: finishRects, moves: moves, longest: moves.max { $0.reach < $1.reach })
     }
 
     /// The order the holds are met: bottom to top, always.

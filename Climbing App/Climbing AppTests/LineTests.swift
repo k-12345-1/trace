@@ -250,17 +250,20 @@ struct BetaTests {
          hold(0.45, 0.50), hold(0.55, 0.40), hold(0.45, 0.30)]
     }
 
-    @Test("One stance per pair of holds, hands on the holds")
+    @Test("One stance per planned position, hands on hand holds")
     func handsAreOnTheHolds() throws {
         let line = try #require(LineEngine.read(holds: ladder))
         let seq = try #require(BetaEngine.read(line: line))
-        #expect(seq.stances.count == line.holds.count - 1)
-        for (i, s) in seq.stances.enumerated() {
-            let a = line.holds[i], b = line.holds[i + 1]
-            let hands = [s.leftHand, s.rightHand]
-            #expect(hands.contains { abs($0.x - a.midX) < 1e-6 && abs($0.y - a.midY) < 1e-6 })
-            #expect(hands.contains { abs($0.x - b.midX) < 1e-6 && abs($0.y - b.midY) < 1e-6 })
+        let plan = try #require(seq.plan)
+        #expect(seq.stances.count == plan.states.count)
+        let centres = line.hands.map { CGPoint(x: $0.midX, y: $0.midY) }
+        for s in seq.stances {
+            for hand in [s.leftHand, s.rightHand] {
+                #expect(centres.contains { abs($0.x - hand.x) < 1e-6 && abs($0.y - hand.y) < 1e-6 })
+            }
         }
+        // A ladder is climbed hand over hand: most holds are used, in order.
+        #expect(plan.order.count >= line.hands.count - 1, "\(plan.order)")
     }
 
     @Test("The body hangs below the hands and the feet are below the hips")

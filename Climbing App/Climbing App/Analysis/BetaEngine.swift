@@ -58,8 +58,29 @@ enum BetaEngine {
         }
     }
 
+    enum Side: String { case left, right }
+
+    /// One hand move in the plan.
+    struct Step: Equatable {
+        let hand: Side
+        /// Index into the line's hand holds.
+        let to: Int
+        /// True when the hand joins the other on the same hold.
+        let match: Bool
+    }
+
+    /// The sequence the planner chose: which hand goes where, in order, and
+    /// the hand holds in the order they are first used, for numbering.
+    struct Plan {
+        let steps: [Step]
+        let order: [Int]
+        /// Where each hand is after each step, the start first.
+        let states: [(left: Int, right: Int)]
+    }
+
     struct Sequence {
         let stances: [Pose]
+        let plan: Plan?
         /// Arm span in photo units, the scale everything was drawn at.
         let span: Double
         /// The proportions the figure was drawn with.
@@ -157,12 +178,16 @@ enum BetaEngine {
         guard median > 1e-6 else { return nil }
         let span = median * spansPerGap
 
-        // Where the hands are at each stance. The start first: a hand on
-        // each start hold, or both on the one, then one hand at a time up
-        // the hand holds. Never a hand on a foot hold.
+        let plan = self.plan(line: line, span: span, shape: shape)
+        // Hands at each stance: the planned states, or, when no plan could
+        // be found, one hand at a time up the hand holds.
         var pairs: [(CGPoint, CGPoint)] = []
-        if line.startCount == 1 { pairs.append((hands[0], hands[0])) }
-        for i in 1..<hands.count { pairs.append((hands[i - 1], hands[i])) }
+        if let plan {
+            pairs = plan.states.map { (hands[$0.left], hands[$0.right]) }
+        } else {
+            if line.startCount == 1 { pairs.append((hands[0], hands[0])) }
+            for i in 1..<hands.count { pairs.append((hands[i - 1], hands[i])) }
+        }
 
         var stances: [Pose] = []
         for (a, b) in pairs {
@@ -172,7 +197,150 @@ enum BetaEngine {
             stances.append(stance(leftHand: l, rightHand: r, feetFrom: feetFrom,
                                   span: span, shape: shape))
         }
-        return Sequence(stances: stances, span: span, shape: shape)
+        return Sequence(stances: stances, plan: plan, span: span, shape: shape)
+    }
+
+    // MARK: Planning the sequence
+
+    /// A hand goes to a hold no lower than this, in spans, below where it is.
+    static let handDrop = 0.1
+    /// Costs, in units of one span of reach. Alternating hands is the
+    /// baseline; using the same hand twice costs as much as a short reach;
+    /// crossing hands costs more; a stance whose hips sit off the feet
+    /// costs by how far; a smeared foot costs a little; and a match on a
+    /// hold the hand has to share is cheap, because a jug is where you rest.
+    static let reachCost = 0.6
+    static let sameHandCost = 0.35
+    static let crossCost = 0.8
+    static let smearCost = 0.25
+    static let hipsOffCost = 1.2
+    static let matchCost = 0.15
+
+    /// The cheapest way from the start holds to the finish, one hand at a
+    /// time, judged by the stance each move leaves the body in.
+    ///
+    /// Dijkstra over where the two hands are and which moved last. A hand
+    /// may go to any hand hold within the arm span of the other hand and no
+    /// lower than where it is, and the finish is both hands on the finish
+    /// holds, or matched on the top hold when none were marked. The feet at
+    /// each state are chosen the way the figure chooses them, so the cost
+    /// of a move is the cost of the position it ends in: how far the hand
+    /// went, whether it crossed, whether the same hand went again, and how
+    /// well the body stands there.
+    static func plan(line: LineEngine.Line, span: Double, shape: Shape) -> Plan? {
+        let hands = line.hands.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let n = hands.count
+        guard n >= 2 else { return nil }
+        let arm = shape.arm * span
+
+        // Start and finish.
+        let start: (Int, Int)
+        switch line.startCount {
+        case 2: start = hands[0].x <= hands[1].x ? (0, 1) : (1, 0)
+        case 1: start = (0, 0)
+        default:
+            // The lowest hand hold and, if close enough, the next: otherwise
+            // both hands on the lowest.
+            let lowest = (0..<n).min { hands[$0].y > hands[$1].y }!
+            let second = (0..<n).filter { $0 != lowest }.min { distance(hands[$0], hands[lowest]) < distance(hands[$1], hands[lowest]) }
+            if let second, distance(hands[second], hands[lowest]) <= span * 0.95, hands[second].y <= hands[lowest].y + handDrop * span {
+                start = hands[lowest].x <= hands[second].x ? (lowest, second) : (second, lowest)
+            } else { start = (lowest, lowest) }
+        }
+        let finishSet: Set<Int> = {
+            let tagged = Set(line.finishes.compactMap { f in line.hands.firstIndex(of: f) })
+            if !tagged.isEmpty { return tagged }
+            return [(0..<n).min { hands[$0].y < hands[$1].y }!]
+        }()
+        func isGoal(_ l: Int, _ r: Int) -> Bool { finishSet.contains(l) && finishSet.contains(r) }
+
+        // The stance at a hand pair, cached.
+        var stanceCost: [Int: Double] = [:]
+        func costOfStanding(_ l: Int, _ r: Int) -> Double {
+            let key = l * n + r
+            if let c = stanceCost[key] { return c }
+            let a = hands[l], b = hands[r]
+            let feetFrom = all.filter { $0 != a && $0 != b }
+            let pose = stance(leftHand: a.x <= b.x ? a : b, rightHand: a.x <= b.x ? b : a,
+                              feetFrom: feetFrom, span: span, shape: shape)
+            var c = 0.0
+            if pose.leftFootHold == nil { c += smearCost }
+            if pose.rightFootHold == nil { c += smearCost }
+            let feetX = (pose.leftFoot.x + pose.rightFoot.x) / 2
+            c += hipsOffCost * min(1, abs(pose.hips.x - feetX) / span)
+            stanceCost[key] = c
+            return c
+        }
+
+        // Dijkstra. State: left hold, right hold, which hand moved last.
+        struct State: Hashable { let l: Int; let r: Int; let last: Int }  // last: 0 left, 1 right, 2 none
+        var best: [State: Double] = [:]
+        var from: [State: (State, Step)] = [:]
+        let origin = State(l: start.0, r: start.1, last: 2)
+        best[origin] = 0
+        var open: [(Double, State)] = [(0, origin)]
+        var goal: State?
+        while !open.isEmpty {
+            open.sort { $0.0 > $1.0 }
+            let (d, st) = open.removeLast()
+            if d > (best[st] ?? .infinity) { continue }
+            if isGoal(st.l, st.r) { goal = st; break }
+            for mover in 0...1 {
+                let staying = mover == 0 ? st.r : st.l
+                let current = mover == 0 ? st.l : st.r
+                for j in 0..<n where j != current {
+                    // Within reach of the hand that stays, and not downward.
+                    guard distance(hands[j], hands[staying]) <= span * 0.95 || j == staying else { continue }
+                    guard hands[j].y <= hands[current].y + handDrop * span else { continue }
+                    let l = mover == 0 ? j : st.l, r = mover == 0 ? st.r : j
+                    // Reach costs by its square: a hand that goes one arm's
+                    // length is cheap, one that goes two is a throw. Judged
+                    // linearly, three long throws beat seven short moves.
+                    let reach = distance(hands[j], hands[current]) / max(arm, 1e-6)
+                    var c = reachCost * reach * reach
+                    if st.last == mover { c += sameHandCost }
+                    if hands[l].x > hands[r].x + 0.02 { c += crossCost }
+                    if j == staying { c += matchCost }
+                    c += costOfStanding(l, r)
+                    let next = State(l: l, r: r, last: mover)
+                    let nd = d + c
+                    if nd < (best[next] ?? .infinity) {
+                        best[next] = nd
+                        from[next] = (st, Step(hand: mover == 0 ? .left : .right, to: j, match: j == staying))
+                        open.append((nd, next))
+                    }
+                }
+            }
+        }
+        guard let goal else { return nil }
+        var steps: [Step] = []
+        var states: [(left: Int, right: Int)] = [(goal.l, goal.r)]
+        var cursor = goal
+        while let (prev, step) = from[cursor] {
+            steps.append(step); states.append((prev.l, prev.r)); cursor = prev
+        }
+        steps.reverse(); states.reverse()
+        var order: [Int] = []
+        for s in states { for h in [s.left, s.right] where !order.contains(h) { order.append(h) } }
+        return Plan(steps: steps, order: order, states: states)
+    }
+
+    /// The plan said in words, one line per move, with the holds numbered
+    /// in the order the plan first uses them.
+    static func describe(_ plan: Plan, line: LineEngine.Line) -> [String] {
+        func number(_ i: Int) -> Int { (plan.order.firstIndex(of: i) ?? i) + 1 }
+        var out: [String] = []
+        switch line.startCount {
+        case 2: out.append("Start with a hand on each of 1 and 2.")
+        case 1: out.append("Start with both hands on 1.")
+        default: out.append(plan.states.first.map { $0.left == $0.right ? "Start with both hands on 1." : "Start with a hand on each of 1 and 2." } ?? "")
+        }
+        for s in plan.steps {
+            let hand = s.hand == .left ? "Left" : "Right"
+            out.append(s.match ? "\(hand) hand matches on \(number(s.to))." : "\(hand) hand to \(number(s.to)).")
+        }
+        return out
     }
 
     /// The body hung from two hands, standing on what it can.

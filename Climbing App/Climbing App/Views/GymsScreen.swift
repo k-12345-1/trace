@@ -565,7 +565,7 @@ struct RouteDetailScreen: View {
         if let data = try? Data(contentsOf: live.photoURL), let ui = UIImage(data: data) {
             GeometryReader { geo in
                 let r = filled(image: ui.size, in: geo.size)
-                let line = showLine ? LineEngine.read(holds: live.holds, starts: live.startHolds ?? []) : nil
+                let line = showLine ? LineEngine.read(holds: live.holds, starts: live.startHolds ?? [], finishes: live.finishHolds ?? []) : nil
                 ZStack {
                     Color.black
                     Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
@@ -576,7 +576,11 @@ struct RouteDetailScreen: View {
                     // met. Under the boxes, so it never hides a hold.
                     if let line {
                         Path { p in
-                            let points = line.hands.map {
+                            // Through the hand holds in the order the plan
+                            // uses them, or by height when there is no plan.
+                            let order = BetaEngine.read(line: line, shape: store.figureShape)?.plan?.order
+                                ?? Array(line.hands.indices)
+                            let points = order.map { line.hands[$0] }.map {
                                 CGPoint(x: r.minX + $0.midX * r.width,
                                         y: r.minY + $0.midY * r.height)
                             }
@@ -605,8 +609,9 @@ struct RouteDetailScreen: View {
                                 .frame(width: 10, height: 10)
                                 .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
                         }
+                        let order = BetaEngine.read(line: line, shape: store.figureShape)?.plan?.order
                         ForEach(Array(line.hands.enumerated()), id: \.offset) { i, hold in
-                            Text("\(i + 1)")
+                            Text("\((order?.firstIndex(of: i) ?? i) + 1)")
                                 .font(Theme.mono(10, weight: .bold))
                                 .foregroundStyle(Theme.blue)
                                 .frame(width: 18, height: 18)
@@ -617,7 +622,7 @@ struct RouteDetailScreen: View {
                     }
 
                     // The figure, over everything, at wherever the scrubber is.
-                    if showFigure, let line = LineEngine.read(holds: live.holds, starts: live.startHolds ?? []),
+                    if showFigure, let line = LineEngine.read(holds: live.holds, starts: live.startHolds ?? [], finishes: live.finishHolds ?? []),
                        let seq = BetaEngine.read(line: line, shape: store.figureShape),
                        let pose = seq.pose(at: figureT) {
                         BetaFigure(pose: pose, rect: r, span: seq.span, shape: seq.shape)
@@ -641,7 +646,7 @@ struct RouteDetailScreen: View {
     /// which gaps are long, and it cannot say which hand to use.
     @ViewBuilder
     private var suggestedLine: some View {
-        if let line = LineEngine.read(holds: live.holds, starts: live.startHolds ?? []) {
+        if let line = LineEngine.read(holds: live.holds, starts: live.startHolds ?? [], finishes: live.finishHolds ?? []) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     SectionTitle("The line")
@@ -719,7 +724,8 @@ struct RouteDetailScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                let steps = LineEngine.sequence(line)
+                let steps = BetaEngine.read(line: line, shape: store.figureShape)?.plan
+                    .map { BetaEngine.describe($0, line: line) } ?? LineEngine.sequence(line)
                 if !steps.isEmpty {
                     VStack(alignment: .leading, spacing: 7) {
                         ForEach(Array(steps.enumerated()), id: \.offset) { _, step in

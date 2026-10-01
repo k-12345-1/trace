@@ -55,6 +55,8 @@ struct Route: Codable, Identifiable, Hashable {
     /// The holds the start stickers sat under, as indices into `holds`.
     /// Nil on routes scanned before this was read.
     var startHolds: [Int]? = nil
+    /// And the finish stickers.
+    var finishHolds: [Int]? = nil
 
     /// The outline for a hold, when there is one worth drawing.
     func outline(at i: Int) -> [CGPoint]? {

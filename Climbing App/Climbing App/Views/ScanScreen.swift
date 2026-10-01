@@ -565,6 +565,9 @@ struct ScanScreen: View {
             continues: coverage.map { Array($0.continues) },
             startHolds: CoverageEngine.startHolds(
                 holds: kept.map(\.rect), tags: tags,
+                others: swatches.filter { $0.id != chosen?.id }.flatMap { $0.holds.map(\.rect) }),
+            finishHolds: CoverageEngine.finishHolds(
+                holds: kept.map(\.rect), tags: tags,
                 others: swatches.filter { $0.id != chosen?.id }.flatMap { $0.holds.map(\.rect) })
         ))
         dismiss()
