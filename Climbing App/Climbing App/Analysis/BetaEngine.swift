@@ -87,22 +87,34 @@ enum BetaEngine {
     /// index makes the legs and torso shorter against the arms, a minus one
     /// longer, which is exactly the difference that decides whether a foot
     /// reaches a hold while the hands stay where they are.
-    struct Shape {
+    struct Shape: Equatable {
         /// Height over span. One for the average body.
         let heightOverSpan: Double
-        var upperArm: Double { 0.19 }
-        var forearm: Double { 0.19 }
-        var shoulderWidth: Double { 0.22 }
-        var torso: Double { 0.30 * heightOverSpan }
-        var thigh: Double { 0.245 * heightOverSpan }
-        var shin: Double { 0.225 * heightOverSpan }
-        var headRadius: Double { 0.055 * heightOverSpan }
+        /// Every length is a share of the arm span, so the figure scales
+        /// with the gaps between holds the way a body scales with a wall.
+        var upperArm: Double = 0.19
+        var forearm: Double = 0.19
+        var shoulderWidth: Double = 0.22
+        var hipWidth: Double = 0.16
+        var torso: Double
+        var thigh: Double
+        var shin: Double
+        var headRadius: Double
+        /// True when the lengths were read off this person's own footage
+        /// rather than taken from the average body.
+        var measured = false
         var arm: Double { upperArm + forearm }
         var leg: Double { thigh + shin }
 
         static let average = Shape(heightOverSpan: 1.0)
 
-        init(heightOverSpan: Double) { self.heightOverSpan = heightOverSpan }
+        init(heightOverSpan: Double) {
+            self.heightOverSpan = heightOverSpan
+            torso = 0.30 * heightOverSpan
+            thigh = 0.245 * heightOverSpan
+            shin = 0.225 * heightOverSpan
+            headRadius = 0.055 * heightOverSpan
+        }
 
         init(_ body: BodyProfile) {
             if let h = body.heightCM, let s = body.spanCM, h > 0, s > 0 {
@@ -132,7 +144,10 @@ enum BetaEngine {
     // MARK: Reading
 
     static func read(line: LineEngine.Line, body: BodyProfile = .empty) -> Sequence? {
-        let shape = Shape(body)
+        read(line: line, shape: Shape(body))
+    }
+
+    static func read(line: LineEngine.Line, shape: Shape) -> Sequence? {
         let holds = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         guard holds.count >= 2 else { return nil }
         var gaps: [Double] = []

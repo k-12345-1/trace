@@ -458,6 +458,16 @@ final class Store: ObservableObject {
         account = nil
     }
 
+    // MARK: The figure's body
+
+    /// The proportions the climbing figure is drawn with: this person's own,
+    /// read off every clip Trace could track, with the profile's height and
+    /// span standing in until there is footage.
+    var figureShape: BetaEngine.Shape {
+        let frames = climbs.filter { $0.metrics.isTrustworthy }.flatMap(\.frames)
+        return BodyMeasure.shape(from: frames, fallback: BetaEngine.Shape(body)) ?? BetaEngine.Shape(body)
+    }
+
     // MARK: Hold sense
 
     /// The scanned route a climb is an attempt on, by name, same gym first.

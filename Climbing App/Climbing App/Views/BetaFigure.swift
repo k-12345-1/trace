@@ -20,43 +20,80 @@ struct BetaFigure: View {
 
     var body: some View {
         Canvas { ctx, _ in
-            // A body, not a wire: limbs with the thickness of limbs, a torso
-            // between the shoulders and the hips, a head. Drawn in the live
+            // A body, not a wire. Every width is this climber's own where
+            // their footage has been read: shoulders, hips, and limbs that
+            // thicken toward the trunk the way limbs do. Drawn in the live
             // overlay's two inks so it reads as the same idea.
-            let limb = max(4, rect.width * span * 0.075)
-            let ink = Theme.blue.opacity(0.88)
+            let unit = rect.width * span
+            let build = shape.shoulderWidth / 0.22
+            let ink = Theme.blue.opacity(0.9)
+            let casing = Theme.chalk.opacity(0.95)
+
+            func limb(_ a: CGPoint, _ b: CGPoint, from wa: Double, to wb: Double) {
+                // A tapered capsule: wide at the trunk end, narrower at the
+                // hand or foot.
+                let p = at(a), q = at(b)
+                let dx = q.x - p.x, dy = q.y - p.y
+                let len = max(hypot(dx, dy), 0.001)
+                let nx = -dy / len, ny = dx / len
+                let ra = max(2.5, unit * wa * build), rb = max(2, unit * wb * build)
+                var path = Path()
+                path.move(to: CGPoint(x: p.x + nx * ra, y: p.y + ny * ra))
+                path.addLine(to: CGPoint(x: q.x + nx * rb, y: q.y + ny * rb))
+                path.addArc(center: q, radius: rb, startAngle: .radians(atan2(ny, nx)),
+                            endAngle: .radians(atan2(ny, nx) + .pi), clockwise: true)
+                path.addLine(to: CGPoint(x: p.x - nx * ra, y: p.y - ny * ra))
+                path.addArc(center: p, radius: ra, startAngle: .radians(atan2(-ny, -nx)),
+                            endAngle: .radians(atan2(-ny, -nx) + .pi), clockwise: true)
+                path.closeSubpath()
+                ctx.stroke(path, with: .color(casing), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
+                ctx.fill(path, with: .color(ink))
+            }
+
+            // Legs behind the trunk, arms in front, head last.
+            limb(pose.hips, pose.leftKnee, from: 0.055, to: 0.04)
+            limb(pose.leftKnee, pose.leftFoot, from: 0.04, to: 0.028)
+            limb(pose.hips, pose.rightKnee, from: 0.055, to: 0.04)
+            limb(pose.rightKnee, pose.rightFoot, from: 0.04, to: 0.028)
 
             let ls = at(pose.leftShoulder), rs = at(pose.rightShoulder), hp = at(pose.hips)
-            let hipHalf = max(limb * 0.6, (rs.x - ls.x) * 0.38)
+            let hipHalf = max(4, unit * shape.hipWidth / 2)
+            let shoulderPad = max(3, unit * 0.03 * build)
             var torso = Path()
-            torso.move(to: ls); torso.addLine(to: rs)
-            torso.addLine(to: CGPoint(x: hp.x + hipHalf, y: hp.y))
-            torso.addLine(to: CGPoint(x: hp.x - hipHalf, y: hp.y)); torso.closeSubpath()
-            ctx.stroke(torso, with: .color(Theme.chalk.opacity(0.95)),
-                       style: StrokeStyle(lineWidth: limb + 4, lineJoin: .round))
+            torso.move(to: CGPoint(x: ls.x - shoulderPad, y: ls.y))
+            torso.addLine(to: CGPoint(x: rs.x + shoulderPad, y: rs.y))
+            torso.addLine(to: CGPoint(x: hp.x + hipHalf, y: hp.y + hipHalf * 0.5))
+            torso.addLine(to: CGPoint(x: hp.x - hipHalf, y: hp.y + hipHalf * 0.5))
+            torso.closeSubpath()
+            ctx.stroke(torso, with: .color(casing), style: StrokeStyle(lineWidth: max(6, unit * 0.04), lineJoin: .round))
             ctx.fill(torso, with: .color(ink))
-            ctx.stroke(torso, with: .color(ink), style: StrokeStyle(lineWidth: limb, lineJoin: .round))
+            ctx.stroke(torso, with: .color(ink), style: StrokeStyle(lineWidth: max(4, unit * 0.03), lineJoin: .round))
 
-            for (a, b) in pose.bones where !(a == pose.leftShoulder && b == pose.rightShoulder) {
-                var path = Path()
-                path.move(to: at(a)); path.addLine(to: at(b))
-                ctx.stroke(path, with: .color(Theme.chalk.opacity(0.95)),
-                           style: StrokeStyle(lineWidth: limb + 4, lineCap: .round))
-                ctx.stroke(path, with: .color(ink),
-                           style: StrokeStyle(lineWidth: limb, lineCap: .round))
-            }
-            let headR = max(5, rect.width * span * shape.headRadius)
+            limb(pose.leftShoulder, pose.leftElbow, from: 0.038, to: 0.03)
+            limb(pose.leftElbow, pose.leftHand, from: 0.03, to: 0.02)
+            limb(pose.rightShoulder, pose.rightElbow, from: 0.038, to: 0.03)
+            limb(pose.rightElbow, pose.rightHand, from: 0.03, to: 0.02)
+
+            // Neck and head.
+            let neck = CGPoint(x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2)
             let h = at(pose.head)
+            var neckPath = Path(); neckPath.move(to: neck); neckPath.addLine(to: h)
+            ctx.stroke(neckPath, with: .color(casing), style: StrokeStyle(lineWidth: max(7, unit * 0.045), lineCap: .round))
+            ctx.stroke(neckPath, with: .color(ink), style: StrokeStyle(lineWidth: max(4, unit * 0.03), lineCap: .round))
+            let headR = max(5, unit * shape.headRadius)
             let headRect = CGRect(x: h.x - headR, y: h.y - headR, width: headR * 2, height: headR * 2)
-            ctx.stroke(Path(ellipseIn: headRect), with: .color(Theme.chalk.opacity(0.95)),
-                       style: StrokeStyle(lineWidth: 4))
+            ctx.stroke(Path(ellipseIn: headRect), with: .color(casing), style: StrokeStyle(lineWidth: 3))
             ctx.fill(Path(ellipseIn: headRect), with: .color(ink))
 
-            let w = limb * 0.6
+            // Hands: small rings on the holds.
+            for hand in [pose.leftHand, pose.rightHand] {
+                let q = at(hand), r = max(3, unit * 0.022 * build)
+                ctx.fill(Path(ellipseIn: CGRect(x: q.x - r, y: q.y - r, width: r * 2, height: r * 2)), with: .color(casing))
+            }
             // Feet: ringed on a hold, open on a smear.
             for (foot, hold) in [(pose.leftFoot, pose.leftFootHold), (pose.rightFoot, pose.rightFootHold)] {
                 let q = at(foot)
-                let r = w * 1.6
+                let r = max(5, unit * 0.035)
                 let ring = Path(ellipseIn: CGRect(x: q.x - r, y: q.y - r, width: r * 2, height: r * 2))
                 ctx.stroke(ring, with: .color(Theme.chalk),
                            style: StrokeStyle(lineWidth: 2.5, dash: hold == nil ? [4, 4] : []))

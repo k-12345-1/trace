@@ -277,6 +277,8 @@ struct RoutesScreen: View {
     /// list and the map now show. Tapping still replaces it with whatever you
     /// like: a photograph of the place, or their sign, or the view from the
     /// car park.
+    private var markSeed: String { (live ?? gym).venueID ?? gym.id.uuidString }
+
     private var picture: some View {
         PhotosPicker(selection: $pickingImage, matching: .images) {
             Group {
@@ -286,16 +288,10 @@ struct RoutesScreen: View {
                         .scaledToFit()
                         .padding(7)
                 } else {
-                    ZStack {
-                        Theme.surface
-                        VStack(spacing: 3) {
-                            Image(systemName: "camera")
-                                .font(.system(size: 15, weight: .regular))
-                            Text("Add")
-                                .font(Theme.ui(10.5, .medium))
-                        }
-                        .foregroundStyle(Theme.ink3)
-                    }
+                    // The same mark the gym wears in Explore, so the page
+                    // and the row are recognisably one place. Tapping still
+                    // puts a photograph here instead.
+                    GymMark(name: (live ?? gym).name, seed: markSeed, size: 66)
                 }
             }
             .frame(width: 66, height: 66)
@@ -603,7 +599,7 @@ struct RouteDetailScreen: View {
 
                     // The figure, over everything, at wherever the scrubber is.
                     if showFigure, let line = LineEngine.read(holds: live.holds),
-                       let seq = BetaEngine.read(line: line, body: store.body),
+                       let seq = BetaEngine.read(line: line, shape: store.figureShape),
                        let pose = seq.pose(at: figureT) {
                         BetaFigure(pose: pose, rect: r, span: seq.span, shape: seq.shape)
                     }
@@ -653,7 +649,7 @@ struct RouteDetailScreen: View {
                 // Climb it: a figure moved through the stances. Off by default,
                 // because it is a drawing of one shape and not the beta, and it
                 // says so where it is switched on.
-                if let seq = BetaEngine.read(line: line, body: store.body) {
+                if let seq = BetaEngine.read(line: line, shape: store.figureShape) {
                     VStack(alignment: .leading, spacing: 10) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
