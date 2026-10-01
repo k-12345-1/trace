@@ -578,9 +578,8 @@ struct RouteDetailScreen: View {
                         Path { p in
                             // Through the hand holds in the order the plan
                             // uses them, or by height when there is no plan.
-                            let order = BetaEngine.read(line: line, shape: store.figureShape)?.plan?.order
-                                ?? Array(line.hands.indices)
-                            let points = order.map { line.hands[$0] }.map {
+                            let plan = BetaEngine.read(line: line, shape: store.figureShape)?.plan
+                            let points = (plan.map { $0.handOrder.map { line.holds[$0] } } ?? line.hands).map {
                                 CGPoint(x: r.minX + $0.midX * r.width,
                                         y: r.minY + $0.midY * r.height)
                             }
@@ -601,23 +600,29 @@ struct RouteDetailScreen: View {
                     }
 
                     if let line, showNumbers {
-                        // Numbers on the hand holds only; a foot hold gets a
-                        // small ring, since nobody counts the feet.
-                        ForEach(Array(line.feet.enumerated()), id: \.offset) { _, hold in
-                            Circle()
-                                .stroke(Theme.chalk.opacity(0.9), lineWidth: 2)
-                                .frame(width: 10, height: 10)
-                                .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
-                        }
-                        let order = BetaEngine.read(line: line, shape: store.figureShape)?.plan?.order
-                        ForEach(Array(line.hands.enumerated()), id: \.offset) { i, hold in
-                            Text("\((order?.firstIndex(of: i) ?? i) + 1)")
-                                .font(Theme.mono(10, weight: .bold))
-                                .foregroundStyle(Theme.blue)
-                                .frame(width: 18, height: 18)
-                                .background(Circle().fill(Theme.chalk))
-                                .position(x: r.minX + hold.midX * r.width,
-                                          y: r.minY + hold.midY * r.height)
+                        // Every hold the plan uses, numbered in the order a
+                        // limb first takes it: hand holds in a solid disc,
+                        // foot holds in a ring. A hold the plan never uses
+                        // has no number.
+                        let plan = BetaEngine.read(line: line, shape: store.figureShape)?.plan
+                        let handSet = Set(line.hands)
+                        ForEach(Array(line.holds.enumerated()), id: \.offset) { i, hold in
+                            let number = plan.map { $0.order.firstIndex(of: i) } ?? line.hands.firstIndex(of: hold)
+                            if let number {
+                                let isHand = handSet.contains(hold)
+                                Text("\(number + 1)")
+                                    .font(Theme.mono(10, weight: .bold))
+                                    .foregroundStyle(isHand ? Theme.blue : Theme.chalk)
+                                    .frame(width: 18, height: 18)
+                                    .background(Circle().fill(isHand ? Theme.chalk : Theme.blue.opacity(0.75)))
+                                    .position(x: r.minX + hold.midX * r.width,
+                                              y: r.minY + hold.midY * r.height)
+                            } else if !handSet.contains(hold) {
+                                Circle()
+                                    .stroke(Theme.chalk.opacity(0.9), lineWidth: 2)
+                                    .frame(width: 10, height: 10)
+                                    .position(x: r.minX + hold.midX * r.width, y: r.minY + hold.midY * r.height)
+                            }
                         }
                     }
 

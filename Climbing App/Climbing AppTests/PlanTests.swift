@@ -18,12 +18,16 @@ struct PlanTests {
         let line = try #require(LineEngine.read(holds: holds, starts: [0, 1], finishes: [7]))
         let seq = try #require(BetaEngine.read(line: line, shape: .average))
         let plan = try #require(seq.plan)
-        #expect(plan.steps.count >= 6, "\(plan.steps)")
-        // Alternating: no hand moves twice in a row.
-        for (a, b) in zip(plan.steps, plan.steps.dropFirst()) { #expect(a.hand != b.hand) }
+        let handSteps = plan.steps.filter { $0.limb.isHand }
+        #expect(handSteps.count >= 6, "\(plan.steps)")
+        // Hand over hand: no hand goes three times running.
+        for i in 2..<handSteps.count {
+            #expect(!(handSteps[i].hand == handSteps[i - 1].hand && handSteps[i].hand == handSteps[i - 2].hand))
+        }
         // Ends with both hands on the finish.
         let last = try #require(plan.states.last)
-        #expect(last.left == line.hands.firstIndex(of: holds[7]) && last.right == line.hands.firstIndex(of: holds[7]))
+        let top = line.holds.firstIndex(of: holds[7])
+        #expect(last.leftHand == top && last.rightHand == top)
     }
 
     /// A hand never goes down, and never to a foot hold.
@@ -34,9 +38,11 @@ struct PlanTests {
         holds.append(hold(0.5, 0.5, 0.012))    // a chip in the middle
         let line = try #require(LineEngine.read(holds: holds, starts: [0, 1]))
         let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
-        let hands = line.hands.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
+        let handSet = Set(line.hands.compactMap { line.holds.firstIndex(of: $0) })
         for (a, b) in zip(plan.states, plan.states.dropFirst()) {
-            #expect(hands[b.left].y <= hands[a.left].y + 0.01 && hands[b.right].y <= hands[a.right].y + 0.01)
+            #expect(all[b.leftHand].y <= all[a.leftHand].y + 0.01 && all[b.rightHand].y <= all[a.rightHand].y + 0.01)
+            #expect(handSet.contains(b.leftHand) && handSet.contains(b.rightHand))
         }
         #expect(line.feet.count == 2)
     }
@@ -48,8 +54,8 @@ struct PlanTests {
                      hold(0.15, 0.66), hold(0.45, 0.48), hold(0.5, 0.36)]
         let line = try #require(LineEngine.read(holds: holds, starts: [0, 1], finishes: [6]))
         let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
-        let far = try #require(line.hands.firstIndex(of: holds[4]))
-        #expect(!plan.order.contains(far), "\(plan.order)")
+        let far = try #require(line.holds.firstIndex(of: holds[4]))
+        #expect(!plan.handOrder.contains(far), "\(plan.handOrder)")
     }
 
     /// One start sticker: both hands on it first.
@@ -57,10 +63,11 @@ struct PlanTests {
         let holds = [hold(0.5, 0.85), hold(0.45, 0.7), hold(0.55, 0.58), hold(0.5, 0.45)]
         let line = try #require(LineEngine.read(holds: holds, starts: [0], finishes: [3]))
         let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
-        #expect(plan.states.first?.left == plan.states.first?.right)
+        #expect(plan.states.first?.leftHand == plan.states.first?.rightHand)
         let words = BetaEngine.describe(plan, line: line)
-        #expect(words.first == "Start with both hands on 1.")
-        #expect(words.dropFirst().allSatisfy { $0.hasPrefix("Left hand") || $0.hasPrefix("Right hand") })
+        #expect(words.first?.hasPrefix("Start with both hands on 1") == true)
+        let limbs = ["Left hand", "Right hand", "Left foot", "Right foot"]
+        #expect(words.dropFirst().allSatisfy { w in limbs.contains { w.hasPrefix($0) } })
     }
 
     /// Without stickers the plan still runs, from the lowest holds to the top.
@@ -69,8 +76,8 @@ struct PlanTests {
         for i in 0..<6 { holds.append(hold(i % 2 == 0 ? 0.45 : 0.55, 0.85 - Double(i) * 0.1)) }
         let line = try #require(LineEngine.read(holds: holds))
         let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
-        let top = try #require(line.hands.firstIndex(of: holds[5]))
-        #expect(plan.states.last?.left == top && plan.states.last?.right == top)
+        let top = try #require(line.holds.firstIndex(of: holds[5]))
+        #expect(plan.states.last?.leftHand == top && plan.states.last?.rightHand == top)
     }
 
     @Test func finishStickersNameTheirHolds() {
@@ -78,5 +85,30 @@ struct PlanTests {
         let tags = [RouteScanner.Tag(kind: .finish, point: CGPoint(x: 0.5, y: 0.44)),
                     RouteScanner.Tag(kind: .finish, point: CGPoint(x: 0.6, y: 0.44))]
         #expect(CoverageEngine.finishHolds(holds: holds, tags: tags) == [1, 2])
+    }
+
+    /// The feet are moves too. With foot chips under a ladder, the plan
+    /// moves a foot up before a hand it could not otherwise reach, every
+    /// foot hold it uses is below the hips, and no two limbs share a hold.
+    @Test func theFeetAreDeliberate() throws {
+        var holds: [CGRect] = []
+        for i in 0..<6 { holds.append(hold(i % 2 == 0 ? 0.45 : 0.55, 0.78 - Double(i) * 0.1)) }
+        for i in 0..<5 { holds.append(hold(i % 2 == 0 ? 0.42 : 0.58, 0.92 - Double(i) * 0.1, 0.015)) }
+        let line = try #require(LineEngine.read(holds: holds, starts: [0, 1], finishes: [5]))
+        let seq = try #require(BetaEngine.read(line: line, shape: .average))
+        let plan = try #require(seq.plan)
+        let footSteps = plan.steps.filter { !$0.limb.isHand }
+        #expect(footSteps.count >= 2, "\(plan.steps.map { "\($0.limb) \($0.to)" })")
+        for p in plan.states {
+            let limbs = [p.leftHand, p.rightHand, p.leftFoot, p.rightFoot].filter { $0 >= 0 }
+            let feet = [p.leftFoot, p.rightFoot].filter { $0 >= 0 }
+            #expect(Set(feet).isDisjoint(with: [p.leftHand, p.rightHand].filter { $0 != p.leftHand || p.leftHand == p.rightHand }) || feet.isEmpty)
+            #expect(limbs.count == Set(limbs).count || p.leftHand == p.rightHand)
+        }
+        for (i, pose) in seq.stances.enumerated() {
+            #expect(pose.leftFoot.y >= pose.hips.y - 0.001 && pose.rightFoot.y >= pose.hips.y - 0.001, "stance \(i)")
+        }
+        let words = BetaEngine.describe(plan, line: line)
+        #expect(words.contains { $0.hasPrefix("Left foot") || $0.hasPrefix("Right foot") })
     }
 }

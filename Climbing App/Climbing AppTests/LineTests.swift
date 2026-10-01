@@ -263,7 +263,7 @@ struct BetaTests {
             }
         }
         // A ladder is climbed hand over hand: most holds are used, in order.
-        #expect(plan.order.count >= line.hands.count - 1, "\(plan.order)")
+        #expect(plan.handOrder.count >= line.hands.count - 1, "\(plan.handOrder)")
     }
 
     @Test("The body hangs below the hands and the feet are below the hips")
