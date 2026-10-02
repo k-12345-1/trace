@@ -403,6 +403,23 @@ extension FindingCard {
 }
 
 
+/// A route's holds drawn in the route's own colour, over a casing that
+/// keeps the line readable on any wall: white under a coloured route,
+/// ink under a pale one. Drawing every route in one blue said nothing
+/// about which route it was; a yellow line on the yellow holds does.
+struct RouteInk {
+    let color: Color
+    let casing: Color
+
+    init(hex: String) {
+        color = Color(hexString: hex)
+        casing = Lab(hexString: hex).l >= RouteInk.paleLightness ? Theme.ink : Theme.chalk
+    }
+
+    /// Lighter than this and a white casing would vanish into the line.
+    static let paleLightness = 70.0
+}
+
 /// A hold's outline on a photograph: the polygon where there is one, the box
 /// where there is not, both placed in the photo's frame.
 struct HoldOutline: Shape {

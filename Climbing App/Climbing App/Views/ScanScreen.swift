@@ -155,13 +155,22 @@ struct ScanScreen: View {
                     .clipped()
 
                 // Everything Trace thinks is on the route.
+                let ink = RouteInk(hex: chosen?.hex ?? "#888888")
                 ForEach(holds + added) { hold in
                     let dropped = self.dropped.contains(hold.id)
-                    HoldOutline(outline: hold.outline, box: hold.rect, frame: rect)
-                        .stroke(dropped ? Theme.ink3.opacity(0.5) : Theme.accent,
-                                style: StrokeStyle(lineWidth: dropped ? 1 : 2.5, lineJoin: .round))
-                        .contentShape(HoldOutline(outline: hold.outline, box: hold.rect, frame: rect))
-                        .onTapGesture { toggle(hold) }
+                    let shape = HoldOutline(outline: hold.outline, box: hold.rect, frame: rect)
+                    if dropped {
+                        shape.stroke(Theme.ink3.opacity(0.5), style: StrokeStyle(lineWidth: 1, lineJoin: .round))
+                            .contentShape(shape)
+                            .onTapGesture { toggle(hold) }
+                    } else {
+                        // The route's own colour on its holds, cased so it
+                        // reads on the wall behind.
+                        shape.stroke(ink.casing, style: StrokeStyle(lineWidth: 4.5, lineJoin: .round))
+                            .overlay(shape.stroke(ink.color, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round)))
+                            .contentShape(shape)
+                            .onTapGesture { toggle(hold) }
+                    }
                 }
 
             }

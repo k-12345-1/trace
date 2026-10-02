@@ -610,9 +610,11 @@ struct RouteDetailScreen: View {
                     }
 
                     if showBoxes {
+                        let ink = RouteInk(hex: live.colorHex)
                         ForEach(Array(live.holds.enumerated()), id: \.offset) { i, hold in
-                            HoldOutline(outline: live.outline(at: i) ?? [], box: hold, frame: r)
-                                .stroke(Theme.blueLight, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
+                            let shape = HoldOutline(outline: live.outline(at: i) ?? [], box: hold, frame: r)
+                            shape.stroke(ink.casing, style: StrokeStyle(lineWidth: 4.5, lineJoin: .round))
+                                .overlay(shape.stroke(ink.color, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round)))
                         }
                     }
 
