@@ -105,8 +105,9 @@ struct PlanTests {
             #expect(Set(feet).isDisjoint(with: [p.leftHand, p.rightHand].filter { $0 != p.leftHand || p.leftHand == p.rightHand }) || feet.isEmpty)
             #expect(limbs.count == Set(limbs).count || p.leftHand == p.rightHand)
         }
+        let step = BetaEngine.highestFoot * seq.span - 0.001
         for (i, pose) in seq.stances.enumerated() {
-            #expect(pose.leftFoot.y >= pose.hips.y - 0.001 && pose.rightFoot.y >= pose.hips.y - 0.001, "stance \(i)")
+            #expect(pose.leftFoot.y >= pose.hips.y + step && pose.rightFoot.y >= pose.hips.y + step, "stance \(i)")
         }
         let words = BetaEngine.describe(plan, line: line)
         #expect(words.contains { $0.hasPrefix("Left foot") || $0.hasPrefix("Right foot") })
