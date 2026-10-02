@@ -54,8 +54,11 @@ struct FaceTests {
             c.move(to: CGPoint(x: 0, y: 350)); c.addLine(to: CGPoint(x: 300, y: 330)); c.strokePath()
         }
         #expect(FaceEngine.lines(in: bmp, wallL: 64).isEmpty)
-        // Nor is the wall meeting the ceiling.
+        // Nor is the wall meeting the ceiling: the ceiling is not wall
+        // coloured, and the edge has wall under it only.
         let top = canvas { c in
+            c.setFillColor(UIColor(white: 0.35, alpha: 1).cgColor)
+            c.fill(CGRect(x: 0, y: 0, width: 300, height: 70))
             c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
             c.move(to: CGPoint(x: 0, y: 80)); c.addLine(to: CGPoint(x: 300, y: 60)); c.strokePath()
         }
@@ -137,6 +140,9 @@ struct WallExtentTests {
 
     @Test func theFloorAndTopAreRead() throws {
         let bmp = canvas { c in
+            // Ceiling over the top edge, in a colour that is not the wall's.
+            c.setFillColor(UIColor(white: 0.35, alpha: 1).cgColor)
+            c.fill(CGRect(x: 0, y: 0, width: 300, height: 65))
             c.setStrokeColor(UIColor(white: 0.3, alpha: 1).cgColor); c.setLineWidth(3)
             c.move(to: CGPoint(x: 0, y: 350)); c.addLine(to: CGPoint(x: 300, y: 340)); c.strokePath()
             c.move(to: CGPoint(x: 0, y: 60)); c.addLine(to: CGPoint(x: 300, y: 70)); c.strokePath()
@@ -195,5 +201,27 @@ struct TopExtentTests {
         #expect(r.onTheWall(CGPoint(x: 0.9, y: 0.1), width: 300, height: 400))     // past the edge: wall carries on
         let whole = FaceEngine.Line(theta: .pi / 2, rho: 100, support: 1)
         #expect(!FaceEngine.Reading(seams: [], floor: nil, top: whole).onTheWall(CGPoint(x: 0.9, y: 0.1), width: 300, height: 400))
+    }
+}
+
+/// The top of the wall is where the wall stops, not the first level line.
+@Suite("Where the wall stops")
+struct WallTopTests {
+    @Test func theTopHasWallUnderItAndNotOverIt() throws {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        let img = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 400), format: f).image { ctx in
+            // Ceiling, dark; a light rail across it; the wall from y 110.
+            UIColor(white: 0.35, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 300, height: 110))
+            UIColor(white: 0.95, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 40, width: 300, height: 4))
+            UIColor(white: 0.55, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 110, width: 300, height: 290))
+            UIColor(white: 0.2, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 108, width: 300, height: 3))
+        }.cgImage!
+        let bmp = try #require(Bitmap(img, targetWidth: 300))
+        let r = FaceEngine.read(in: bmp)
+        let top = try #require(r.top)
+        let y = try #require(top.y(atX: 150))
+        #expect(abs(y - 109) < 6, "top at \(y)")
+        #expect(!r.onTheWall(CGPoint(x: 0.5, y: 0.2), width: 300, height: 400))
+        #expect(r.onTheWall(CGPoint(x: 0.5, y: 0.4), width: 300, height: 400))
     }
 }

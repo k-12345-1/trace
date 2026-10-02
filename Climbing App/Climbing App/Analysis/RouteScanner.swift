@@ -161,14 +161,8 @@ enum RouteScanner {
         // and the chalk on every hold with it. The size cap in adoptChalk
         // is what keeps a hold from flooding into a white panel.
         var chalk: [Bool] = []
-        if colors.indices.contains(index), colored[index], let labels {
-            chalk = [Bool](repeating: false, count: bmp.width * bmp.height)
-            for i in chalk.indices {
-                if bmp.isExcluded(i) { continue }
-                let j = Int(labels[i])
-                if j >= 0, colored.indices.contains(j), colored[j] { continue }
-                chalk[i] = isChalk(bmp.lab(at: i))
-            }
+        if colors.indices.contains(index), colored[index] || dark, let labels {
+            chalk = adoptable(in: bmp, labels: labels, colored: colored, route: colors[index], dark: dark, wall: wall)
         }
 
         var blobs = components(mask: &mask, width: bmp.width, height: bmp.height,
@@ -239,7 +233,7 @@ enum RouteScanner {
                 // ceiling beam, the seam down a panel's edge. Neutral,
                 // clearly lighter than the black route that claimed it,
                 // and still darker than the wall it lies on.
-                if isShade(component, in: bmp, route: colors[index], wall: wall) { continue }
+                if isShade(component, in: bmp, route: colors[index], wall: wall, labels: labels, index: index) { continue }
             }
 
             found.append(Hold(
@@ -313,16 +307,22 @@ enum RouteScanner {
     /// pixels in the band: the black overhang on the first wall is no
     /// wall colour at all, and judged against the chalk-dusted patches
     /// of it that pass for grey, every hold on it was called shade.
-    private static func isShade(_ c: Component, in bmp: Bitmap, route: Lab, wall: [Lab]) -> Bool {
+    private static func isShade(_ c: Component, in bmp: Bitmap, route: Lab, wall: [Lab],
+                                labels: [Int8]? = nil, index: Int = -1) -> Bool {
         guard !c.pixels.isEmpty, !wall.isEmpty else { return false }
         let step = max(1, c.pixels.count / 400)
         var ls: [Double] = [], chromas: [Double] = []
         var i = 0
+        // The blob's own pixels: a black hold that has taken in its gloss
+        // and chalk is lighter for it, and is not shade for it.
         while i < c.pixels.count {
-            let lab = bmp.lab(at: Int(c.pixels[i]))
-            ls.append(lab.l); chromas.append((lab.a * lab.a + lab.b * lab.b).squareRoot())
+            let p = Int(c.pixels[i])
             i += step
+            if let labels, labels[p] != Int8(index) { continue }
+            let lab = bmp.lab(at: p)
+            ls.append(lab.l); chromas.append((lab.a * lab.a + lab.b * lab.b).squareRoot())
         }
+        guard !ls.isEmpty else { return false }
         ls.sort(); chromas.sort()
         let l = ls[ls.count / 2], chroma = chromas[chromas.count / 2]
         guard chroma < groundChroma, l >= route.l + shadeLift, l >= shadeFloor else { return false }
@@ -827,6 +827,29 @@ enum RouteScanner {
     /// is a white panel, whatever it touches.
     static let chalkRunaway = 4.0
 
+    /// The pixels a route's holds may take in as chalk: white ones, not
+    /// already another coloured route's. For a black route the gloss and
+    /// grey of a chalk-rubbed hold count too, any neutral pixel lighter
+    /// than the route that is not the wall; a black hold read by colour
+    /// alone came back as its darkest streak, a thin loop inside the hold.
+    static func adoptable(in bmp: Bitmap, labels: [Int8], colored: [Bool], route: Lab,
+                          dark: Bool, wall: [Lab]) -> [Bool] {
+        var out = [Bool](repeating: false, count: bmp.width * bmp.height)
+        for i in out.indices {
+            if bmp.isExcluded(i) { continue }
+            let j = Int(labels[i])
+            if j >= 0, colored.indices.contains(j), colored[j] { continue }
+            let lab = bmp.lab(at: i)
+            if dark {
+                let chroma = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+                out[i] = chroma < paleChroma && lab.l > route.l + shadeLift && !isGround(lab, wall)
+            } else {
+                out[i] = isChalk(lab)
+            }
+        }
+        return out
+    }
+
     /// White pixels, the colour chalk comes in.
     static func isChalk(_ c: Lab) -> Bool {
         c.l >= chalkLightness && (c.a * c.a + c.b * c.b).squareRoot() < paleChroma
@@ -844,12 +867,16 @@ enum RouteScanner {
         var mine = Set<Int32>(component.pixels)
         var taken: [Int] = []
         var stack: [Int] = []
+        // Seeds within two pixels of the hold, not one: where chalk meets
+        // a red hold the pixels blend to pink, neither red nor chalk, and
+        // a ring of that walled the chalk off from the hold it sits on.
         for p in component.pixels {
             let i = Int(p), x = i % width, y = i / width
-            if x > 0, chalk[i - 1] { stack.append(i - 1) }
-            if x < width - 1, chalk[i + 1] { stack.append(i + 1) }
-            if y > 0, chalk[i - width] { stack.append(i - width) }
-            if y < height - 1, chalk[i + width] { stack.append(i + width) }
+            for dy in -2...2 { for dx in -2...2 where dx != 0 || dy != 0 {
+                let nx = x + dx, ny = y + dy
+                guard nx >= 0, ny >= 0, nx < width, ny < height else { continue }
+                if chalk[ny * width + nx] { stack.append(ny * width + nx) }
+            } }
         }
         while let i = stack.popLast() {
             guard chalk[i] else { continue }
@@ -867,12 +894,25 @@ enum RouteScanner {
             // The patch's edge: every non-patch neighbour of a patch
             // pixel, counted as hold or as something else.
             let patch = Set<Int32>(taken.map { Int32($0) })
+            // A neighbour is the hold's if it is a hold pixel or sits
+            // against one: the blend between chalk and colour is neither,
+            // and counted as something else it refused every patch.
+            func isHold(_ j: Int) -> Bool {
+                if mine.contains(Int32(j)) { return true }
+                let x = j % width, y = j / width
+                for dy in -1...1 { for dx in -1...1 {
+                    let nx = x + dx, ny = y + dy
+                    guard nx >= 0, ny >= 0, nx < width, ny < height else { continue }
+                    if mine.contains(Int32(ny * width + nx)) { return true }
+                } }
+                return false
+            }
             var hold = 0, other = 0
             for i in taken {
                 let x = i % width, y = i / width
                 for j in [x > 0 ? i - 1 : -1, x < width - 1 ? i + 1 : -1, y > 0 ? i - width : -1, y < height - 1 ? i + width : -1] where j >= 0 {
                     if patch.contains(Int32(j)) { continue }
-                    if mine.contains(Int32(j)) { hold += 1 } else { other += 1 }
+                    if isHold(j) { hold += 1 } else { other += 1 }
                 }
             }
             keep = hold + other > 0 && Double(hold) / Double(hold + other) >= chalkTouch
@@ -990,11 +1030,24 @@ enum RouteScanner {
     /// Nil when the tap grew into something that is not a hold: the wall, a
     /// mat, the whole panel. The caller puts a plain box there instead, because
     /// a tap that does nothing is indistinguishable from a tap that missed.
+    /// How far a tap may land from the route's colour and still be a tap
+    /// on that hold, as a share of the picture's width. A finger on a
+    /// phone covers a few per cent of a wall photograph.
+    static let tapSnap = 0.03
+
+    /// - Parameter route: the colour of the route being scanned. Given,
+    ///   the tap snaps to the nearest pixel of that colour within reach
+    ///   and the hold is traced from there, taking its chalk with it. A
+    ///   tap that lands a little off a small hold used to grow the wall
+    ///   under the finger and come back as nothing, which the screen then
+    ///   drew as a box.
     static func hold(in image: CGImage, at point: CGPoint,
-                     tolerance: Double = 34) -> Hold? {
+                     tolerance: Double = 34, route: Lab? = nil) -> Hold? {
         guard let bmp = Bitmap(image, targetWidth: workingWidth) else { return nil }
         let x = min(max(Int((Double(bmp.width) * point.x).rounded()), 0), bmp.width - 1)
         let y = min(max(Int((Double(bmp.height) * point.y).rounded()), 0), bmp.height - 1)
+
+        if let route, let found = routeHold(in: bmp, near: (x, y), route: route) { return found }
 
         let target = bmp.averageLab(around: (x, y), radius: 2)
         var mask = [Bool](repeating: false, count: bmp.width * bmp.height)
@@ -1031,6 +1084,64 @@ enum RouteScanner {
                                  height: h / Double(bmp.height)),
                     area: Double(comp.count) / total,
                     outline: comp.outline(width: bmp.width, height: bmp.height))
+    }
+
+    /// The hold of the route's colour nearest a tap, traced the way the
+    /// scan traces holds: the route's pixels, then the chalk on them.
+    private static func routeHold(in bmp: Bitmap, near p: (Int, Int), route: Lab) -> Hold? {
+        let w = bmp.width, h = bmp.height
+        let wall = groundColors(in: bmp)
+        func isRoute(_ i: Int) -> Bool {
+            let lab = bmp.lab(at: i)
+            return !isGround(lab, wall) && lab.shadeDistance(to: route) < 30
+        }
+        // The nearest route pixel within reach of the finger.
+        let reach = Int(Double(w) * tapSnap)
+        var best: Int?, bestD = Int.max
+        for dy in -reach...reach { for dx in -reach...reach {
+            let x = p.0 + dx, y = p.1 + dy
+            guard x >= 0, y >= 0, x < w, y < h, dx * dx + dy * dy < bestD else { continue }
+            if isRoute(y * w + x) { best = y * w + x; bestD = dx * dx + dy * dy }
+        } }
+        guard let start = best else { return nil }
+
+        var mask = [Bool](repeating: false, count: w * h)
+        for i in 0..<(w * h) { mask[i] = isRoute(i) }
+        var comp = Component()
+        comp.keepsPixels = true
+        var stack = [start]
+        mask[start] = false
+        while let i = stack.popLast() {
+            let px = i % w, py = i / w
+            comp.add(px, py, index: i)
+            if px > 0, mask[i - 1] { mask[i - 1] = false; stack.append(i - 1) }
+            if px < w - 1, mask[i + 1] { mask[i + 1] = false; stack.append(i + 1) }
+            if py > 0, mask[i - w] { mask[i - w] = false; stack.append(i - w) }
+            if py < h - 1, mask[i + w] { mask[i + w] = false; stack.append(i + w) }
+        }
+        let total = Double(w * h)
+        guard comp.count >= 6, Double(comp.count) / total <= maxAreaFraction else { return nil }
+
+        // Its chalk, and for a black route its gloss.
+        let dark = route.l < darkHold
+        var chalk = [Bool](repeating: false, count: w * h)
+        for i in 0..<(w * h) where !isRoute(i) {
+            let lab = bmp.lab(at: i)
+            if dark {
+                let chroma = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+                chalk[i] = chroma < paleChroma && lab.l > route.l + shadeLift && !isGround(lab, wall)
+            } else {
+                chalk[i] = isChalk(lab)
+            }
+        }
+        adoptChalk(into: &comp, chalk: &chalk, width: w, height: h)
+        guard Double(comp.count) / total <= maxAreaFraction * 2 else { return nil }
+
+        let bw = Double(comp.maxX - comp.minX + 1), bh = Double(comp.maxY - comp.minY + 1)
+        return Hold(rect: CGRect(x: Double(comp.minX) / Double(w), y: Double(comp.minY) / Double(h),
+                                 width: bw / Double(w), height: bh / Double(h)),
+                    area: Double(comp.count) / total,
+                    outline: comp.outline(width: w, height: h))
     }
 
     // MARK: Connected components

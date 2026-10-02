@@ -106,7 +106,18 @@ enum FaceEngine {
     /// The ceiling sits high and level. On the first wall the lip of the
     /// overhang, a quarter of the way down, passed for the top.
     static let topTilt = 12.0
-    static let topTo = 0.2
+    /// How far down the picture the top of the wall may sit. A fifth was
+    /// not enough: on the sixth wall the edge sat at a fifth and a
+    /// hair, and the light rail above it passed for the top instead.
+    static let topTo = 0.35
+    /// A top has wall under it and something else over it: at least this
+    /// share of samples just below the edge are wall-coloured, and at most
+    /// `notWallAbove` of those just above. The lip of an overhang has wall
+    /// above it; a light rail has ceiling below it; neither is the top.
+    static let wallBelow = 0.5
+    static let notWallAbove = 0.35
+    /// How far from the edge the bands are read, in pixels at working width.
+    static let bandNear = 6, bandFar = 16
 
     static func isFloor(_ line: Line, width: Int, height: Int) -> Bool {
         let tilt = abs(line.theta * 180 / .pi - 90)
@@ -221,16 +232,45 @@ enum FaceEngine {
                     let y = line.y(atX: Double(w) / 2) ?? 0
                     if y >= Double(h) * floorFrom * 0.98 {
                         if let f = out.floor, let fy = f.y(atX: Double(w) / 2), fy <= y { } else { out.floor = line }
-                    } else {
-                        if let t = out.top, let ty = t.y(atX: Double(w) / 2), ty >= y { } else { out.top = line }
+                        continue
                     }
-                    continue
+                    // A top only where the wall stops: wall under the edge
+                    // and not over it. Otherwise it is a seam like any other.
+                    if hasWallBelow(line, bmp: bmp, wallL: wallL) {
+                        if let t = out.top, let ty = t.y(atX: Double(w) / 2), ty >= y { } else { out.top = line }
+                        continue
+                    }
                 }
                 out.seams.append(line)
                 if out.seams.count >= mostLines { break }
             }
         }
         return out
+    }
+
+    /// Whether a pixel is the wall's own colour: near the wall's lightness
+    /// and without much colour.
+    static func isWallLike(_ lab: Lab, wallL: Double) -> Bool {
+        abs(lab.l - wallL) < 12 && (lab.a * lab.a + lab.b * lab.b).squareRoot() < RouteScanner.groundChroma
+    }
+
+    /// Whether the band just under a line is mostly wall and the band just
+    /// over it mostly not, read along the line's run.
+    static func hasWallBelow(_ line: Line, bmp: Bitmap, wallL: Double) -> Bool {
+        let w = bmp.width, h = bmp.height
+        let x0 = Int(line.run?.lowerBound ?? 0), x1 = Int(line.run?.upperBound ?? Double(w - 1))
+        guard x1 > x0 else { return false }
+        var below = 0, belowAll = 0, above = 0, aboveAll = 0
+        for x in stride(from: max(0, x0), through: min(w - 1, x1), by: 3) {
+            guard let y = line.y(atX: Double(x)) else { continue }
+            for d in bandNear...bandFar {
+                let yb = Int(y) + d, ya = Int(y) - d
+                if yb >= 0, yb < h { belowAll += 1; if isWallLike(bmp.lab(at: yb * w + x), wallL: wallL) { below += 1 } }
+                if ya >= 0, ya < h { aboveAll += 1; if isWallLike(bmp.lab(at: ya * w + x), wallL: wallL) { above += 1 } }
+            }
+        }
+        guard belowAll > 0, aboveAll > 0 else { return false }
+        return Double(below) / Double(belowAll) >= wallBelow && Double(above) / Double(aboveAll) <= notWallAbove
     }
 
     /// The same seam, found again a few degrees off. Angles wrap at 180,

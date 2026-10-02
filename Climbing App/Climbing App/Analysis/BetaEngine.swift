@@ -287,11 +287,18 @@ enum BetaEngine {
         case 2: (startL, startR) = (handIndex[0], handIndex[1])
         case 1: (startL, startR) = (handIndex[0], handIndex[0])
         default:
-            let lowest = handIndex.min { all[$0].y > all[$1].y }!
-            let second = handIndex.filter { $0 != lowest }.min { distance(all[$0], all[lowest]) < distance(all[$1], all[lowest]) }
-            if let second, distance(all[second], all[lowest]) <= span * 0.95, all[second].y <= all[lowest].y + handDrop * span {
-                (startL, startR) = (lowest, second)
-            } else { (startL, startR) = (lowest, lowest) }
+            // The lowest hand hold that has another within reach. A lone
+            // chip at the bottom, with nothing a hand could go to from
+            // it, left the search with no move to make and no plan.
+            var chosen: (Int, Int)?
+            for lowest in handIndex.sorted(by: { all[$0].y > all[$1].y }) {
+                let second = handIndex.filter { $0 != lowest }
+                    .filter { distance(all[$0], all[lowest]) <= span * 0.95 && all[$0].y <= all[lowest].y + handDrop * span }
+                    .min { distance(all[$0], all[lowest]) < distance(all[$1], all[lowest]) }
+                if let second { chosen = (lowest, second); break }
+            }
+            if let chosen { (startL, startR) = chosen }
+            else { let lowest = handIndex.min { all[$0].y > all[$1].y }!; (startL, startR) = (lowest, lowest) }
         }
         if all[startL].x > all[startR].x { swap(&startL, &startR) }
         let finishSet: Set<Int> = {

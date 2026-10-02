@@ -532,7 +532,7 @@ struct ScanScreen: View {
     /// that missed.
     private func add(at point: CGPoint) {
         guard let cg = image?.cgImage else { return }
-        if let found = RouteScanner.hold(in: cg, at: point) {
+        if let found = RouteScanner.hold(in: cg, at: point, route: chosen?.lab) {
             added.append(found)
         } else {
             let size = 0.055

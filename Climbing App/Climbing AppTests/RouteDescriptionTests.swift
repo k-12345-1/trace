@@ -41,7 +41,7 @@ struct RouteDescriptionTests {
     /// drawn, and a hand is sent only to a hand hold.
     @Test func theSentencesMatchThePicture() throws {
         for (name, hex, line, seq) in try routes() {
-            let plan = try #require(seq.plan, "\(name) \(hex)")
+            let plan = try #require(seq.plan, "\(name) \(hex): \(line.holds.count) holds, \(line.hands.count) hands, \(line.feet.count) feet, start \(line.startCount)")
             let words = BetaEngine.describe(plan, line: line)
             #expect(words.count == plan.steps.count + 1, "\(name) \(hex)")
             func number(_ i: Int) -> Int { (plan.order.firstIndex(of: i) ?? i) + 1 }

@@ -273,3 +273,50 @@ struct DarkAndGlareTests {
         #expect(!found.contains { $0.lab.distance(to: glare) < 15 }, "\(found.map(\.hex))")
     }
 }
+
+/// A tap lands near a hold, not on a pixel.
+@Suite("Tapping a hold")
+struct TapTests {
+    private func canvas(_ draw: (CGContext) -> Void) -> CGImage {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240), format: f).image { ctx in
+            UIColor(white: 0.55, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
+            draw(ctx.cgContext)
+        }.cgImage!
+    }
+
+    /// A tap a little off a small red hold, given the route is red, traces
+    /// the hold rather than growing the wall; a tap far from any red
+    /// finds nothing of the route.
+    @Test func aTapSnapsToTheRoute() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor.red.cgColor)
+            c.fillEllipse(in: CGRect(x: 100, y: 100, width: 16, height: 12))
+            c.setFillColor(UIColor.white.cgColor)
+            c.fillEllipse(in: CGRect(x: 106, y: 100, width: 12, height: 8))  // chalk on its lip
+        }
+        let red = Lab(r: 255, g: 0, b: 0)
+        let hold = try #require(RouteScanner.hold(in: image, at: CGPoint(x: 96.0 / 240, y: 112.0 / 240), route: red))
+        #expect(hold.outline.count >= 8)
+        #expect(hold.rect.minX > 95.0 / 240 && hold.rect.minX < 103.0 / 240, "\(hold.rect)")
+        #expect(hold.rect.maxX > 117.0 / 240, "chalk on the lip is the hold's: \(hold.rect)")
+        #expect(RouteScanner.hold(in: image, at: CGPoint(x: 0.2, y: 0.8), route: red) == nil)
+    }
+
+    /// A black hold with chalk rubbed into it is one hold, box and all.
+    @Test func aChalkedBlackHoldIsOneHold() throws {
+        let image = canvas { c in
+            c.setFillColor(UIColor(white: 0.08, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 90, y: 90, width: 30, height: 20))
+            c.setFillColor(UIColor(white: 0.75, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 98, y: 94, width: 14, height: 10))   // the chalk and gloss
+        }
+        let bmp = try #require(Bitmap(image, targetWidth: 240))
+        let black = Lab(r: 20, g: 20, b: 20)
+        var labels = RouteScanner.segment(bmp, colors: [black], tolerance: 30, ground: RouteScanner.groundColors(in: bmp))
+        let holds = RouteScanner.holds(in: bmp, labels: &labels, index: 0, colors: [black])
+        #expect(holds.count == 1, "\(holds.count)")
+        let h = try #require(holds.first)
+        #expect(h.rect.width > 28.0 / 240 && h.rect.height > 18.0 / 240, "\(h.rect)")
+    }
+}
