@@ -274,7 +274,11 @@ enum FaceEngine {
         }
         var best: (y: Int, gap: Double)?
         for y in bandFar..<Int(Double(h) * topTo) {
-            let below = mean(y + bandNear, y + bandFar), above = mean(y - bandFar, y - bandNear)
+            // Above the top it is ceiling all the way up: the whole strip,
+            // not a band. A band just over a row of big holds has little
+            // wall in it, and the second wall got a top under its finish
+            // holds.
+            let below = mean(y + bandNear, y + bandFar), above = mean(0, y - bandNear)
             guard below >= wallBelow, above <= notWallAbove else { continue }
             if best == nil || below - above > best!.gap { best = (y, below - above) }
         }
