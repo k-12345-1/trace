@@ -145,6 +145,11 @@ enum TechniqueEngine {
     static let highStepNearHips = 0.35
     /// A foot has to stay where it landed this long to have landed.
     static let stepSettle = 0.25
+    /// And it cannot have come further than this, in torso lengths, in one
+    /// step: a leg reaches about a torso and a half. On the real clip the
+    /// tracker handed an ankle across to the other leg, a foot move of
+    /// four torsos in a third of a second, and it was counted as a step.
+    static let longestStep = 2.2
     /// Two feet cannot both land somewhere new within this of each other
     /// while climbing. On the first real clip that pair was the tracker
     /// handing an ankle from one leg to the other, which read as a foot
@@ -259,7 +264,8 @@ enum TechniqueEngine {
                 let prev = runsWithTime[k - 1], next = runsWithTime[k]
                 guard let a = frames[(prev.from + prev.to) / 2].pt(ankle),
                       let b = frames[(next.from + next.to) / 2].pt(ankle) else { continue }
-                guard MetricsEngine.distance(a, b) / torso >= MetricsEngine.footAdjustDistance,
+                let moved = MetricsEngine.distance(a, b) / torso
+                guard moved >= MetricsEngine.footAdjustDistance, moved <= longestStep,
                       frames[next.to].time - frames[next.from].time >= stepSettle
                 else { continue }
                 let f = frames[next.from]
