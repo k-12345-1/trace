@@ -564,7 +564,11 @@ enum BetaEngine {
         // wrong by a little, visibly, rather than gone.
         let slack = min(max(0, handGap / 2 - half), arm * 0.95)
         let reach = max(0, arm * arm - slack * slack).squareRoot()
-        let drop = max(reach * 0.92, arm * 0.25)   // arms nearly straight, not locked
+        // Hanging, the arms are straight. They were left eight per cent
+        // short so they would not look locked, and with the elbow drawn
+        // as a joint that slack bowed both arms out into a kite on every
+        // matched hold.
+        let drop = max(reach * 0.985, arm * 0.25)
         var neck = CGPoint(x: mid.x, y: mid.y + drop)
         var hips = CGPoint(x: mid.x, y: neck.y + shape.torso * span)
         // The highest the hips can go: standing on the feet with the hands
