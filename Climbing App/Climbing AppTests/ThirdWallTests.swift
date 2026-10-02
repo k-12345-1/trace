@@ -54,6 +54,25 @@ struct ThirdWallTests {
         }
     }
 
+    /// The shadow wedge under the ceiling beam and the seam shadow down
+    /// the right edge are wall in shade, not black holds; the black
+    /// holds on the grey panels are.
+    @Test("Wall in shade is not a black hold")
+    func shadeIsNotAHold() throws {
+        let found = RouteScanner.palette(in: try wall())
+        let black = lab(0x322929)
+        let route = try #require(found.min { $0.lab.distance(to: black) < $1.lab.distance(to: black) })
+        #expect(route.lab.distance(to: black) < 20, "\(route.hex)")
+        // The wedge sat in a box from x 0.16 to 0.42, y 0 to 0.14.
+        #expect(!route.holds.contains { $0.rect.minY < 0.14 && $0.rect.minX > 0.1 && $0.rect.maxX < 0.5 && $0.area > 0.003 })
+        // The seam ran down the right edge from y 0.67 to 0.83.
+        #expect(!route.holds.contains { $0.rect.contains(CGPoint(x: 0.97, y: 0.75)) })
+        // Two black holds on the grey panels, from the tracing.
+        for p in [CGPoint(x: 0.51, y: 0.66), CGPoint(x: 0.80, y: 0.42)] {
+            #expect(route.holds.contains { $0.rect.insetBy(dx: -0.012, dy: -0.012).contains(p) }, "\(p)")
+        }
+    }
+
     /// Lit, shaded and chalked yellow are one yellow.
     @Test("No two offered colours are shades of one hue")
     func shadesAreJoined() throws {

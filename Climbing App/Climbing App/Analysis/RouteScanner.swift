@@ -220,6 +220,11 @@ enum RouteScanner {
                 // hold, however much blue sits above it.
                 let small = Double(component.count) / total <= shadowSize
                 if small, let labels, isShadow(component, labels: labels, colored: colored, width: bmp.width) { continue }
+                // And a dark blob that is wall in shade: the wedge under a
+                // ceiling beam, the seam down a panel's edge. Neutral,
+                // clearly lighter than the black route that claimed it,
+                // and still darker than the wall it lies on.
+                if isShade(component, in: bmp, route: colors[index], wall: wall) { continue }
             }
 
             found.append(Hold(
@@ -261,6 +266,70 @@ enum RouteScanner {
         }
         ds.sort()
         return ds[ds.count / 2]
+    }
+
+    /// How much lighter than its black route a dark blob has to be before
+    /// it is shade rather than hold, and how much darker than the wall.
+    /// On the third wall the black holds sat within a few points of the
+    /// route's lightness, the shadow wedge under the beam fourteen above
+    /// it, and the seam shadow ten; the grey wall sat thirty above those.
+    static let shadeLift = 8.0
+    /// And shade is never darker than this, whatever the route. A black
+    /// route read as near black makes a chalk-dusted black hold at 13 to
+    /// 18 look lifted; the dimmest shade on any wall sat at 27.
+    static let shadeFloor = 27.0
+
+    /// Whether a dark blob is wall in shadow rather than a black hold.
+    ///
+    /// Three things have to hold at once. The blob has no colour, so a
+    /// dark purple hold in good light is not shade. It is clearly lighter
+    /// than the route's own colour, so a black hold is not. And it is
+    /// clearly darker than the wall round it, so a dark hold on a black
+    /// panel, which is lighter than the panel, is not. The wall round it
+    /// is whatever lies in a band just outside the blob, not the wall
+    /// colour nearest the blob in Lab and not only the wall-coloured
+    /// pixels in the band: the black overhang on the first wall is no
+    /// wall colour at all, and judged against the chalk-dusted patches
+    /// of it that pass for grey, every hold on it was called shade.
+    private static func isShade(_ c: Component, in bmp: Bitmap, route: Lab, wall: [Lab]) -> Bool {
+        guard !c.pixels.isEmpty, !wall.isEmpty else { return false }
+        let step = max(1, c.pixels.count / 400)
+        var ls: [Double] = [], chromas: [Double] = []
+        var i = 0
+        while i < c.pixels.count {
+            let lab = bmp.lab(at: Int(c.pixels[i]))
+            ls.append(lab.l); chromas.append((lab.a * lab.a + lab.b * lab.b).squareRoot())
+            i += step
+        }
+        ls.sort(); chromas.sort()
+        let l = ls[ls.count / 2], chroma = chromas[chromas.count / 2]
+        guard chroma < groundChroma, l >= route.l + shadeLift, l >= shadeFloor else { return false }
+        guard let around = surroundLightness(of: c, in: bmp) else { return false }
+        return l <= around - shadeLift
+    }
+
+    /// How wide a band round a blob to read the wall from, in pixels.
+    static let surroundBand = 4
+
+    /// The median lightness of the pixels in a band just outside a blob,
+    /// or nil when there are too few to read.
+    private static func surroundLightness(of c: Component, in bmp: Bitmap) -> Double? {
+        let (m, w, h) = c.local(width: bmp.width)
+        var ls: [Double] = []
+        let x0 = c.minX - 1 - surroundBand, y0 = c.minY - 1 - surroundBand
+        for y in 0..<(h + 2 * surroundBand) {
+            for x in 0..<(w + 2 * surroundBand) {
+                let px = x0 + x, py = y0 + y
+                guard px >= 0, py >= 0, px < bmp.width, py < bmp.height else { continue }
+                // Inside the local box, and on the blob: skip.
+                let lx = x - surroundBand, ly = y - surroundBand
+                if lx >= 0, ly >= 0, lx < w, ly < h, m[ly * w + lx] { continue }
+                ls.append(bmp.lab(at: py * bmp.width + px).l)
+            }
+        }
+        guard ls.count >= 8 else { return nil }
+        ls.sort()
+        return ls[ls.count / 2]
     }
 
     /// The largest a black hold is, as a share of the picture. The black
@@ -953,6 +1022,29 @@ enum RouteScanner {
 
         /// How many pixels the traced boundary ran, set by `boundary`.
         var perimeterCache = 0
+
+        /// How many times the blob can be eroded by a pixel before nothing
+        /// is left: its largest inscribed half-width. A pen stroke round a
+        /// hold is a closed loop, and judged by area over perimeter a
+        /// loop looks as thick as a snake, because the trace runs round
+        /// its outside only. Eroded, a stroke is gone in two; a hold is
+        /// not.
+        func depth(width: Int) -> Int {
+            var (m, w, h) = local(width: width)
+            var steps = 0
+            while m.contains(true) {
+                var next = m
+                for y in 0..<h { for x in 0..<w where m[y * w + x] {
+                    let i = y * w + x
+                    if x == 0 || y == 0 || x == w - 1 || y == h - 1
+                        || !m[i - 1] || !m[i + 1] || !m[i - w] || !m[i + w] { next[i] = false }
+                } }
+                m = next
+                steps += 1
+                if steps > 64 { break }
+            }
+            return steps
+        }
 
         /// How thick the blob is, in pixels: twice its area over its
         /// perimeter, which for a ribbon is the ribbon's width. A shadow
