@@ -26,8 +26,11 @@ struct BetaFigure: View {
             // round the outside and nothing shows through inside.
             let unit = rect.width * span
             let build = shape.shoulderWidth / 0.22
-            let ink = Theme.ink
+            // The mark's own look: a solid blue climber with the skeleton
+            // drawn over it, bones as dark lines and joints as dots.
+            let ink = Theme.blue
             let casing = Theme.chalk.opacity(0.95)
+            let bone = Theme.ink.opacity(0.85)
 
             func norm(_ p: CGPoint) -> CGPoint {
                 CGPoint(x: (p.x - rect.minX) / rect.width, y: (p.y - rect.minY) / rect.height)
@@ -110,9 +113,36 @@ struct BetaFigure: View {
             let neckTop = CGPoint(x: neckMid.x + (h.x - neckMid.x) * 0.5, y: neckMid.y + (h.y - neckMid.y) * 0.5)
             parts.append(capsule(norm(neckMid), norm(neckTop), from: 0.026, to: 0.024))
             parts.append(Path(ellipseIn: CGRect(x: h.x - headR * 0.9, y: h.y - headR * 1.05, width: headR * 1.8, height: headR * 2.1)))
+            // A ponytail, as the mark has, swung to the side the body leans
+            // away from: out from the back of the head, down past the neck.
+            let lean: CGFloat = pose.leftHand.y < pose.rightHand.y ? 1 : -1
+            let tailFrom = CGPoint(x: h.x + lean * headR * 0.55, y: h.y - headR * 0.35)
+            let tailMid = CGPoint(x: h.x + lean * headR * 1.5, y: h.y + headR * 0.9)
+            let tailEnd = CGPoint(x: h.x + lean * headR * 1.25, y: h.y + headR * 2.4)
+            parts.append(capsule(norm(tailFrom), norm(tailMid), from: 0.02, to: 0.016))
+            parts.append(capsule(norm(tailMid), norm(tailEnd), from: 0.016, to: 0.006))
 
             for p in parts { ctx.stroke(p, with: .color(casing), style: StrokeStyle(lineWidth: 4, lineJoin: .round)) }
             for p in parts { ctx.fill(p, with: .color(ink)) }
+
+            // The skeleton over the body.
+            let bones: [(CGPoint, CGPoint)] = [
+                (pose.leftShoulder, pose.leftElbow), (pose.leftElbow, pose.leftHand),
+                (pose.rightShoulder, pose.rightElbow), (pose.rightElbow, pose.rightHand),
+                (pose.leftShoulder, pose.rightShoulder),
+                (pose.hips, pose.leftKnee), (pose.leftKnee, pose.leftFoot),
+                (pose.hips, pose.rightKnee), (pose.rightKnee, pose.rightFoot)]
+            var skeleton = Path()
+            for (a, b) in bones { skeleton.move(to: at(a)); skeleton.addLine(to: at(b)) }
+            skeleton.move(to: neckMid); skeleton.addLine(to: hp)
+            ctx.stroke(skeleton, with: .color(bone), style: StrokeStyle(lineWidth: max(1.2, unit * 0.008), lineCap: .round))
+            let dotR = max(2, unit * 0.013)
+            for j in [pose.leftShoulder, pose.rightShoulder, pose.leftElbow, pose.rightElbow,
+                      pose.leftHand, pose.rightHand, pose.hips, pose.leftKnee, pose.rightKnee,
+                      pose.leftFoot, pose.rightFoot] {
+                ctx.fill(disc(at(j), dotR), with: .color(bone))
+                ctx.stroke(disc(at(j), dotR), with: .color(casing), style: StrokeStyle(lineWidth: 1))
+            }
 
             // A smearing foot is marked, so the difference from a foot on
             // a hold is visible without a legend.
