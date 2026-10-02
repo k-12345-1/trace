@@ -171,11 +171,25 @@ enum RouteScanner {
             }
         }
 
+        var blobs = components(mask: &mask, width: bmp.width, height: bmp.height,
+                               minPixels: max(minPixels, 8), maxPixels: maxPixels,
+                               outlines: true)
+        if !chalk.isEmpty {
+            // Chalk across the middle of a hold splits it into two blobs
+            // of colour. Each takes the chalk it touches; put together
+            // again they are one blob, and found again as one.
+            var union = [Bool](repeating: false, count: bmp.width * bmp.height)
+            for i in blobs.indices {
+                adoptChalk(into: &blobs[i], chalk: &chalk, width: bmp.width, height: bmp.height)
+                for p in blobs[i].pixels { union[Int(p)] = true }
+            }
+            blobs = components(mask: &union, width: bmp.width, height: bmp.height,
+                               minPixels: max(minPixels, 8), maxPixels: maxPixels * 2,
+                               outlines: true)
+        }
+
         var found: [Hold] = []
-        for var component in components(mask: &mask, width: bmp.width, height: bmp.height,
-                                        minPixels: max(minPixels, 8), maxPixels: maxPixels,
-                                        outlines: true) {
-            if !chalk.isEmpty { adoptChalk(into: &component, chalk: &chalk, width: bmp.width, height: bmp.height) }
+        for var component in blobs {
             let w = Double(component.maxX - component.minX + 1)
             let h = Double(component.maxY - component.minY + 1)
             guard w > 2, h > 2 else { continue }
@@ -210,7 +224,8 @@ enum RouteScanner {
             // whose black holds on a black panel are near the wall by
             // nature and are judged by shape above.
             if !dark, colors.indices.contains(index),
-               clearance(of: component, in: bmp, wall: wallApart(from: colors[index], wall)) < holdClearance { continue }
+               clearance(of: component, in: bmp, wall: wallApart(from: colors[index], wall),
+                         labels: labels, index: index) < holdClearance { continue }
             if dark {
                 // A dark blob bigger than any black hold is a panel.
                 guard Double(component.count) / total <= darkSheet else { continue }
@@ -240,10 +255,10 @@ enum RouteScanner {
         return found.sorted { $0.area > $1.area }
     }
 
-    /// How far, in Lab, a hold's pixels sit from the wall on median. The
-    /// lit panel on the fifth wall sat at 14.7 and the chalk streak on it
-    /// at 15.4; the cream volumes on that wall at 31 and more.
-    static let holdClearance = 18.0
+    /// How far, in Lab, a hold's own pixels sit from the wall on median.
+    /// The lit panel on the fifth wall sat at 18.4 and the chalk streak
+    /// on it at 15.4; the cream volumes on that wall at 31 and more.
+    static let holdClearance = 22.0
 
     /// The wall colours that are not the candidate's own. A white route
     /// on a wall where white has been called scenery would otherwise be
@@ -253,17 +268,24 @@ enum RouteScanner {
     }
 
     /// The median distance of a blob's pixels from the nearest wall colour,
-    /// over a sample of them.
-    private static func clearance(of component: Component, in bmp: Bitmap, wall: [Lab]) -> Double {
+    /// over a sample of them. Only the blob's own pixels, the ones the
+    /// segmentation gave this candidate: adopted chalk is far from a grey
+    /// wall by nature, and counted it carried the lit panel on the fifth
+    /// wall, with the pale fringe it had taken, past the line.
+    private static func clearance(of component: Component, in bmp: Bitmap, wall: [Lab],
+                                  labels: [Int8]? = nil, index: Int = -1) -> Double {
         guard !wall.isEmpty, !component.pixels.isEmpty else { return .infinity }
         let step = max(1, component.pixels.count / 400)
         var ds: [Double] = []
         var i = 0
         while i < component.pixels.count {
-            let lab = bmp.lab(at: Int(component.pixels[i]))
-            ds.append(wall.map { $0.distance(to: lab) }.min() ?? .infinity)
+            let p = Int(component.pixels[i])
             i += step
+            if let labels, labels[p] != Int8(index) { continue }
+            let lab = bmp.lab(at: p)
+            ds.append(wall.map { $0.distance(to: lab) }.min() ?? .infinity)
         }
+        guard !ds.isEmpty else { return .infinity }
         ds.sort()
         return ds[ds.count / 2]
     }
@@ -796,10 +818,14 @@ enum RouteScanner {
     /// colour the pixels blend, and judged by the grey line that blended
     /// rim walled the chalk off from the hold it sits on.
     static let chalkLightness = 62.0
-    /// A chalk patch is at most this share of the hold it sits on. A white
-    /// hold leaning on a green one is not chalk, and a white hold is seldom
-    /// much smaller than its neighbour.
-    static let chalkShare = 0.8
+    /// How much of a chalk patch's edge has to lie against the hold for
+    /// the patch to be the hold's. Chalk on a hold borders the hold along
+    /// most of its edge, and chalk in a bay or a hole along all of it; a
+    /// white hold leaning on a green one touches it along a sliver.
+    static let chalkTouch = 0.35
+    /// And a runaway: a patch past this many times the hold's own size
+    /// is a white panel, whatever it touches.
+    static let chalkRunaway = 4.0
 
     /// White pixels, the colour chalk comes in.
     static func isChalk(_ c: Lab) -> Bool {
@@ -807,13 +833,15 @@ enum RouteScanner {
     }
 
     /// Give a coloured blob the chalk sitting on it: every chalk pixel
-    /// reached from its edge, so long as the patch stays smaller than the
-    /// blob. A patch that grows past that is a white hold or a lit panel,
-    /// and the blob keeps its own pixels only.
+    /// reached from its edge, so long as the patch lies against the blob
+    /// along enough of the patch's own edge. Judged by size instead, a
+    /// sloper that is mostly chalk lost its top half, and a chalk bay
+    /// left a crescent.
     private static func adoptChalk(into component: inout Component, chalk: inout [Bool],
                                    width: Int, height: Int) {
-        let cap = Int(Double(component.count) * chalkShare)
+        let cap = Int(Double(component.count) * chalkRunaway)
         guard cap > 0 else { return }
+        var mine = Set<Int32>(component.pixels)
         var taken: [Int] = []
         var stack: [Int] = []
         for p in component.pixels {
@@ -834,12 +862,26 @@ enum RouteScanner {
             if y > 0, chalk[i - width] { stack.append(i - width) }
             if y < height - 1, chalk[i + width] { stack.append(i + width) }
         }
-        if taken.count > cap {
-            // Too big to be chalk: hand the pixels back.
+        var keep = taken.count <= cap
+        if keep {
+            // The patch's edge: every non-patch neighbour of a patch
+            // pixel, counted as hold or as something else.
+            let patch = Set<Int32>(taken.map { Int32($0) })
+            var hold = 0, other = 0
+            for i in taken {
+                let x = i % width, y = i / width
+                for j in [x > 0 ? i - 1 : -1, x < width - 1 ? i + 1 : -1, y > 0 ? i - width : -1, y < height - 1 ? i + width : -1] where j >= 0 {
+                    if patch.contains(Int32(j)) { continue }
+                    if mine.contains(Int32(j)) { hold += 1 } else { other += 1 }
+                }
+            }
+            keep = hold + other > 0 && Double(hold) / Double(hold + other) >= chalkTouch
+        }
+        if !keep {
             for i in taken { chalk[i] = true }
             return
         }
-        for i in taken { component.add(i % width, i / width, index: i) }
+        for i in taken { component.add(i % width, i / width, index: i); mine.insert(Int32(i)) }
     }
 
     /// How much a set of blobs looks like a route.
