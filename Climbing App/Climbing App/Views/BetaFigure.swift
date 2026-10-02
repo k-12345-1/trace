@@ -20,23 +20,24 @@ struct BetaFigure: View {
 
     var body: some View {
         Canvas { ctx, _ in
-            // A body, not a wire, and not a set of blocks either: a trunk
-            // with shoulders, a waist and hips, limbs that meet at round
-            // joints, a neck, a head, hands and shoes. Every width is this
-            // climber's own where their footage has been read. Drawn in
-            // the live overlay's two inks so it reads as the same idea.
+            // A silhouette: one solid body, the way a climber reads as a
+            // shape against a wall. Every part is drawn into the same ink
+            // after every part's casing, so the casing is a single line
+            // round the outside and nothing shows through inside.
             let unit = rect.width * span
             let build = shape.shoulderWidth / 0.22
-            let ink = Theme.blue.opacity(0.92)
+            let ink = Theme.ink
             let casing = Theme.chalk.opacity(0.95)
-            let edge = StrokeStyle(lineWidth: 2.5, lineJoin: .round)
 
+            func norm(_ p: CGPoint) -> CGPoint {
+                CGPoint(x: (p.x - rect.minX) / rect.width, y: (p.y - rect.minY) / rect.height)
+            }
             func capsule(_ a: CGPoint, _ b: CGPoint, from wa: Double, to wb: Double) -> Path {
                 let p = at(a), q = at(b)
                 let dx = q.x - p.x, dy = q.y - p.y
                 let len = max(hypot(dx, dy), 0.001)
                 let nx = -dy / len, ny = dx / len
-                let ra = max(2.5, unit * wa * build), rb = max(2, unit * wb * build)
+                let ra = max(2, unit * wa * build), rb = max(1.5, unit * wb * build)
                 var path = Path()
                 path.move(to: CGPoint(x: p.x + nx * ra, y: p.y + ny * ra))
                 path.addLine(to: CGPoint(x: q.x + nx * rb, y: q.y + ny * rb))
@@ -51,47 +52,32 @@ struct BetaFigure: View {
             func disc(_ c: CGPoint, _ r: CGFloat) -> Path {
                 Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
             }
-            func draw(_ path: Path) {
-                ctx.stroke(path, with: .color(casing), style: StrokeStyle(lineWidth: 5.5, lineJoin: .round))
-                ctx.fill(path, with: .color(ink))
-            }
-            // A limb is two bones and a joint, drawn as one shape so the
-            // casing runs round the outside only.
-            func limb(_ a: CGPoint, _ j: CGPoint, _ b: CGPoint, from wa: Double, mid wj: Double, to wb: Double) {
-                var path = capsule(a, j, from: wa, to: wj)
-                path.addPath(capsule(j, b, from: wj, to: wb))
-                path.addPath(disc(at(j), max(2.5, unit * wj * build)))
-                draw(path)
-            }
-
-            // Shoes: a short capsule running on from the shin past the foot.
-            func shoe(_ knee: CGPoint, _ foot: CGPoint) {
-                let k = at(knee), f = at(foot)
-                let dx = f.x - k.x, dy = f.y - k.y
+            // A hand or a shoe: a short capsule running on past the joint
+            // in the limb's own direction.
+            func tip(_ from: CGPoint, _ joint: CGPoint, length: Double, width: Double) -> Path {
+                let f = at(from), j = at(joint)
+                let dx = j.x - f.x, dy = j.y - f.y
                 let len = max(hypot(dx, dy), 0.001)
-                let toe = CGPoint(x: f.x + dx / len * unit * 0.035, y: f.y + dy / len * unit * 0.035)
-                var path = Path()
-                let r = max(3, unit * 0.026 * build)
-                path.addPath(capsule(foot, CGPoint(x: (toe.x - rect.minX) / rect.width, y: (toe.y - rect.minY) / rect.height),
-                                     from: 0.026, to: 0.03))
-                _ = r
-                draw(path)
+                let end = CGPoint(x: j.x + dx / len * unit * length, y: j.y + dy / len * unit * length)
+                return capsule(joint, norm(end), from: width, to: width * 0.8)
             }
 
-            // Legs behind the trunk.
-            limb(pose.hips, pose.leftKnee, pose.leftFoot, from: 0.06, mid: 0.045, to: 0.03)
-            limb(pose.hips, pose.rightKnee, pose.rightFoot, from: 0.06, mid: 0.045, to: 0.03)
-            shoe(pose.leftKnee, pose.leftFoot)
-            shoe(pose.rightKnee, pose.rightFoot)
-
-            // The trunk: shoulders, a waist two thirds down, hips.
+            var parts: [Path] = []
+            // Legs, with knees as joints, and shoes.
+            for (knee, foot) in [(pose.leftKnee, pose.leftFoot), (pose.rightKnee, pose.rightFoot)] {
+                parts.append(capsule(pose.hips, knee, from: 0.052, to: 0.038))
+                parts.append(capsule(knee, foot, from: 0.038, to: 0.026))
+                parts.append(disc(at(knee), max(2.5, unit * 0.038 * build)))
+                parts.append(tip(knee, foot, length: 0.045, width: 0.024))
+            }
+            // The trunk: shoulders, a waist, hips.
             let ls = at(pose.leftShoulder), rs = at(pose.rightShoulder), hp = at(pose.hips)
-            let shoulderR = max(4, unit * 0.045 * build)
-            let hipHalf = max(5, unit * shape.hipWidth / 2)
-            let waistHalf = hipHalf * 0.85
+            let shoulderR = max(3.5, unit * 0.04 * build)
+            let hipHalf = max(4, unit * shape.hipWidth / 2)
             let neckMid = CGPoint(x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2)
             let down = CGPoint(x: hp.x - neckMid.x, y: hp.y - neckMid.y)
-            let waist = CGPoint(x: neckMid.x + down.x * 0.68, y: neckMid.y + down.y * 0.68)
+            let waist = CGPoint(x: neckMid.x + down.x * 0.62, y: neckMid.y + down.y * 0.62)
+            let waistHalf = hipHalf * 0.8
             let across = CGPoint(x: rs.x - ls.x, y: rs.y - ls.y)
             let acrossLen = max(hypot(across.x, across.y), 0.001)
             let ax = across.x / acrossLen, ay = across.y / acrossLen
@@ -99,43 +85,42 @@ struct BetaFigure: View {
             trunk.move(to: CGPoint(x: ls.x - ax * shoulderR, y: ls.y - ay * shoulderR))
             trunk.addLine(to: CGPoint(x: rs.x + ax * shoulderR, y: rs.y + ay * shoulderR))
             trunk.addCurve(to: CGPoint(x: hp.x + ax * hipHalf, y: hp.y + ay * hipHalf),
-                           control1: CGPoint(x: rs.x + ax * shoulderR * 0.9 + down.x * 0.3, y: rs.y + ay * shoulderR * 0.9 + down.y * 0.3),
+                           control1: CGPoint(x: rs.x + ax * shoulderR * 0.8 + down.x * 0.35, y: rs.y + ay * shoulderR * 0.8 + down.y * 0.35),
                            control2: CGPoint(x: waist.x + ax * waistHalf, y: waist.y + ay * waistHalf))
             trunk.addArc(center: hp, radius: hipHalf, startAngle: .radians(atan2(ay, ax)),
                          endAngle: .radians(atan2(ay, ax) + .pi), clockwise: false)
             trunk.addCurve(to: CGPoint(x: ls.x - ax * shoulderR, y: ls.y - ay * shoulderR),
                            control1: CGPoint(x: waist.x - ax * waistHalf, y: waist.y - ay * waistHalf),
-                           control2: CGPoint(x: ls.x - ax * shoulderR * 0.9 + down.x * 0.3, y: ls.y - ay * shoulderR * 0.9 + down.y * 0.3))
+                           control2: CGPoint(x: ls.x - ax * shoulderR * 0.8 + down.x * 0.35, y: ls.y - ay * shoulderR * 0.8 + down.y * 0.35))
             trunk.closeSubpath()
-            trunk.addPath(disc(ls, shoulderR))
-            trunk.addPath(disc(rs, shoulderR))
-            draw(trunk)
-
-            // Arms in front, with the elbow as a joint.
-            limb(pose.leftShoulder, pose.leftElbow, pose.leftHand, from: 0.042, mid: 0.034, to: 0.024)
-            limb(pose.rightShoulder, pose.rightElbow, pose.rightHand, from: 0.042, mid: 0.034, to: 0.024)
-
+            parts.append(trunk)
+            parts.append(disc(ls, shoulderR))
+            parts.append(disc(rs, shoulderR))
+            // Arms, with elbows as joints, and hands.
+            for (shoulder, elbow, hand) in [(pose.leftShoulder, pose.leftElbow, pose.leftHand),
+                                            (pose.rightShoulder, pose.rightElbow, pose.rightHand)] {
+                parts.append(capsule(shoulder, elbow, from: 0.036, to: 0.028))
+                parts.append(capsule(elbow, hand, from: 0.028, to: 0.02))
+                parts.append(disc(at(elbow), max(2, unit * 0.028 * build)))
+                parts.append(tip(elbow, hand, length: 0.03, width: 0.02))
+            }
             // Neck and head.
             let h = at(pose.head)
-            let headR = max(5, unit * shape.headRadius)
-            let neckTop = CGPoint(x: neckMid.x + (h.x - neckMid.x) * 0.55, y: neckMid.y + (h.y - neckMid.y) * 0.55)
-            draw(capsule(CGPoint(x: (neckMid.x - rect.minX) / rect.width, y: (neckMid.y - rect.minY) / rect.height),
-                         CGPoint(x: (neckTop.x - rect.minX) / rect.width, y: (neckTop.y - rect.minY) / rect.height),
-                         from: 0.03, to: 0.026))
-            let headRect = CGRect(x: h.x - headR * 0.92, y: h.y - headR * 1.08, width: headR * 1.84, height: headR * 2.16)
-            draw(Path(ellipseIn: headRect))
+            let headR = max(4.5, unit * shape.headRadius)
+            let neckTop = CGPoint(x: neckMid.x + (h.x - neckMid.x) * 0.5, y: neckMid.y + (h.y - neckMid.y) * 0.5)
+            parts.append(capsule(norm(neckMid), norm(neckTop), from: 0.026, to: 0.024))
+            parts.append(Path(ellipseIn: CGRect(x: h.x - headR * 0.9, y: h.y - headR * 1.05, width: headR * 1.8, height: headR * 2.1)))
 
-            // Hands: small discs on the holds.
-            for hand in [pose.leftHand, pose.rightHand] {
-                ctx.fill(disc(at(hand), max(3, unit * 0.022 * build)), with: .color(casing))
-            }
-            // Feet: ringed on a hold, open on a smear.
-            for (foot, hold) in [(pose.leftFoot, pose.leftFootHold), (pose.rightFoot, pose.rightFootHold)] {
+            for p in parts { ctx.stroke(p, with: .color(casing), style: StrokeStyle(lineWidth: 4, lineJoin: .round)) }
+            for p in parts { ctx.fill(p, with: .color(ink)) }
+
+            // A smearing foot is marked, so the difference from a foot on
+            // a hold is visible without a legend.
+            for (foot, hold) in [(pose.leftFoot, pose.leftFootHold), (pose.rightFoot, pose.rightFootHold)] where hold == nil {
                 let r = max(5, unit * 0.035)
                 ctx.stroke(disc(at(foot), r), with: .color(Theme.chalk),
-                           style: StrokeStyle(lineWidth: 2.5, dash: hold == nil ? [4, 4] : []))
+                           style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
             }
-            _ = edge
         }
         .allowsHitTesting(false)
     }

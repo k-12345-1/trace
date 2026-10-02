@@ -88,7 +88,11 @@ enum CoverageEngine {
     /// the sticker, big enough to be a hold, nearer than any other route's.
     static func holdIndex(for t: RouteScanner.Tag, holds: [CGRect], others: [CGRect] = []) -> Int? {
         func gap(_ h: CGRect) -> Double? {
-            guard Double(h.width * h.height) >= tagHold, h.midY <= t.point.y + tagBelowHold else { return nil }
+            // The hold's top at or above the sticker: under the hold, or
+            // beside it. Some gyms stick the tag to the wall next to the
+            // start, level with it, and judged by the hold's centre those
+            // starts matched nothing.
+            guard Double(h.width * h.height) >= tagHold, h.minY <= t.point.y + tagBelowHold else { return nil }
             return max(0, hypot(h.midX - t.point.x, h.midY - t.point.y) - max(h.width, h.height) / 2)
         }
         var best: (Int, Double)?

@@ -305,12 +305,20 @@ enum BetaEngine {
             // The lowest hand hold that has another within reach. A lone
             // chip at the bottom, with nothing a hand could go to from
             // it, left the search with no move to make and no plan.
+            // And one with something to stand on: a hold below it within a
+            // leg. A climber does not start on the floor hanging from the
+            // lowest chip; that chip is the first foot hold.
+            func standable(_ i: Int) -> Bool {
+                (0..<n).contains { $0 != i && all[$0].y > all[i].y + 0.02 && distance(all[$0], all[i]) <= leg * 1.6 }
+            }
             var chosen: (Int, Int)?
-            for lowest in handIndex.sorted(by: { all[$0].y > all[$1].y }) {
-                let second = handIndex.filter { $0 != lowest }
-                    .filter { distance(all[$0], all[lowest]) <= span * 0.95 && all[$0].y <= all[lowest].y + handDrop * span }
-                    .min { distance(all[$0], all[lowest]) < distance(all[$1], all[lowest]) }
-                if let second { chosen = (lowest, second); break }
+            for strict in [true, false] where chosen == nil {
+                for lowest in handIndex.sorted(by: { all[$0].y > all[$1].y }) where !strict || standable(lowest) {
+                    let second = handIndex.filter { $0 != lowest }
+                        .filter { distance(all[$0], all[lowest]) <= span * 0.95 && all[$0].y <= all[lowest].y + handDrop * span }
+                        .min { distance(all[$0], all[lowest]) < distance(all[$1], all[lowest]) }
+                    if let second { chosen = (lowest, second); break }
+                }
             }
             if let chosen { (startL, startR) = chosen }
             else { let lowest = handIndex.min { all[$0].y > all[$1].y }!; (startL, startR) = (lowest, lowest) }
@@ -475,11 +483,28 @@ enum BetaEngine {
         }
         var steps: [Step] = []
         var states: [Position] = [end.p]
+        // A boulder is finished with both hands on the finish, whatever
+        // the search managed: when it stopped short, the last moves go to
+        // the finish anyway, as the throw they would be.
+        var tail: [Step] = []
+        var tailStates: [Position] = []
+        if goal == nil {
+            let finishes = finishSet.sorted { all[$0].x < all[$1].x }
+            if let l = finishes.first {
+                let r = finishes.count > 1 ? finishes[1] : l
+                var p = end.p
+                if p.leftHand != l { p.leftHand = l; if p.leftFoot == l { p.leftFoot = -1 }; if p.rightFoot == l { p.rightFoot = -1 }
+                    tail.append(Step(limb: .leftHand, to: l, match: p.rightHand == l)); tailStates.append(p) }
+                if p.rightHand != r { p.rightHand = r; if p.leftFoot == r { p.leftFoot = -1 }; if p.rightFoot == r { p.rightFoot = -1 }
+                    tail.append(Step(limb: .rightHand, to: r, match: p.leftHand == r)); tailStates.append(p) }
+            }
+        }
         var cursor = end
         while let (prev, step) = from[cursor] {
             steps.append(step); states.append(prev.p); cursor = prev
         }
         steps.reverse(); states.reverse()
+        steps += tail; states += tailStates
         var order: [Int] = []
         for p in states {
             for h in [p.leftHand, p.rightHand, p.leftFoot, p.rightFoot] where h >= 0 && !order.contains(h) { order.append(h) }

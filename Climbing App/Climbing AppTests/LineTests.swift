@@ -278,21 +278,19 @@ struct BetaTests {
         }
     }
 
-    /// Higher up the ladder there are holds below to stand on; at the start
-    /// there are none, so the feet smear.
+    /// The climber starts standing on the lowest rung, not hanging off it
+    /// from the floor, and a foot is never on a hand's hold.
     @Test("Feet take holds when there are any, and smear when there are none")
     func feetFindHolds() throws {
         let line = try #require(LineEngine.read(holds: ladder))
         let seq = try #require(BetaEngine.read(line: line))
+        let plan = try #require(seq.plan)
         let first = try #require(seq.stances.first)
-        #expect(first.leftFootHold == nil && first.rightFootHold == nil)
-        let later = seq.stances.dropFirst(3)
-        #expect(later.contains { $0.leftFootHold != nil || $0.rightFootHold != nil },
-                "no stance above the third found a foothold")
-        // A foot is never on a hand's hold.
-        for (i, s) in seq.stances.enumerated() {
-            for f in [s.leftFootHold, s.rightFootHold].compactMap({ $0 }) {
-                #expect(f != i && f != i + 1, "stance \(i) stood on a hand hold")
+        #expect(first.leftFootHold != nil || first.rightFootHold != nil, "started off the floor")
+        #expect(seq.stances.contains { $0.leftFootHold != nil && $0.rightFootHold != nil })
+        for (i, p) in plan.states.enumerated() {
+            for f in [p.leftFoot, p.rightFoot] where f >= 0 {
+                #expect(f != p.leftHand && f != p.rightHand, "stance \(i) stood on a hand hold")
             }
         }
     }

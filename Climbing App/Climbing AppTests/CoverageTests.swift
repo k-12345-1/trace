@@ -109,3 +109,17 @@ struct CoverageTests {
         #expect(black.holds.count >= 8, "\(black.holds.count)")
     }
 }
+
+/// A tag beside its hold is the hold's.
+@Suite("Tags beside holds")
+struct TagBesideTests {
+    @Test func aStickerBesideAHoldNamesIt() {
+        // A big start jug with the Start sticker to its right, level with
+        // its middle, and a chip well above.
+        let jug = CGRect(x: 0.40, y: 0.60, width: 0.08, height: 0.06)
+        let chip = CGRect(x: 0.42, y: 0.40, width: 0.02, height: 0.02)
+        let tag = RouteScanner.Tag(kind: .start, point: CGPoint(x: 0.50, y: 0.64))
+        #expect(CoverageEngine.holdIndex(for: tag, holds: [chip, jug]) == 1)
+        #expect(CoverageEngine.startHolds(holds: [chip, jug], tags: [tag]) == [1])
+    }
+}

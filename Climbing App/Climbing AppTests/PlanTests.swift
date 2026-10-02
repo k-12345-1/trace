@@ -114,6 +114,28 @@ struct PlanTests {
     }
 }
 
+/// Where an untagged route starts.
+@Suite("Starting off the floor")
+struct StartTests {
+    private func hold(_ x: Double, _ y: Double, _ s: Double = 0.05) -> CGRect {
+        CGRect(x: x - s / 2, y: y - s / 2, width: s, height: s)
+    }
+
+    /// Without stickers the start is the lowest hand hold that has a foot
+    /// hold below it, not the chip beside the mat.
+    @Test func theStartHasSomethingToStandOn() throws {
+        let holds = [hold(0.50, 0.95), hold(0.56, 0.93),            // two chips by the mat
+                     hold(0.48, 0.78, 0.07), hold(0.56, 0.76, 0.06), // the start jugs
+                     hold(0.50, 0.60), hold(0.52, 0.45), hold(0.50, 0.30)]
+        let line = try #require(LineEngine.read(holds: holds))
+        let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
+        let first = try #require(plan.states.first)
+        let startY = min(line.holds[first.leftHand].midY, line.holds[first.rightHand].midY)
+        #expect(startY <= 0.79, "started at \(line.holds[first.leftHand].midY)")
+        #expect(line.holds[first.leftHand].midY < 0.9 && line.holds[first.rightHand].midY < 0.9)
+    }
+}
+
 /// What the planner does when the finish cannot be reached, and when the
 /// feet could stand.
 @Suite("Planning at the edges")
@@ -132,7 +154,9 @@ struct PlanEdgeTests {
         let plan = try #require(BetaEngine.read(line: line, shape: .average)?.plan)
         let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         let last = try #require(plan.states.last)
-        #expect(all[last.leftHand].y <= 0.5 || all[last.rightHand].y <= 0.5, "\(plan.states)")
+        // Both hands finish on the finish, as a throw if nothing else.
+        let top = line.holds.firstIndex(of: holds.min { $0.midY < $1.midY }!)
+        #expect(last.leftHand == top && last.rightHand == top, "\(plan.states)")
         #expect(plan.steps.count >= 2)
     }
 
