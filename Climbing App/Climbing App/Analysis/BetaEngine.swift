@@ -671,9 +671,18 @@ enum BetaEngine {
             joint(shoulder, hand, bone: arm / 2, out: out, lean: 0.6)
         }
 
+        // A smear is on the wall, not the mat: no lower than the route's
+        // lowest hold, a little past it. At the start the smearing leg
+        // used to reach down off the bottom of the photograph.
+        var lowestY: Double = max(leftHand.y, rightHand.y)
+        for h in feetFrom where h.y > lowestY { lowestY = h.y }
+        let floorY: Double = lowestY + 0.03
         func foot(_ pick: (offset: Int, element: CGPoint)?, side: Double) -> (CGPoint, Int?) {
             if let pick { return (pick.element, pick.offset) }
-            return (CGPoint(x: hips.x + side * smearOut * span, y: hips.y + smearDrop * span), nil)
+            // But always under the hips, by at least a short leg.
+            let drop = hips.y + smearDrop * span
+            let least = hips.y + smearDrop * span * 0.35
+            return (CGPoint(x: hips.x + side * smearOut * span, y: max(min(drop, floorY), least)), nil)
         }
         let (lf, lfi) = foot(leftPick, side: -1)
         let (rf, rfi) = foot(rightPick, side: 1)

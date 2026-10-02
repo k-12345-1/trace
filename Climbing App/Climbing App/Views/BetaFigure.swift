@@ -28,9 +28,9 @@ struct BetaFigure: View {
             let build = shape.shoulderWidth / 0.22
             // The mark's own look: a solid blue climber with the skeleton
             // drawn over it, bones as dark lines and joints as dots.
-            let ink = Theme.blue
+            let ink = Theme.accent
             let casing = Theme.chalk.opacity(0.95)
-            let bone = Theme.ink.opacity(0.85)
+            let bone = Theme.ink.opacity(0.9)
 
             func norm(_ p: CGPoint) -> CGPoint {
                 CGPoint(x: (p.x - rect.minX) / rect.width, y: (p.y - rect.minY) / rect.height)
