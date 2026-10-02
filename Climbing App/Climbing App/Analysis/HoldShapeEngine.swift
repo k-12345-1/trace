@@ -121,8 +121,23 @@ enum HoldShapeEngine {
 
     // MARK: Guessing
 
-    static func classify(_ f: Features, prototypes: [HoldType: Features]) -> HoldType {
-        guessable.min { (prototypes[$0]!).distance(to: f) < (prototypes[$1]!).distance(to: f) }!
+    static func classify(_ f: Features, prototypes: [HoldType: Features],
+                         prior: [HoldType: Double] = [:]) -> HoldType {
+        guessable.min {
+            prototypes[$0]!.distance(to: f) * (prior[$0] ?? 1) < prototypes[$1]!.distance(to: f) * (prior[$1] ?? 1)
+        }!
+    }
+
+    /// What the grade says before the shapes do. An easy boulder is set on
+    /// jugs: a V0 of jugs and pockets read as crimps and slopers from its
+    /// outlines alone, which a climber standing under it would never say.
+    /// Returns a multiplier on each type's distance; under one favours it.
+    static func prior(for grade: Grade?) -> [HoldType: Double] {
+        guard let grade, grade.scale == .vScale else { return [:] }
+        // V0 is index 3, V1 is 6.
+        if grade.index <= 6 { return [.jugs: 0.6, .crimps: 1.3, .slopers: 1.2] }
+        if grade.index <= 9 { return [.jugs: 0.85] }
+        return [:]
     }
 
     struct Guess: Equatable {
@@ -152,9 +167,11 @@ enum HoldShapeEngine {
     /// A type has to be this share of the holds before it is suggested.
     static let worthTagging = 0.25
 
-    static func guess(_ features: [Features?], prototypes: [HoldType: Features]) -> Guess {
+    static func guess(_ features: [Features?], prototypes: [HoldType: Features],
+                      grade: Grade? = nil) -> Guess {
         var counts: [HoldType: Int] = [:]
-        for f in features.compactMap({ $0 }) { counts[classify(f, prototypes: prototypes), default: 0] += 1 }
+        let prior = prior(for: grade)
+        for f in features.compactMap({ $0 }) { counts[classify(f, prototypes: prototypes, prior: prior), default: 0] += 1 }
         return Guess(counts: counts)
     }
 

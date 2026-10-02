@@ -225,3 +225,27 @@ struct WallTopTests {
         #expect(r.onTheWall(CGPoint(x: 0.5, y: 0.4), width: 300, height: 400))
     }
 }
+
+/// A top that is a shading, not a line.
+@Suite("The top as a change of colour")
+struct ProfileTopTests {
+    @Test func aShadedTopIsFound() throws {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        let img = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 400), format: f).image { ctx in
+            // Dark ceiling, shading into the wall across 30 rows from y 90.
+            UIColor(white: 0.3, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 300, height: 90))
+            for i in 0..<30 {
+                UIColor(white: 0.3 + 0.3 * Double(i) / 30, alpha: 1).setFill()
+                ctx.fill(CGRect(x: 0, y: 90 + i, width: 300, height: 1))
+            }
+            UIColor(white: 0.6, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 120, width: 300, height: 280))
+        }.cgImage!
+        let bmp = try #require(Bitmap(img, targetWidth: 300))
+        let r = FaceEngine.read(in: bmp)
+        let top = try #require(r.top)
+        let y = try #require(top.y(atX: 150))
+        #expect(y > 85 && y < 125, "top at \(y)")
+        #expect(!r.onTheWall(CGPoint(x: 0.5, y: 0.1), width: 300, height: 400))
+        #expect(r.onTheWall(CGPoint(x: 0.5, y: 0.5), width: 300, height: 400))
+    }
+}

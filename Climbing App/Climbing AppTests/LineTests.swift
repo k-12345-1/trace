@@ -387,3 +387,33 @@ struct HandsAndFeetTests {
         #expect(CoverageEngine.startHolds(holds: holds, tags: tags) == [1, 2])
     }
 }
+
+/// Small holds above the start are pockets and crimps, not chips.
+@Suite("Pockets are hand holds")
+struct PocketTests {
+    private func hold(_ x: Double, _ y: Double, _ s: Double) -> CGRect {
+        CGRect(x: x - s / 2, y: y - s / 2, width: s, height: s)
+    }
+
+    @Test func aSmallHoldAboveTheStartIsAHand() throws {
+        // A jug to start, two chips below it, two pockets above it, a jug
+        // at the top. The pockets are a third the jug's size by side,
+        // a ninth by area.
+        let start = hold(0.5, 0.7, 0.06)
+        let holds = [start, hold(0.45, 0.85, 0.02), hold(0.55, 0.88, 0.02),
+                     hold(0.45, 0.58, 0.02), hold(0.52, 0.5, 0.02), hold(0.5, 0.35, 0.06)]
+        let line = try #require(LineEngine.read(holds: holds, starts: [0]))
+        #expect(line.hands.count == 4, "\(line.hands.count) hands")
+        #expect(line.feet.count == 2)
+        #expect(line.hands.contains(holds[3]) && line.hands.contains(holds[4]))
+        #expect(line.feet.contains(holds[1]) && line.feet.contains(holds[2]))
+    }
+
+    /// Without a sticker the lowest hand-sized hold stands in for the start.
+    @Test func withoutAStickerTheLowestBigHoldIsTheLine() throws {
+        let holds = [hold(0.5, 0.7, 0.06), hold(0.45, 0.85, 0.02), hold(0.45, 0.58, 0.02), hold(0.5, 0.35, 0.06)]
+        let line = try #require(LineEngine.read(holds: holds))
+        #expect(line.hands.count == 3)
+        #expect(line.feet == [holds[1]])
+    }
+}

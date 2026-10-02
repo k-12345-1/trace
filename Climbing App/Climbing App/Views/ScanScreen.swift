@@ -89,18 +89,25 @@ struct ScanScreen: View {
 
     private func wall(_ image: UIImage) -> some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .topLeading) {
                 wallBackground
+                // The photograph runs to the top of the phone, the way a
+                // climb's video does, with the words under it. A title
+                // and a hairline above the picture were a frame round the
+                // one thing on this screen worth looking at.
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        header
-                        Hairline()
                         stage(image)
+                        header
                         controls
                         if !kept.isEmpty { Hairline(); details }
                     }
                     .holdsThePageWidth()
                 }
+                .ignoresSafeArea(.container, edges: .top)
+                closeButton
+                    .padding(.leading, 16)
+                    .padding(.top, 6)
             }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -108,23 +115,34 @@ struct ScanScreen: View {
 
     // MARK: Header
 
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Scan a route")
-                    .font(Theme.heading(19))
-                    .foregroundStyle(Theme.ink)
-                MicroLabel(text: image == nil ? "Photograph the wall" : "Pick the route's color")
-            }
-            Spacer()
-            Button("CANCEL") { dismiss() }
-                .font(Theme.mono(11, weight: .medium))
-                .tracking(1.3)
-                .foregroundStyle(Theme.ink2)
+    /// Cancel, as the climb screens draw going back: a glyph in a dashed
+    /// ring over the picture.
+    private var closeButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(Color.black.opacity(0.25)))
+                .overlay(Circle().strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                            .foregroundStyle(.white.opacity(0.9)))
+                .contentShape(Circle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Cancel")
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("Scan a route")
+                .font(Theme.heading(19))
+                .foregroundStyle(Theme.ink)
+            MicroLabel(text: image == nil ? "Photograph the wall" : "Pick the route's color")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.top, 18)
-        .padding(.bottom, 16)
+        .padding(.bottom, 4)
     }
 
     // MARK: The wall
@@ -204,6 +222,7 @@ struct ScanScreen: View {
                         }
                         .onEnded { _ in panAtStart = pan })
             )
+            .overlay { if reading { ScanSweep() } }
             .overlay(alignment: .bottomTrailing) {
                 if zoom > 1.01 {
                     Button {
@@ -591,3 +610,29 @@ struct ScanScreen: View {
 //
 // The video capture path is built for climbs. Scanning wants one photograph.
 
+/// A line that runs across the photograph while the wall is being read.
+/// The reading takes a second or two, and a still picture with a label
+/// under it looked stuck; a sweep says the picture is being looked at.
+struct ScanSweep: View {
+    @State private var x: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Color.black.opacity(0.12)
+                Rectangle()
+                    .fill(LinearGradient(colors: [Theme.chalk.opacity(0), Theme.chalk.opacity(0.9), Theme.chalk.opacity(0)],
+                                         startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 26)
+                    .overlay(Rectangle().fill(Theme.chalk).frame(width: 2))
+                    .shadow(color: Theme.chalk.opacity(0.8), radius: 6)
+                    .offset(x: x * geo.size.width - 13)
+            }
+            .onAppear {
+                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) { x = 1 }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}

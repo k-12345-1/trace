@@ -90,6 +90,11 @@ enum LineEngine {
     /// foot chip: a hand does not go there. The figure used to hang off
     /// them, which is what a climber notices first.
     static let footChip = 0.3
+    /// Above the start the bar is lower: a small hold up the wall is a
+    /// pocket or a crimp a hand goes to, not a chip for a foot. On a V0
+    /// of jugs and pockets the pockets were filed as feet and the hands
+    /// skipped them. Only a hold under this share is a chip up there.
+    static let tinyChip = 0.1
     /// A hold this far below the lowest start hold, in frame heights, is
     /// below the start and so for feet only.
     static let belowStart = 0.01
@@ -110,11 +115,17 @@ enum LineEngine {
         let finishRects = finishes.compactMap { holds.indices.contains($0) ? holds[$0] : nil }
         let areas = holds.map { Double($0.width * $0.height) }.sorted()
         let middle = areas[areas.count / 2]
+        // The start, or without stickers the lowest hand-sized hold: what
+        // lies below it is for feet, and what lies above it is mostly for
+        // hands.
         let lowestStartY = startRects.map(\.midY).max()
+            ?? ordered.filter { Double($0.width * $0.height) >= middle * footChip }.map(\.midY).max()
         func isHand(_ h: CGRect) -> Bool {
             if startRects.contains(h) || finishRects.contains(h) { return true }
+            let area = Double(h.width * h.height)
             if let y = lowestStartY, h.midY > y + belowStart { return false }
-            return Double(h.width * h.height) >= middle * footChip
+            if area >= middle * footChip { return true }
+            return lowestStartY != nil && area >= middle * tinyChip
         }
         var hands = ordered.filter(isHand)
         let feet = ordered.filter { !isHand($0) }

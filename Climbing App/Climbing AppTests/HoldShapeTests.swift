@@ -90,3 +90,20 @@ struct HoldShapeTests {
         #expect(back == HoldShapeEngine.defaultPrototypes)
     }
 }
+
+/// What the grade says before the shapes do.
+@Suite("Grade prior")
+struct GradePriorTests {
+    @Test func aV0LeansToJugs() {
+        let p = HoldShapeEngine.defaultPrototypes
+        // A hold that is a hair nearer the crimp prototype than the jug.
+        let between = HoldShapeEngine.Features(
+            size: (p[.jugs]!.size + p[.crimps]!.size) / 2 - 0.05,
+            stretch: (p[.jugs]!.stretch + p[.crimps]!.stretch) / 2,
+            lip: (p[.jugs]!.lip + p[.crimps]!.lip) / 2,
+            fill: (p[.jugs]!.fill + p[.crimps]!.fill) / 2)
+        #expect(HoldShapeEngine.classify(between, prototypes: p) != .jugs)
+        #expect(HoldShapeEngine.guess([between], prototypes: p, grade: Grade.parse("V0")).counts[.jugs] == 1)
+        #expect(HoldShapeEngine.guess([between], prototypes: p, grade: Grade.parse("V5")).counts[.jugs] == nil)
+    }
+}

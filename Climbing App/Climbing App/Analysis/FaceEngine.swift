@@ -245,8 +245,47 @@ enum FaceEngine {
                 if out.seams.count >= mostLines { break }
             }
         }
+        if out.top == nil { out.top = topByProfile(bmp, wallL: wallL) }
         return out
     }
+
+    /// The top of the wall read as a change of colour rather than as a
+    /// line. On the sixth wall the ceiling shades into the wall over a
+    /// tenth of the picture, with no edge for a seam to be found on, and
+    /// the fittings on the ceiling were holds. Row by row from the top:
+    /// the row where wall-coloured pixels take over below and are rare
+    /// above, the best such row within the top third, is the top.
+    static func topByProfile(_ bmp: Bitmap, wallL: Double) -> Line? {
+        let w = bmp.width, h = bmp.height
+        var share = [Double](repeating: 0, count: h)
+        for y in 0..<h {
+            var wall = 0, n = 0
+            for x in stride(from: 0, to: w, by: 3) {
+                n += 1
+                let lab = bmp.lab(at: y * w + x)
+                if abs(lab.l - wallL) < profileReach && (lab.a * lab.a + lab.b * lab.b).squareRoot() < RouteScanner.groundChroma { wall += 1 }
+            }
+            share[y] = Double(wall) / Double(max(n, 1))
+        }
+        func mean(_ a: Int, _ b: Int) -> Double {
+            let lo = max(0, a), hi = min(h - 1, b)
+            guard hi >= lo else { return 0 }
+            return share[lo...hi].reduce(0, +) / Double(hi - lo + 1)
+        }
+        var best: (y: Int, gap: Double)?
+        for y in bandFar..<Int(Double(h) * topTo) {
+            let below = mean(y + bandNear, y + bandFar), above = mean(y - bandFar, y - bandNear)
+            guard below >= wallBelow, above <= notWallAbove else { continue }
+            if best == nil || below - above > best!.gap { best = (y, below - above) }
+        }
+        guard let best else { return nil }
+        return Line(theta: .pi / 2, rho: Double(best.y), support: best.gap, run: 0...Double(w - 1))
+    }
+
+    /// How far from the wall's lightness a pixel may sit and still be
+    /// wall for the profile: the top strip of a wall is in the ceiling's
+    /// shade, and darker than the rest.
+    static let profileReach = 20.0
 
     /// Whether a pixel is the wall's own colour: near the wall's lightness
     /// and without much colour.

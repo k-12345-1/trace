@@ -560,7 +560,7 @@ struct RouteDetailScreen: View {
             let features = await Task.detached(priority: .utility) {
                 HoldShapeEngine.features(of: holds, colour: colour, in: image)
             }.value
-            looksLike = HoldShapeEngine.guess(features, prototypes: p).sentence
+            looksLike = HoldShapeEngine.guess(features, prototypes: p, grade: Grade.parse(live.grade)).sentence
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.light)
@@ -670,32 +670,20 @@ struct RouteDetailScreen: View {
     private var suggestedLine: some View {
         if let line {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .center) {
                     SectionTitle("The line")
                     Spacer()
-                    HStack(spacing: 12) {
-                        Button { withAnimation(.easeInOut(duration: 0.2)) { showBoxes.toggle() } } label: {
-                            Text(showBoxes ? "Hide boxes" : "Show boxes")
-                                .font(Theme.ui(13.5, .semibold))
-                                .foregroundStyle(Theme.accentText)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        Button { withAnimation(.easeInOut(duration: 0.2)) { showNumbers.toggle() } } label: {
-                            Text(showNumbers ? "Hide numbers" : "Show numbers")
-                                .font(Theme.ui(13.5, .semibold))
-                                .foregroundStyle(showLine ? Theme.accentText : Theme.ink3)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!showLine)
-                        Button { withAnimation(.easeInOut(duration: 0.2)) { showLine.toggle() } } label: {
-                            Text(showLine ? "Hide on photo" : "Show on photo")
-                                .font(Theme.ui(13.5, .semibold))
-                                .foregroundStyle(Theme.accentText)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                    // Three switches as glyphs, not three sentences: the
+                    // row of words wrapped onto three lines beside the
+                    // title and read as a wall of text.
+                    HStack(spacing: 8) {
+                        lineToggle("rectangle.dashed", on: showBoxes,
+                                   label: showBoxes ? "Hide boxes" : "Show boxes") { showBoxes.toggle() }
+                        lineToggle("number", on: showNumbers && showLine,
+                                   label: showNumbers ? "Hide numbers" : "Show numbers") { showNumbers.toggle() }
+                            .disabled(!showLine)
+                        lineToggle(showLine ? "eye" : "eye.slash", on: showLine,
+                                   label: showLine ? "Hide on photo" : "Show on photo") { showLine.toggle() }
                     }
                 }
 
@@ -769,6 +757,19 @@ struct RouteDetailScreen: View {
             .padding(.horizontal, Theme.gutter)
             .padding(.top, 20)
         }
+    }
+
+    private func lineToggle(_ symbol: String, on: Bool, label: String, action: @escaping () -> Void) -> some View {
+        Button { withAnimation(.easeInOut(duration: 0.2)) { action() } } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(on ? Theme.accentText : Theme.ink3)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(on ? Theme.accent.opacity(0.1) : Theme.surface2))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     /// No file on disk. A black rectangle reads as a broken screen, so this says
