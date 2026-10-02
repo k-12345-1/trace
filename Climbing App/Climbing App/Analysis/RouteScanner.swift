@@ -186,9 +186,14 @@ enum RouteScanner {
             // inside the rim's hull is the hold: filled, for the dark
             // route only, with whatever neutral pixels lie there.
             if dark, let labels {
-                for i in blobs.indices { fillBay(of: &blobs[i], in: bmp, labels: labels, colored: colored, width: bmp.width) }
+                for i in blobs.indices { fillBay(of: &blobs[i], in: bmp, labels: labels, colored: colored, index: index, width: bmp.width) }
             }
         }
+
+        // A shard of a hold, cut off from the rest by chalk or shade that
+        // nothing adopted, lies inside the hold's box at the same centre
+        // and was drawn twice. It goes back into the hold.
+        blobs = absorbingShards(blobs, width: bmp.width, height: bmp.height)
 
         var found: [Hold] = []
         for var component in blobs {
@@ -860,6 +865,30 @@ enum RouteScanner {
         return out
     }
 
+    /// How near two blobs' centres sit, as a share of the picture, for the
+    /// smaller to be a shard of the larger.
+    static let shardCentre = 0.012
+
+    /// Blobs with any shard folded into the hold it belongs to: a smaller
+    /// blob whose box lies inside a larger one's and whose centre sits on
+    /// the larger one's.
+    private static func absorbingShards(_ blobs: [Component], width: Int, height: Int) -> [Component] {
+        var out = blobs.sorted { $0.count > $1.count }
+        var dropped = Set<Int>()
+        for i in out.indices {
+            for j in out.indices where j > i && !dropped.contains(j) {
+                let a = out[i], b = out[j]
+                guard b.minX >= a.minX, b.maxX <= a.maxX, b.minY >= a.minY, b.maxY <= a.maxY else { continue }
+                let dx = Double((a.minX + a.maxX) - (b.minX + b.maxX)) / 2 / Double(width)
+                let dy = Double((a.minY + a.maxY) - (b.minY + b.maxY)) / 2 / Double(height)
+                guard (dx * dx + dy * dy).squareRoot() < shardCentre else { continue }
+                for p in b.pixels { out[i].add(Int(p) % width, Int(p) / width, index: Int(p)) }
+                dropped.insert(j)
+            }
+        }
+        return out.enumerated().filter { !dropped.contains($0.offset) }.map(\.element)
+    }
+
     /// A rim this far from filling its own hull has a bay worth filling,
     /// and a blob under `bayRim` is not a rim at all: two black holds on
     /// a thread of shade, whose hull is mostly the wall between them.
@@ -870,7 +899,8 @@ enum RouteScanner {
     /// that is neutral and not another coloured route's joins it. A black
     /// hold's lit face is wall grey, and read as a rim it had its middle
     /// missing.
-    private static func fillBay(of c: inout Component, in bmp: Bitmap, labels: [Int8], colored: [Bool], width: Int) {
+    private static func fillBay(of c: inout Component, in bmp: Bitmap, labels: [Int8], colored: [Bool],
+                                index: Int, width: Int) {
         let fill = c.hullFill(width: width)
         guard fill < bayFill, fill >= bayRim else { return }
         let hull = RouteScanner.hull(c.boundary(width: width))
@@ -889,6 +919,9 @@ enum RouteScanner {
                 guard inside else { continue }
                 let j = Int(labels[i])
                 if j >= 0, colored.indices.contains(j), colored[j] { continue }
+                // Another blob of this route, sitting in the bay, stays
+                // its own hold rather than being drawn twice.
+                if j == index { continue }
                 let lab = bmp.lab(at: i)
                 if (lab.a * lab.a + lab.b * lab.b).squareRoot() < paleChroma { taken.append(i) }
             }

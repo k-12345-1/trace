@@ -73,7 +73,7 @@ enum FocusEngine {
         case .lurchy:        return "Smoothness of your center of mass. Lower is more continuous."
         case .hesitation:    return "Share of each climb spent not moving. Lower means more reading from the ground."
         case .impreciseFeet: return "Foot placements you had to correct, per climb. Lower is more precise."
-        case .weightOnArms:  return "How far your center of mass sits sideways of your feet while resting, in torso lengths. Lower means your legs are carrying you."
+        case .weightOnArms:  return "How far your hips sit sideways of your feet while you are still, in hip widths. Lower means your legs are carrying you."
         case .unopposed:     return "Seconds per climb spent hanging outside your hands and feet rather than between them. Lower means more of your weight had something to pull against."
         case .mistimedDynamics: return "How far your hand lands from the top of your arc on dynamic moves. Lower is better timed."
         case .overReaching:  return "Share of upward reaches made with both feet still. Lower means the feet moved first."

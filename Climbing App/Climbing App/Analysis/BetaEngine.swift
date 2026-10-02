@@ -258,6 +258,10 @@ enum BetaEngine {
     /// How far the hips may sit off the feet, in spans, before it costs.
     static let hipsLean = 0.12
     static let matchCost = 0.15
+    /// A hold this many times the width of the route's middle hand hold
+    /// takes two hands: matching on it costs nothing, and a climber on a
+    /// jug matches before the long reach rather than crossing through.
+    static let jugWidth = 1.5
     static let footMoveCost = 0.3
     static let footReachCost = 0.3
     /// The most positions the search will look at before giving up and
@@ -284,6 +288,10 @@ enum BetaEngine {
         let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         let handIndex = line.hands.compactMap { line.holds.firstIndex(of: $0) }
         let isHandHold = Set(handIndex)
+        // The holds wide enough for both hands.
+        let widths = handIndex.map { Double(line.holds[$0].width) }.sorted()
+        let middleWidth = widths.isEmpty ? 0 : widths[widths.count / 2]
+        let isJug = line.holds.map { Double($0.width) >= middleWidth * jugWidth }
         let n = all.count
         guard handIndex.count >= 2 else { return nil }
         let arm = shape.arm * span, leg = shape.leg * span
@@ -405,7 +413,7 @@ enum BetaEngine {
                     let run = st.last == mover ? st.run + 1 : 0
                     if run > 0 { c += sameHandCost * Double(run * run) }
                     if all[next.leftHand].x > all[next.rightHand].x + 0.02 { c += crossCost }
-                    if j == staying { c += matchCost }
+                    if j == staying { c += isJug[j] ? 0 : matchCost }
                     c += costOfStanding(next)
                     let ns = State(p: next, last: mover, run: min(run, 3))
                     let nd = d + c

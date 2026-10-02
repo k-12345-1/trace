@@ -11,7 +11,7 @@ private final class WallToken {}
 struct RouteDescriptionTests {
     private func routes() throws -> [(String, String, LineEngine.Line, BetaEngine.Sequence)] {
         var out: [(String, String, LineEngine.Line, BetaEngine.Sequence)] = []
-        for name in ["gymwall", "wall2", "wall3", "wall4", "wall5"] {
+        for name in ["gymwall", "wall2", "wall3", "wall4", "wall5", "wall6"] {
             let url = try #require(Bundle(for: WallToken.self).url(forResource: name, withExtension: "jpg"))
             let image = try #require(UIImage(data: Data(contentsOf: url))?.upright.cgImage)
             for s in RouteScanner.palette(in: image) {

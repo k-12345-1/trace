@@ -44,12 +44,18 @@ enum FindingEngine {
                                    : m.staticElbowAngle < 130 ? .costly
                                    : m.staticElbowAngle < 145 ? .moderate : .minor
             let worst = worstStaticElbowWindow(frames: frames) ?? whole
+            // Where and for how long, the way a coach says it: the angle,
+            // then the longest stretch and its length.
+            let held = worst.end - worst.start
+            let stretch = held >= 0.4
+                ? String(format: " The longest stretch was %.1f seconds, at %@.", held, timecode(worst.start))
+                : ""
             out.append(Finding(
                 kind: .bentArms,
                 severity: severity,
                 start: worst.start,
                 end: worst.end,
-                message: "Your arms sat at about \(Int(m.staticElbowAngle.rounded())) degrees while you were not moving."
+                message: "Your arms sat at about \(Int(m.staticElbowAngle.rounded())) degrees while you were still.\(stretch)"
             ))
         }
 
@@ -64,16 +70,18 @@ enum FindingEngine {
             let severity: Severity = m.comOffsetFromFeet > 1.91 ? .dominant
                                    : m.comOffsetFromFeet > 1.49 ? .costly
                                    : m.comOffsetFromFeet > 1.06 ? .moderate : .minor
-            let percent = Int((m.comOffsetFromFeet * 100).rounded())
             let w = worstOffsetWindow(frames: frames) ?? whole
-            // "Resting" was wrong: the measurement is taken over every frame
-            // where the center of mass was barely moving, which on a climb with
-            // no pauses in it is not a rest at all.
+            // In the words a coach uses: which side the hips hung out, and
+            // about how far in hip widths, not a percentage of one.
+            let amount = m.comOffsetFromFeet > 1.91 ? "almost two hip widths"
+                       : m.comOffsetFromFeet > 1.49 ? "about a hip and a half"
+                       : m.comOffsetFromFeet > 1.06 ? "about a hip width" : "most of a hip width"
+            let side = offsetSide(frames: frames, in: w)
             out.append(Finding(
                 kind: .weightOnArms,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "Resting, your weight sat about \(percent) percent of a hip width outside your feet."
+                message: "While you were still, your hips hung \(amount)\(side) of your feet instead of over them."
             ))
         }
 
@@ -119,7 +127,7 @@ enum FindingEngine {
                 kind: .wandering,
                 severity: severity,
                 start: w.start, end: w.end,
-                message: "\(share) percent of your hips' travel was not toward the next position."
+                message: "Between moves your hips drifted: about \(share) percent of the distance they covered was sideways or back, not toward the next hold."
             ))
         }
 
@@ -353,6 +361,27 @@ enum FindingEngine {
             // A bent arm should score high, so the angle is inverted.
             return 180 - angles.reduce(0, +) / Double(angles.count)
         }
+    }
+
+    /// A clip time as the scrubber shows it.
+    static func timecode(_ t: Double) -> String {
+        let m = Int(t) / 60, s = Int(t) % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    /// Which side of the feet the centre of mass sat in a window, as seen
+    /// in the clip: " to the left" or " to the right", or nothing when it
+    /// was not clearly one side.
+    static func offsetSide(frames: [PoseFrame], in w: Window) -> String {
+        var sum = 0.0, n = 0.0
+        for f in frames where f.time >= w.start && f.time <= w.end {
+            guard let com = f.com, let base = MetricsEngine.baseOfSupport(f) else { continue }
+            sum += Double(com.x) - base; n += 1
+        }
+        guard n > 0 else { return "" }
+        let mean = sum / n
+        if abs(mean) < 0.005 { return "" }
+        return mean < 0 ? " to the left" : " to the right"
     }
 
     /// Where the center of mass hung furthest out from over the feet.
