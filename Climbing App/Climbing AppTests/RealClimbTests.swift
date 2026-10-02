@@ -149,6 +149,23 @@ struct RealClimbTests {
         #expect(m.pauseTotal / m.duration < 0.05, "\(m.pauseTotal)s of \(m.duration)s")
     }
 
+    /// Every finding on the clip points at a stretch of the climb, after
+    /// the climber has left the mat, and not at the whole clip from 0:00.
+    @Test("Findings point at the climb, not at 0:00")
+    func findingsPointAtTheClimb() throws {
+        let clip = try frames()
+        let m = MetricsEngine.compute(frames: clip)
+        let ascent = MetricsEngine.ascent(clip)
+        let begins = try #require(ascent.first?.time)
+        #expect(begins > 2, "the climber stands on the mat first")
+        let findings = FindingEngine.findings(from: m, frames: ascent, priorJerk: [])
+        #expect(findings.count >= 2)
+        for f in findings {
+            #expect(f.start >= begins - 0.01, "\(f.kind) starts at \(f.start)")
+            #expect(f.end - f.start < m.duration - 1, "\(f.kind) covers the whole climb")
+        }
+    }
+
     // MARK: The whole pipeline
 
     @Test("The clip grades, and names what it graded")

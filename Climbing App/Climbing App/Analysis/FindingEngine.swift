@@ -32,7 +32,11 @@ enum FindingEngine {
                          priorJerk: [Double] = []) -> [Finding] {
         guard m.isTrustworthy else { return [] }
         var out: [Finding] = []
-        let whole = (start: 0.0, end: m.duration)
+        // The whole ascent, as a last resort: from where it starts, not
+        // from 0:00, which on the real clip is four seconds of standing on
+        // the mat, and was the first thing a climber complained about.
+        let begins = frames.first?.time ?? 0
+        let whole = (start: begins, end: begins + m.duration)
 
         // Bent arms while static. The most expensive common leak.
         if m.staticElbowAngle < 155 {
@@ -325,13 +329,19 @@ enum FindingEngine {
     /// pause in it still has a worst moment, and the old version returned
     /// nothing at all for one: which is how every finding ended up at 0:00.
     static func worstStaticElbowWindow(frames: [PoseFrame]) -> Window? {
-        let times = frames.map { $0.time }
-        let speeds = MetricsEngine.speedSeries(path: frames.compactMap { $0.com }, times: times)
-        guard speeds.count == frames.count else { return nil }
+        // Over the frames that have a centre of mass. Built over all of
+        // them, the speed series came up short whenever one frame lacked
+        // a body, and the window was given up on: the real clip's bent
+        // arms were then pinned to the whole climb from 0:00.
+        let usable = frames.filter { $0.com != nil }
+        let times = usable.map { $0.time }
+        let speeds = MetricsEngine.speedSeries(path: usable.compactMap { $0.com }, times: times)
+        guard speeds.count == usable.count else { return nil }
+        var speedAt: [Double: Double] = [:]
+        for (i, f) in usable.enumerated() { speedAt[f.time] = speeds[i] }
 
-        return bestWindow(frames: frames) { f in
-            guard let i = frames.firstIndex(where: { $0.time == f.time }),
-                  i < speeds.count, speeds[i] < 0.035 else { return nil }
+        return bestWindow(frames: usable) { f in
+            guard let speed = speedAt[f.time], speed < 0.035 else { return nil }
             var angles: [Double] = []
             for side in [(JointID.leftShoulder, JointID.leftElbow, JointID.leftWrist),
                          (JointID.rightShoulder, JointID.rightElbow, JointID.rightWrist)] {
