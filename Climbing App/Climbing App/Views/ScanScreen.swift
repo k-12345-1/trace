@@ -222,7 +222,7 @@ struct ScanScreen: View {
                         }
                         .onEnded { _ in panAtStart = pan })
             )
-            .overlay { if reading { ScanSweep() } }
+            .overlay(alignment: .bottom) { if reading { ScanProgress(progress: progress) } }
             .overlay(alignment: .bottomTrailing) {
                 if zoom > 1.01 {
                     Button {
@@ -489,15 +489,23 @@ struct ScanScreen: View {
     /// Opening straight onto the strongest route is the difference between a
     /// screen that has done something and a screen waiting to be told what to
     /// do. It is one tap to any of the others.
+    /// How far the read has got, for the bar over the picture: the colours
+    /// are most of the work, then the stickers, then the panels.
+    @State private var progress = 0.0
+
     private func readTheWall(_ cg: CGImage) {
         reading = true
+        progress = 0.04
+        withAnimation(.easeOut(duration: 2.2)) { progress = 0.55 }
         Task.detached {
             // A climber standing in the shot is not a route.
             let people = Bitmap(cg, targetWidth: RouteScanner.paletteWidth).flatMap {
                 PeopleEngine.mask(in: cg, width: $0.width, height: $0.height)
             }
             let read = RouteScanner.palette(in: cg, excluding: people)
+            await MainActor.run { withAnimation(.easeOut(duration: 0.4)) { progress = 0.72 } }
             let writing = await RouteScanner.readTags(in: cg)
+            await MainActor.run { withAnimation(.easeOut(duration: 0.4)) { progress = 0.88 } }
             // Writing on a hold means it is not a hold.
             var found = RouteScanner.withoutStickers(read, text: writing.text)
             // The panels, so a route stays on its own; and the mat and the
@@ -507,6 +515,7 @@ struct ScanScreen: View {
             let size = (width: bmp?.width ?? 1, height: bmp?.height ?? 1)
             found = RouteScanner.onTheWall(found, reading: faces, width: size.width, height: size.height)
             await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) { progress = 1 }
                 swatches = found
                 tags = writing.tags
                 seams = faces.seams
@@ -610,29 +619,32 @@ struct ScanScreen: View {
 //
 // The video capture path is built for climbs. Scanning wants one photograph.
 
-/// A line that runs across the photograph while the wall is being read.
-/// The reading takes a second or two, and a still picture with a label
-/// under it looked stuck; a sweep says the picture is being looked at.
-struct ScanSweep: View {
-    @State private var x: CGFloat = 0
+/// A bar along the foot of the photograph while the wall is being read,
+/// filling as the read goes: the colours, then the stickers, then the
+/// panels. A still picture with a label under it looked stuck.
+struct ScanProgress: View {
+    let progress: Double
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Color.black.opacity(0.12)
-                Rectangle()
-                    .fill(LinearGradient(colors: [Theme.chalk.opacity(0), Theme.chalk.opacity(0.9), Theme.chalk.opacity(0)],
-                                         startPoint: .leading, endPoint: .trailing))
-                    .frame(width: 26)
-                    .overlay(Rectangle().fill(Theme.chalk).frame(width: 2))
-                    .shadow(color: Theme.chalk.opacity(0.8), radius: 6)
-                    .offset(x: x * geo.size.width - 13)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Analyzing routes")
+                .font(Theme.mono(11, weight: .medium))
+                .tracking(1.2)
+                .foregroundStyle(.white)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.3))
+                    Capsule().fill(Theme.chalk)
+                        .frame(width: max(6, geo.size.width * min(1, max(0, progress))))
+                }
             }
-            .onAppear {
-                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) { x = 1 }
-            }
+            .frame(height: 4)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(LinearGradient(colors: [Color.black.opacity(0), Color.black.opacity(0.45)],
+                                   startPoint: .top, endPoint: .bottom))
         .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        .accessibilityLabel("Analyzing routes")
     }
 }

@@ -180,6 +180,14 @@ enum RouteScanner {
             blobs = components(mask: &union, width: bmp.width, height: bmp.height,
                                minPixels: max(minPixels, 8), maxPixels: maxPixels * 2,
                                outlines: true)
+            // A black hold's lit face is the grey of the wall, so what the
+            // colour read is a dark rim open on one side, and the trace
+            // ran into the bay and drew a loop inside the hold. The bay
+            // inside the rim's hull is the hold: filled, for the dark
+            // route only, with whatever neutral pixels lie there.
+            if dark, let labels {
+                for i in blobs.indices { fillBay(of: &blobs[i], in: bmp, labels: labels, colored: colored, width: bmp.width) }
+            }
         }
 
         var found: [Hold] = []
@@ -221,8 +229,10 @@ enum RouteScanner {
                clearance(of: component, in: bmp, wall: wallApart(from: colors[index], wall),
                          labels: labels, index: index) < holdClearance { continue }
             if dark {
-                // A dark blob bigger than any black hold is a panel.
-                guard Double(component.count) / total <= darkSheet else { continue }
+                // A dark blob bigger than any black hold is a panel: by its
+                // own dark pixels, not the chalk and the bay it took in.
+                let own = labels.map { l in component.pixels.reduce(0) { $0 + (l[Int($1)] == Int8(index) ? 1 : 0) } } ?? component.count
+                guard Double(own) / total <= darkSheet else { continue }
                 // And a dark blob with a coloured hold sitting on top of it
                 // is that hold's shadow: light comes from above. A shadow
                 // is a thin crescent; a black volume under a blue hold is a
@@ -848,6 +858,38 @@ enum RouteScanner {
             }
         }
         return out
+    }
+
+    /// A rim this far from filling its own hull has a bay worth filling.
+    static let bayFill = 0.85
+
+    /// Fill the bays of a dark blob: every pixel inside its convex hull
+    /// that is neutral and not another coloured route's joins it. A black
+    /// hold's lit face is wall grey, and read as a rim it had its middle
+    /// missing.
+    private static func fillBay(of c: inout Component, in bmp: Bitmap, labels: [Int8], colored: [Bool], width: Int) {
+        guard c.hullFill(width: width) < bayFill else { return }
+        let hull = RouteScanner.hull(c.boundary(width: width))
+        guard hull.count >= 3 else { return }
+        let mine = Set<Int32>(c.pixels)
+        var taken: [Int] = []
+        for y in c.minY...c.maxY {
+            for x in c.minX...c.maxX {
+                let i = y * width + x
+                if mine.contains(Int32(i)) || bmp.isExcluded(i) { continue }
+                var inside = true
+                for k in hull.indices {
+                    let p = hull[k], q = hull[(k + 1) % hull.count]
+                    if (q.0 - p.0) * (y - p.1) - (q.1 - p.1) * (x - p.0) < 0 { inside = false; break }
+                }
+                guard inside else { continue }
+                let j = Int(labels[i])
+                if j >= 0, colored.indices.contains(j), colored[j] { continue }
+                let lab = bmp.lab(at: i)
+                if (lab.a * lab.a + lab.b * lab.b).squareRoot() < paleChroma { taken.append(i) }
+            }
+        }
+        for i in taken { c.add(i % width, i / width, index: i) }
     }
 
     /// White pixels, the colour chalk comes in.

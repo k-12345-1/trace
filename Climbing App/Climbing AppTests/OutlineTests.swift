@@ -320,3 +320,29 @@ struct TapTests {
         #expect(h.rect.width > 28.0 / 240 && h.rect.height > 18.0 / 240, "\(h.rect)")
     }
 }
+
+/// A black hold whose lit face is wall grey is still one hold.
+@Suite("Black holds with a grey face")
+struct BlackBayTests {
+    @Test func theBayInsideTheRimIsTheHold() throws {
+        let f = UIGraphicsImageRendererFormat(); f.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240), format: f).image { ctx in
+            UIColor(white: 0.55, alpha: 1).setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
+            let c = ctx.cgContext
+            // A dark rim, open at the top right, round a wall-grey face.
+            c.setFillColor(UIColor(white: 0.08, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 90, y: 90, width: 40, height: 30))
+            c.setFillColor(UIColor(white: 0.55, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 100, y: 96, width: 26, height: 18))
+            c.fill(CGRect(x: 112, y: 88, width: 16, height: 10))
+        }.cgImage!
+        let bmp = try #require(Bitmap(image, targetWidth: 240))
+        let black = Lab(r: 20, g: 20, b: 20)
+        var labels = RouteScanner.segment(bmp, colors: [black], tolerance: 30, ground: RouteScanner.groundColors(in: bmp))
+        let holds = RouteScanner.holds(in: bmp, labels: &labels, index: 0, colors: [black])
+        let h = try #require(holds.first)
+        #expect(holds.count == 1)
+        // Filled, the hold covers most of its box rather than a rim's share.
+        #expect(h.area * 240 * 240 > 40 * 30 * 0.6, "\(h.area * 240 * 240)")
+    }
+}
