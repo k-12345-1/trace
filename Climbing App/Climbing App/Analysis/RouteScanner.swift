@@ -860,15 +860,19 @@ enum RouteScanner {
         return out
     }
 
-    /// A rim this far from filling its own hull has a bay worth filling.
+    /// A rim this far from filling its own hull has a bay worth filling,
+    /// and a blob under `bayRim` is not a rim at all: two black holds on
+    /// a thread of shade, whose hull is mostly the wall between them.
     static let bayFill = 0.85
+    static let bayRim = 0.4
 
     /// Fill the bays of a dark blob: every pixel inside its convex hull
     /// that is neutral and not another coloured route's joins it. A black
     /// hold's lit face is wall grey, and read as a rim it had its middle
     /// missing.
     private static func fillBay(of c: inout Component, in bmp: Bitmap, labels: [Int8], colored: [Bool], width: Int) {
-        guard c.hullFill(width: width) < bayFill else { return }
+        let fill = c.hullFill(width: width)
+        guard fill < bayFill, fill >= bayRim else { return }
         let hull = RouteScanner.hull(c.boundary(width: width))
         guard hull.count >= 3 else { return }
         let mine = Set<Int32>(c.pixels)
@@ -889,6 +893,8 @@ enum RouteScanner {
                 if (lab.a * lab.a + lab.b * lab.b).squareRoot() < paleChroma { taken.append(i) }
             }
         }
+        // A bay bigger than its rim is the wall between two holds.
+        guard taken.count <= c.count else { return }
         for i in taken { c.add(i % width, i / width, index: i) }
     }
 
