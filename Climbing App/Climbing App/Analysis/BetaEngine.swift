@@ -174,9 +174,11 @@ enum BetaEngine {
 
     /// Consecutive hand holds on a gym boulder, as a fraction of a span.
     static let spansPerGap = 2.6
-    /// A foot will not go higher than this above the hips, in spans. Hip
-    /// height is a high step, and the coaches say not to.
-    static let highestFoot = -0.05
+    /// A foot will not come closer than this to hip height, in spans
+    /// below the hips. On three real climbs, nine stances in ten kept
+    /// every foot at least a quarter of a torso below the hips, and none
+    /// put one above them.
+    static let highestFoot = 0.08
     /// A leg can take a hold a little past its straight length, because the
     /// hips come across to meet it: a rock-over.
     static let legStretch = 1.25
@@ -186,14 +188,43 @@ enum BetaEngine {
     static let hipsTowardFeet = 0.45
     /// Standing on planted feet, the hips sit between these shares of a
     /// leg above the lower foot: legs nearly straight, and a deep crouch.
-    static let legsStraight = 0.92
+    /// Real climbers at rest hold a knee at about a hundred and fifty
+    /// degrees, which is a leg at 0.96 of its length.
+    static let legsStraight = 0.96
     static let legsCrouched = 0.45
-    /// How far above the hands the shoulders may sit when standing with
-    /// the hands held low, as a share of an arm: hands at the waist.
-    static let standingLift = 0.5
+    /// How far above the top hand the shoulders may sit when standing
+    /// with the hands held low, as a share of an arm: the hand at the
+    /// collarbone. On the real climbs the top hand sat at most half a
+    /// torso below the shoulders, and a hand at the chest is where a
+    /// climber stands up to before reaching on.
+    static let standingLift = 0.15
+
+    /// The highest the hips can stand with these hands: the shoulders no
+    /// more than `standingLift` above the top hand, and never more than an
+    /// arm above the lower one, whose arm hangs to it.
+    static func highestHips(leftHand: CGPoint, rightHand: CGPoint, arm: Double, torso: Double) -> Double {
+        let top = min(leftHand.y, rightHand.y), lower = max(leftHand.y, rightHand.y)
+        return max(top - arm * standingLift, lower - arm * 0.95) + torso
+    }
+    /// The torso leans from the hips toward the hands: the shoulders
+    /// follow the hips toward the feet by this share of the hips' shift.
+    static let shouldersFollow = 0.5
+    /// How far a drawn elbow or knee may fold, as the tightest angle it
+    /// shows. A hand near its shoulder is an arm reaching forward to the
+    /// wall, which from in front is a short arm, not a folded one: on the
+    /// real footage an elbow at rest sat past a hundred degrees and a
+    /// knee past ninety, and mid-move the elbow closed to about sixty.
+    /// Past these the bones are drawn short. The elbow is given the
+    /// mid-move figure, because at a hundred the arm vanished whenever a
+    /// hand sat at the shoulder.
+    static let tightestElbow = 70.0
+    static let tightestKnee = 90.0
     /// Where a smeared foot goes when there is no hold for it.
     static let smearDrop = 0.44
     static let smearOut = 0.10
+    /// How far above the mat a smearing foot stays, as a share of the
+    /// picture's height.
+    static let matClearance = 0.02
 
     // MARK: Reading
 
@@ -209,7 +240,10 @@ enum BetaEngine {
 
     /// - Parameter wallHeight: how much of the picture the wall takes, top
     ///   to mat, normalised. Nil when unknown, and the gaps alone decide.
-    static func read(line: LineEngine.Line, shape: Shape, wallHeight: Double? = nil) -> Sequence? {
+    /// - Parameter mat: where the mat meets the wall, as a share of the
+    ///   picture's height, when the wall was read. A foot never goes below
+    ///   it: the feet start on the wall, not on the mat.
+    static func read(line: LineEngine.Line, shape: Shape, wallHeight: Double? = nil, mat: Double? = nil) -> Sequence? {
         let hands = line.hands.map { CGPoint(x: $0.midX, y: $0.midY) }
         let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         guard hands.count >= 2 else { return nil }
@@ -222,7 +256,7 @@ enum BetaEngine {
             span = min(max(span, wallHeight * spanOverWall.lowerBound), wallHeight * spanOverWall.upperBound)
         }
 
-        let plan = self.plan(line: line, span: span, shape: shape)
+        let plan = self.plan(line: line, span: span, shape: shape, mat: mat)
         var stances: [Pose] = []
         if let plan {
             for p in plan.states {
@@ -235,7 +269,7 @@ enum BetaEngine {
                 let lf = p.leftFoot >= 0 ? all[p.leftFoot] : nil
                 let rf = p.rightFoot >= 0 ? all[p.rightFoot] : nil
                 stances.append(stance(leftHand: a.x <= b.x ? a : b, rightHand: a.x <= b.x ? b : a,
-                                      feetFrom: feetFrom, span: span, shape: shape, feet: (lf, rf)))
+                                      feetFrom: feetFrom, span: span, shape: shape, feet: (lf, rf), mat: mat))
             }
         } else {
             // No plan: one hand at a time up the hand holds, feet by geometry.
@@ -251,7 +285,7 @@ enum BetaEngine {
                                      center: bCenter, toward: midpoint, line: line)
                 let (l, r) = a.x <= b.x ? (a, b) : (b, a)
                 let feetFrom = all.filter { $0 != aCenter && $0 != bCenter }
-                stances.append(stance(leftHand: l, rightHand: r, feetFrom: feetFrom, span: span, shape: shape))
+                stances.append(stance(leftHand: l, rightHand: r, feetFrom: feetFrom, span: span, shape: shape, mat: mat))
             }
         }
         return Sequence(stances: stances, plan: plan, span: span, shape: shape)
@@ -289,8 +323,17 @@ enum BetaEngine {
     /// A smeared foot costs this per stance. On a ladder every hand move
     /// needs a foot move, which is how people climb, and at a quarter a
     /// smear tied with the foot move and won: every plan smeared.
-    static let smearCost = 0.5
+    /// Raised again from a half once the figure was measured against real
+    /// footage: half the planned stances had a foot off the holds, and the
+    /// climbers on film almost never did.
+    static let smearCost = 1.0
     static let hipsOffCost = 1.2
+    /// Hanging below the top hand further than a climber stands costs
+    /// this per torso of extra drop. On three real climbs the hips sat a
+    /// torso under the top hand, and past a torso and a half only when
+    /// mid-move; the planner used to leave the feet low and dangle.
+    static let hangCost = 0.8
+    static let standingDrop = 1.5
     /// How far the hips may sit off the feet, in spans, before it costs.
     static let hipsLean = 0.12
     static let matchCost = 0.15
@@ -298,7 +341,7 @@ enum BetaEngine {
     /// takes two hands: matching on it costs nothing, and a climber on a
     /// jug matches before the long reach rather than crossing through.
     static let jugWidth = 1.5
-    static let footMoveCost = 0.3
+    static let footMoveCost = 0.2
     static let footReachCost = 0.3
     /// The most positions the search will look at before giving up and
     /// leaving the feet to geometry.
@@ -320,7 +363,7 @@ enum BetaEngine {
     /// to any hold below the hips within a leg's stretch that no other limb
     /// is on, or come off to smear. The finish is both hands on the finish
     /// holds, or matched on the top hold when none were marked.
-    static func plan(line: LineEngine.Line, span: Double, shape: Shape) -> Plan? {
+    static func plan(line: LineEngine.Line, span: Double, shape: Shape, mat: Double? = nil) -> Plan? {
         let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         let handIndex = line.hands.compactMap { line.holds.firstIndex(of: $0) }
         let isHandHold = Set(handIndex)
@@ -374,7 +417,8 @@ enum BetaEngine {
             let feetFrom = all.filter { $0 != a && $0 != b }
             let q = stance(leftHand: a.x <= b.x ? a : b, rightHand: a.x <= b.x ? b : a, feetFrom: feetFrom,
                            span: span, shape: shape,
-                           feet: (p.leftFoot >= 0 ? all[p.leftFoot] : nil, p.rightFoot >= 0 ? all[p.rightFoot] : nil))
+                           feet: (p.leftFoot >= 0 ? all[p.leftFoot] : nil, p.rightFoot >= 0 ? all[p.rightFoot] : nil),
+                           mat: mat)
             poses[p] = q
             return q
         }
@@ -388,15 +432,29 @@ enum BetaEngine {
             // Hips off the feet, past the bit of lean a body stands with
             // for free. Without the dead zone standing on one foot cost
             // more than smearing both, and every plan smeared.
-            let feetX = (q.leftFoot.x + q.rightFoot.x) / 2
-            c += hipsOffCost * max(0, min(1, abs(q.hips.x - feetX) / span) - hipsLean)
+            //
+            // Judged against the feet that are on holds. A smeared foot is
+            // drawn under the hips, so counting it made every smearing
+            // stance look balanced and a planted foot off to one side look
+            // worse than lifting it: on the real walls the search chose
+            // three smears for every one it was forced into.
+            let planted = [(p.leftFoot, q.leftFoot), (p.rightFoot, q.rightFoot)].filter { $0.0 >= 0 }.map { $0.1.x }
+            if !planted.isEmpty {
+                let feetX = planted.reduce(0, +) / Double(planted.count)
+                c += hipsOffCost * max(0, min(1, abs(q.hips.x - feetX) / span) - hipsLean)
+            }
+            // Dangling: the hips further below the top hand than standing
+            // puts them, which is feet left behind.
+            let torso = shape.torso * span
+            let dangle = (q.hips.y - min(q.leftHand.y, q.rightHand.y)) / torso - standingDrop
+            c += hangCost * max(0, dangle)
             return c
         }
 
         // The feet at the start: where geometry would put them.
         let first = Position(leftHand: startL, rightHand: startR, leftFoot: -1, rightFoot: -1)
         let firstPose = stance(leftHand: all[startL], rightHand: all[startR],
-                               feetFrom: all.filter { $0 != all[startL] && $0 != all[startR] }, span: span, shape: shape)
+                               feetFrom: all.filter { $0 != all[startL] && $0 != all[startR] }, span: span, shape: shape, mat: mat)
         func index(of point: CGPoint) -> Int { all.firstIndex { distance($0, point) < 1e-6 } ?? -1 }
         var origin = first
         if firstPose.leftFootHold != nil { origin.leftFoot = index(of: firstPose.leftFoot) }
@@ -440,8 +498,8 @@ enum BetaEngine {
                     // the foot has to move first: that is what makes the
                     // feet deliberate.
                     let after = pose(next)
-                    let nextMid = (all[next.leftHand].y + all[next.rightHand].y) / 2
-                    let nextHighest = nextMid - arm * standingLift + shape.torso * span
+                    let nextHighest = highestHips(leftHand: all[next.leftHand], rightHand: all[next.rightHand],
+                                                  arm: arm, torso: shape.torso * span)
                     var feetHold = true
                     for f in [next.leftFoot, next.rightFoot] where f >= 0 {
                         if !footReachable(all[f], hips: after.hips, highestHips: nextHighest, span: span, leg: leg) {
@@ -473,8 +531,8 @@ enum BetaEngine {
             for mover in 2...3 {
                 let current = mover == 2 ? st.p.leftFoot : st.p.rightFoot
                 var targets: [Int] = [-1]
-                let handsMid = (all[st.p.leftHand].y + all[st.p.rightHand].y) / 2
-                let highestHips = handsMid - arm * standingLift + shape.torso * span
+                let highestHips = highestHips(leftHand: all[st.p.leftHand], rightHand: all[st.p.rightHand],
+                                              arm: arm, torso: shape.torso * span)
                 let reachable = (0..<n).filter { j in
                     j != current && !occupied.contains(j)
                         && footReachable(all[j], hips: here.hips, highestHips: highestHips, span: span, leg: leg)
@@ -583,7 +641,7 @@ enum BetaEngine {
     ///   Nil on a side is a smear. Without it the feet are chosen here.
     static func stance(leftHand: CGPoint, rightHand: CGPoint, feetFrom: [CGPoint],
                        span: Double, shape: Shape = .average,
-                       feet: (left: CGPoint?, right: CGPoint?)? = nil) -> Pose {
+                       feet: (left: CGPoint?, right: CGPoint?)? = nil, mat: Double? = nil) -> Pose {
         let arm = shape.arm * span
         let mid = CGPoint(x: (leftHand.x + rightHand.x) / 2, y: (leftHand.y + rightHand.y) / 2)
         let handGap = distance(leftHand, rightHand)
@@ -608,10 +666,10 @@ enum BetaEngine {
         var neck = CGPoint(x: mid.x, y: mid.y + drop)
         var hips = CGPoint(x: mid.x, y: neck.y + shape.torso * span)
         // The highest the hips can go: standing on the feet with the hands
-        // held at the waist, the shoulders half an arm above the hands. A
-        // foot hold is reachable if it lies below that and within a leg of
-        // wherever the hips end up.
-        let highestHips = mid.y - arm * standingLift + shape.torso * span
+        // held low. A foot hold is reachable if it lies below that and
+        // within a leg of wherever the hips end up.
+        let highestHips = Self.highestHips(leftHand: leftHand, rightHand: rightHand,
+                                           arm: arm, torso: shape.torso * span)
 
         // Feet first, because the feet decide where the hips go. The highest
         // holds below the hips a leg can reach, one each side where possible,
@@ -644,12 +702,17 @@ enum BetaEngine {
         // Standing. Hanging straight-armed put the hips a torso under the
         // shoulders whatever the feet were doing, so a climber with both
         // hands on a waist-high start jug hung below it with the legs flat
-        // on the mat. With feet planted the hips sit above the lower foot,
-        // between straight legs and a deep crouch, as low as the hanging
-        // posture asks and no lower; the arms then angle to the hands,
-        // above the shoulders or below them. Only when no stance on the
-        // feet brings a hand within reach does the body hang from the
-        // hands as before.
+        // on the mat. With feet planted the hips stand as tall as the legs
+        // and the arms both allow; the arms then angle to the hands, above
+        // the shoulders or below them. Only when no stance on the feet
+        // brings a hand within reach does the body hang from the hands.
+        //
+        // Tall, not low. This used to take the lowest point the legs and
+        // arms both allowed, and measured against three real climbs the
+        // figure was a sitting hang: hips nearly two torsos under the top
+        // hand, knees at ninety degrees, feet under the hips. The climbers
+        // stood with their hips a torso under the top hand, knees near a
+        // hundred and fifty degrees and their feet a leg below them.
         if let lowFoot = onHolds.map(\.y).max(), let highFoot = onHolds.map(\.y).min() {
             let torso = shape.torso * span
             // What the legs allow: no higher than a straight leg from the
@@ -666,7 +729,7 @@ enum BetaEngine {
             let legsHigh = lowFoot - leg * legsStraight, legsLow = highFoot - leg * legsCrouched
             let armsHigh = highestHips, armsLow = hips.y
             let high = max(legsHigh, armsHigh), low = min(legsLow, armsLow)
-            var target = high <= low ? low : (legsLow < armsHigh ? armsHigh : armsLow)
+            var target = high <= low ? high : (legsLow < armsHigh ? armsHigh : armsLow)
             // And never with a foot more than a high step above the hips:
             // the hips come up over it, the hands lower on the body.
             target = min(target, highFoot - highestFoot * span)
@@ -680,8 +743,28 @@ enum BetaEngine {
                            distance(rightHand, CGPoint(x: neck.x + half, y: neck.y)))
             let limit = max(0, arm - used)
             dx = min(max(dx, -limit), limit)
-            neck.x += dx; hips.x += dx
+            // The hips go over the feet; the shoulders follow only part of
+            // the way, so the torso leans from the feet toward the hands,
+            // as a climber's does.
+            neck.x += dx * shouldersFollow; hips.x += dx
         }
+        // A smear is on the wall, not the mat: no lower than the route's
+        // lowest hold, a little past it. At the start the smearing leg
+        // used to reach down off the bottom of the photograph. And never
+        // on the mat itself, where the mat was read: the feet start on
+        // the wall whatever the hands are on.
+        var lowestY: Double = max(leftHand.y, rightHand.y)
+        for h in feetFrom where h.y > lowestY { lowestY = h.y }
+        let floorY: Double = min(lowestY + 0.03, mat.map { $0 - matClearance } ?? 1)
+        let leastSmear = smearDrop * span * 0.35
+        // Hips pinched against the mat by a smear rise with the foot, so
+        // the foot stays a short leg below them: a crouch, not a foot
+        // beside the hips.
+        if leftPick == nil || rightPick == nil, hips.y + leastSmear > floorY {
+            let lift = hips.y + leastSmear - floorY
+            hips.y -= lift; neck.y -= lift
+        }
+
         let ls = CGPoint(x: neck.x - half, y: neck.y)
         let rs = CGPoint(x: neck.x + half, y: neck.y)
         let head = CGPoint(x: neck.x, y: neck.y - shape.headRadius * span * 1.6)
@@ -690,12 +773,16 @@ enum BetaEngine {
         // the elbow sits where the upper arm and forearm meet, outward
         // from the body and down. A straight arm bows out a hair so it
         // still reads as an arm and not a line.
-        func joint(_ from: CGPoint, _ to: CGPoint, bone: Double, out: Double, lean: Double) -> CGPoint {
+        func joint(_ from: CGPoint, _ to: CGPoint, bone: Double, out: Double, lean: Double, tightest: Double) -> CGPoint {
             let d = distance(from, to)
             let m = CGPoint(x: (from.x + to.x) / 2, y: (from.y + to.y) / 2)
             guard d > 1e-6 else { return CGPoint(x: m.x + out * span * 0.04, y: m.y) }
             let ux = (to.x - from.x) / d, uy = (to.y - from.y) / d
-            let h = max(span * 0.025, (bone * bone - (d / 2) * (d / 2)).squareRoot().isNaN ? 0 : max(0, bone * bone - (d / 2) * (d / 2)).squareRoot())
+            let folded = max(0, bone * bone - (d / 2) * (d / 2)).squareRoot()
+            // No tighter than the tightest angle: the fold is capped, and
+            // the limb reads as reaching away from the viewer.
+            let cap = (d / 2) / tan(tightest / 2 * .pi / 180)
+            let h = min(max(span * 0.025, min(folded, cap)), cap)
             // The two perpendiculars; take the one pointing outward and
             // the way this joint bends.
             let a = (x: -uy, y: ux), b = (x: uy, y: -ux)
@@ -704,20 +791,14 @@ enum BetaEngine {
             return CGPoint(x: m.x + pick.x * h, y: m.y + pick.y * h)
         }
         func elbow(_ hand: CGPoint, _ shoulder: CGPoint, out: Double) -> CGPoint {
-            joint(shoulder, hand, bone: arm / 2, out: out, lean: 0.6)
+            joint(shoulder, hand, bone: arm / 2, out: out, lean: 0.6, tightest: tightestElbow)
         }
 
-        // A smear is on the wall, not the mat: no lower than the route's
-        // lowest hold, a little past it. At the start the smearing leg
-        // used to reach down off the bottom of the photograph.
-        var lowestY: Double = max(leftHand.y, rightHand.y)
-        for h in feetFrom where h.y > lowestY { lowestY = h.y }
-        let floorY: Double = lowestY + 0.03
         func foot(_ pick: (offset: Int, element: CGPoint)?, side: Double) -> (CGPoint, Int?) {
             if let pick { return (pick.element, pick.offset) }
             // But always under the hips, by at least a short leg.
             let drop = hips.y + smearDrop * span
-            let least = hips.y + smearDrop * span * 0.35
+            let least = hips.y + leastSmear
             return (CGPoint(x: hips.x + side * smearOut * span, y: max(min(drop, floorY), least)), nil)
         }
         let (lf, lfi) = foot(leftPick, side: -1)
@@ -725,7 +806,7 @@ enum BetaEngine {
 
         // Knees bend out to the side and up, the frog of a climber's legs.
         func knee(_ f: CGPoint, side: Double) -> CGPoint {
-            joint(hips, f, bone: leg / 2, out: side, lean: -0.5)
+            joint(hips, f, bone: leg / 2, out: side, lean: -0.5, tightest: tightestKnee)
         }
 
         return Pose(leftHand: leftHand, rightHand: rightHand,

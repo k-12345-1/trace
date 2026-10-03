@@ -551,6 +551,7 @@ struct RouteDetailScreen: View {
                 // the top edge to the mat where both were found, the whole
                 // picture otherwise.
                 var wallHeight: Double?
+                var mat: Double?
                 if let cg = UIImage(contentsOfFile: photoPath)?.upright.cgImage,
                    let bmp = Bitmap(cg, targetWidth: RouteScanner.workingWidth) {
                     let r = FaceEngine.read(in: bmp)
@@ -558,8 +559,9 @@ struct RouteDetailScreen: View {
                     let top = r.top?.y(atX: mid).map { max(0, $0 / h) } ?? 0
                     let floor = r.floor?.y(atX: mid).map { min(1, $0 / h) } ?? 1
                     wallHeight = floor - top
+                    if r.floor != nil { mat = floor }
                 }
-                return (l, BetaEngine.read(line: l, shape: shape, wallHeight: wallHeight))
+                return (l, BetaEngine.read(line: l, shape: shape, wallHeight: wallHeight, mat: mat))
             }.value
             planned = result
         }

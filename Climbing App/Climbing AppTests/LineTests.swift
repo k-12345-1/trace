@@ -266,12 +266,15 @@ struct BetaTests {
         #expect(plan.handOrder.count >= line.hands.count - 1, "\(plan.handOrder)")
     }
 
-    @Test("The body hangs below the hands and the feet are below the hips")
-    func theBodyHangs() throws {
+    /// Standing, the shoulders may rise a little above the top hand, as
+    /// far as `standingLift` of an arm; never further.
+    @Test("The body stands under the hands and the feet are below the hips")
+    func theBodyStands() throws {
         let line = try #require(LineEngine.read(holds: ladder))
         let seq = try #require(BetaEngine.read(line: line))
+        let arm = seq.shape.arm * seq.span
         for s in seq.stances {
-            #expect(s.leftShoulder.y > min(s.leftHand.y, s.rightHand.y))
+            #expect(s.leftShoulder.y > min(s.leftHand.y, s.rightHand.y) - arm * BetaEngine.standingLift - 1e-6)
             #expect(s.hips.y > s.leftShoulder.y)
             #expect(s.leftFoot.y >= s.hips.y + BetaEngine.highestFoot * seq.span)
             #expect(s.rightFoot.y >= s.hips.y + BetaEngine.highestFoot * seq.span)
