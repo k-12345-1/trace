@@ -80,8 +80,8 @@ struct HomeScreen: View {
 
     @ViewBuilder
     private var focusBanner: some View {
-        // Nothing to work on until something has been climbed on camera.
-        if let focus = store.focus, !store.climbs.isEmpty {
+        // "Last time" needs a last time: the banner waits for a second climb.
+        if let focus = store.focus, store.climbs.count > 1 {
             NavigationLink { ProgressScreen() } label: {
                 VStack(alignment: .leading, spacing: 9) {
                     HStack {
