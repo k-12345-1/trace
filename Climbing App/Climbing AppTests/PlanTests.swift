@@ -172,3 +172,24 @@ struct PlanEdgeTests {
         #expect(planted * 2 >= plan.states.count, "\(planted) of \(plan.states.count)")
     }
 }
+
+/// With a traced outline, the hand goes to the plastic.
+@Suite("Hands on the outline")
+struct ContactTests {
+    @Test func aHandLandsOnTheTracedHold() throws {
+        var holds: [CGRect] = []
+        for i in 0..<5 { holds.append(CGRect(x: (i % 2 == 0 ? 0.40 : 0.56) - 0.03, y: 0.85 - Double(i) * 0.12 - 0.03, width: 0.06, height: 0.06)) }
+        // Each hold's outline is a diamond inside its box.
+        let outlines = holds.map { r in
+            [CGPoint(x: r.midX, y: r.minY), CGPoint(x: r.maxX, y: r.midY), CGPoint(x: r.midX, y: r.maxY), CGPoint(x: r.minX, y: r.midY)]
+        }
+        let plain = try #require(LineEngine.read(holds: holds, starts: [0, 1]))
+        let traced = try #require(LineEngine.read(holds: holds, starts: [0, 1], outlines: outlines))
+        #expect(traced.outlines.allSatisfy { $0.count == 4 })
+        let a = try #require(BetaEngine.read(line: plain, shape: .average)?.stances.first)
+        let b = try #require(BetaEngine.read(line: traced, shape: .average)?.stances.first)
+        // Plain: the hand is at the centre. Traced: on a point of the outline.
+        #expect(holds.contains { abs($0.midX - a.leftHand.x) < 1e-6 && abs($0.midY - a.leftHand.y) < 1e-6 })
+        #expect(outlines.flatMap { $0 }.contains { abs($0.x - b.leftHand.x) < 1e-6 && abs($0.y - b.leftHand.y) < 1e-6 })
+    }
+}

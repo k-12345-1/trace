@@ -549,7 +549,7 @@ struct RouteDetailScreen: View {
             let holds = live.holds, starts = live.startHolds ?? [], finishes = live.finishHolds ?? []
             let shape = store.figureShape
             let result = await Task.detached(priority: .userInitiated) { () -> (LineEngine.Line, BetaEngine.Sequence?)? in
-                guard let l = LineEngine.read(holds: holds, starts: starts, finishes: finishes) else { return nil }
+                guard let l = LineEngine.read(holds: holds, starts: starts, finishes: finishes, outlines: live.outlines ?? []) else { return nil }
                 return (l, BetaEngine.read(line: l, shape: shape))
             }.value
             planned = result

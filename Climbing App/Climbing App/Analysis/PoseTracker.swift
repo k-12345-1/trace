@@ -33,6 +33,21 @@ enum PoseTracker {
         .root: .root
     ]
 
+    /// A compact identity signature for choosing the same person from frame to frame.
+    ///
+    /// Vision gives us an observation, not a persistent person ID. Picking the
+    /// largest observation independently on every frame is surprisingly easy to
+    /// fool in a gym: a bystander can step closer to the camera for one frame and
+    /// steal the whole skeleton. The signature makes the tracker prefer the body
+    /// that continues the previous trajectory, and only reacquire a new person
+    /// after a short genuine loss.
+    private struct ObservationSignature {
+        let center: CGPoint
+        let width: Double
+        let height: Double
+        let confidence: Double
+    }
+
     /// Reads every frame of the clip and returns a pose time series.
     /// - Parameter progress: called on an arbitrary queue with 0...1.
     static func track(url: URL, progress: @escaping (Double) -> Void) async throws -> [PoseFrame] {
@@ -60,6 +75,8 @@ enum PoseTracker {
 
         var frames: [PoseFrame] = []
         let request = VNDetectHumanBodyPoseRequest()
+        var previousObservation: ObservationSignature?
+        var lostFrames = 0
         var lastReported = -1.0
 
         while let sample = output.copyNextSampleBuffer() {
@@ -79,14 +96,20 @@ enum PoseTracker {
                 let handler = VNImageRequestHandler(cvPixelBuffer: buffer, orientation: orientation)
                 try? handler.perform([request])
 
-                // Crowded gyms put several people in frame. Take the largest, which
-                // is reliably the climber when the phone is placed at the base of the wall.
-                let observation = (request.results ?? [])
-                    .max(by: { boundingHeight($0) < boundingHeight($1) })
+                // Crowded gyms put several people in frame. The largest body is a
+                // good first guess, but once the climb starts, temporal continuity
+                // is much safer than size alone. This prevents a nearby bystander
+                // from becoming the climber for a few frames.
+                let observation = selectObservation(from: request.results ?? [],
+                                                     previous: previousObservation,
+                                                     lostFrames: lostFrames)
 
                 if let observation {
+                    previousObservation = signature(of: observation)
+                    lostFrames = 0
                     frames.append(makeFrame(from: observation, time: time))
                 } else {
+                    lostFrames += 1
                     frames.append(PoseFrame(time: time, joints: [:], com: nil, meanConfidence: 0))
                 }
 
@@ -107,16 +130,73 @@ enum PoseTracker {
         if reader.status == .failed {
             throw TrackingError.readerFailed(reader.error?.localizedDescription ?? "read failed")
         }
-        return smooth(rejectingImpossibleMoves(frames))
+        let gated = rejectingImpossibleMoves(frames)
+        return smooth(stabilizeIsolatedJoints(gated))
     }
 
     /// Body pose observations carry no bounding box, so the climber's apparent size
     /// is measured from the spread of their own tracked joints.
+    private static func signature(of o: VNHumanBodyPoseObservation) -> ObservationSignature? {
+        guard let points = try? o.recognizedPoints(.all) else { return nil }
+        let usable = points.values.filter { $0.confidence > 0.25 }
+        guard usable.count >= 6 else { return nil }
+        let xs = usable.map { Double($0.location.x) }
+        let ys = usable.map { Double($0.location.y) }
+        guard let minX = xs.min(), let maxX = xs.max(),
+              let minY = ys.min(), let maxY = ys.max() else { return nil }
+        return ObservationSignature(
+            center: CGPoint(x: (minX + maxX) / 2, y: 1 - (minY + maxY) / 2),
+            width: maxX - minX,
+            height: maxY - minY,
+            confidence: usable.map { Double($0.confidence) }.reduce(0, +) / Double(usable.count)
+        )
+    }
+
+    private static func selectObservation(
+        from observations: [VNHumanBodyPoseObservation],
+        previous: ObservationSignature?,
+        lostFrames: Int
+    ) -> VNHumanBodyPoseObservation? {
+        let candidates = observations.compactMap { o -> (VNHumanBodyPoseObservation, ObservationSignature)? in
+            guard let s = signature(of: o) else { return nil }
+            return (o, s)
+        }
+
+        guard !candidates.isEmpty else { return nil }
+        guard let previous else {
+            return candidates.max {
+                let a = $0.1.height * $0.1.confidence
+                let b = $1.1.height * $1.1.confidence
+                return a < b
+            }?.0
+        }
+
+        let prevH = max(previous.height, 0.05)
+        let scored = candidates.map { item -> (VNHumanBodyPoseObservation, Double) in
+            let s = item.1
+            let centerDistance = hypot(Double(s.center.x - previous.center.x),
+                                       Double(s.center.y - previous.center.y)) / prevH
+            let scaleRatio = max(s.height, 0.001) / prevH
+            let logScale = abs(log(scaleRatio))
+            // Center continuity dominates. Size continuity is a secondary cue:
+            // the same climber can change apparent height as they crouch.
+            let continuity = centerDistance + logScale * 0.45
+            let confidenceBonus = (1 - item.1.confidence) * 0.15
+            return (item.0, continuity + confidenceBonus)
+        }
+
+        let best = scored.min { $0.1 < $1.1 }
+        // A fixed camera should not teleport the tracked body by more than about
+        // one body height in one frame. During a short occlusion, let the tracker
+        // reacquire after a few frames rather than silently switching identities.
+        if let best, best.1 <= 1.15 || lostFrames >= 6 {
+            return best.0
+        }
+        return nil
+    }
+
     private static func boundingHeight(_ o: VNHumanBodyPoseObservation) -> CGFloat {
-        guard let points = try? o.recognizedPoints(.all) else { return 0 }
-        let ys = points.values.filter { $0.confidence > 0.25 }.map { $0.location.y }
-        guard let lo = ys.min(), let hi = ys.max() else { return 0 }
-        return hi - lo
+        CGFloat(signature(of: o)?.height ?? 0)
     }
 
     private static func makeFrame(from o: VNHumanBodyPoseObservation, time: Double) -> PoseFrame {
@@ -209,6 +289,51 @@ enum PoseTracker {
                 }
                 believed = (frames[i].time, p)
             }
+        }
+        return out
+    }
+
+    /// Removes an isolated joint spike without blurring genuine movement.
+    ///
+    /// A median filter over the whole climb would flatten deadpoints and fast
+    /// foot moves. Instead this only repairs the specific shape of a one-frame
+    /// excursion: the point jumps away from both neighbours and then returns.
+    static func stabilizeIsolatedJoints(_ frames: [PoseFrame]) -> [PoseFrame] {
+        guard frames.count >= 3 else { return frames }
+        var out = frames
+
+        for i in 1..<(frames.count - 1) {
+            for id in JointID.allCases {
+                guard let a = frames[i - 1].pt(id),
+                      let b = frames[i].pt(id),
+                      let c = frames[i + 1].pt(id) else { continue }
+
+                let ab = hypot(Double(a.x - b.x), Double(a.y - b.y))
+                let bc = hypot(Double(b.x - c.x), Double(b.y - c.y))
+                let ac = hypot(Double(a.x - c.x), Double(a.y - c.y))
+
+                // A real fast move can be large, but it usually continues in
+                // roughly the same direction. An isolated tracker spike goes
+                // out and comes back, so the two legs are much longer than the
+                // direct neighbour-to-neighbour distance.
+                guard ab > 0.018, bc > 0.018,
+                      ab + bc > max(ac * 2.4, 0.05) else { continue }
+
+                let confidence = min(frames[i - 1].joints[id]?.confidence ?? 0,
+                                     frames[i + 1].joints[id]?.confidence ?? 0)
+                guard confidence >= 0.45 else { continue }
+
+                out[i].joints[id] = Joint(
+                    x: Double((a.x + c.x) / 2),
+                    y: Double((a.y + c.y) / 2),
+                    confidence: confidence
+                )
+            }
+            out[i].com = CenterOfMass.estimate(joints: out[i].joints)
+            let usable = out[i].joints.values.filter { $0.isUsable }
+            out[i].meanConfidence = usable.count >= 6
+                ? usable.map(\.confidence).reduce(0, +) / Double(usable.count)
+                : 0
         }
         return out
     }

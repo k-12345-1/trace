@@ -525,7 +525,13 @@ enum RouteScanner {
         // well clear of every ground colour or they are dropped, which is what
         // keeps a route of white holds and loses the 41 boxes of panel shade
         // that led the list once shading was allowed for.
-        let candidates = commonColors(in: bmp, apart: tolerance * 0.6, ground: ground)
+        // Keep a wider candidate pool than the final ten swatches. A route can
+        // occupy surprisingly little of a photo when its holds are small, and
+        // the old top-20 histogram could discard it before shape filtering ever
+        // had a chance to recognise it. The extra candidates are cheap compared
+        // with a second image pass and are removed by route purity/shape tests.
+        let candidates = commonColors(in: bmp, keep: 32,
+                                      apart: tolerance * 0.6, ground: ground)
             .filter { c in
                 let chroma = (c.lab.a * c.lab.a + c.lab.b * c.lab.b).squareRoot()
                 // A grey, and a muted colour too, has to stand clear of the
@@ -1013,8 +1019,17 @@ enum RouteScanner {
     static func score(_ holds: [Hold]) -> Double {
         guard !holds.isEmpty else { return 0 }
         let ys = holds.map { Double($0.rect.midY) }
-        let spread = (ys.max() ?? 0) - (ys.min() ?? 0)
-        return Double(min(holds.count, 25)) * (0.35 + spread)
+        let xs = holds.map { Double($0.rect.midX) }
+        let ySpread = (ys.max() ?? 0) - (ys.min() ?? 0)
+        let xSpread = (xs.max() ?? 0) - (xs.min() ?? 0)
+
+        // A route should occupy a meaningful vertical run. Give a smaller
+        // secondary bonus to horizontal coverage so a row of volumes in one
+        // corner does not outrank a route that actually travels through the
+        // wall, while keeping the existing vertical ordering dominant.
+        let spatial = sqrt(max(0, ySpread) * max(0.08, xSpread))
+        let distribution = 0.75 + min(0.5, spatial * 0.9)
+        return Double(min(holds.count, 25)) * (0.35 + ySpread) * distribution
     }
 
     /// How far a colour stands out from the wall it is on.

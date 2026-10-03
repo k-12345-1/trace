@@ -215,8 +215,12 @@ enum BetaEngine {
         var stances: [Pose] = []
         if let plan {
             for p in plan.states {
-                let a = all[p.leftHand], b = all[p.rightHand]
-                let feetFrom = all.filter { $0 != a && $0 != b }
+                let aCenter = all[p.leftHand], bCenter = all[p.rightHand]
+                let midpoint = CGPoint(x: (aCenter.x + bCenter.x) * 0.5,
+                                       y: (aCenter.y + bCenter.y) * 0.5)
+                let a = contactPoint(for: p.leftHand, center: aCenter, toward: midpoint, line: line)
+                let b = contactPoint(for: p.rightHand, center: bCenter, toward: midpoint, line: line)
+                let feetFrom = all.filter { $0 != aCenter && $0 != bCenter }
                 let lf = p.leftFoot >= 0 ? all[p.leftFoot] : nil
                 let rf = p.rightFoot >= 0 ? all[p.rightFoot] : nil
                 stances.append(stance(leftHand: a.x <= b.x ? a : b, rightHand: a.x <= b.x ? b : a,
@@ -227,13 +231,34 @@ enum BetaEngine {
             var pairs: [(CGPoint, CGPoint)] = []
             if line.startCount == 1 { pairs.append((hands[0], hands[0])) }
             for i in 1..<hands.count { pairs.append((hands[i - 1], hands[i])) }
-            for (a, b) in pairs {
+            for (aCenter, bCenter) in pairs {
+                let midpoint = CGPoint(x: (aCenter.x + bCenter.x) * 0.5,
+                                       y: (aCenter.y + bCenter.y) * 0.5)
+                let a = contactPoint(for: all.firstIndex { distance($0, aCenter) < 1e-6 } ?? -1,
+                                     center: aCenter, toward: midpoint, line: line)
+                let b = contactPoint(for: all.firstIndex { distance($0, bCenter) < 1e-6 } ?? -1,
+                                     center: bCenter, toward: midpoint, line: line)
                 let (l, r) = a.x <= b.x ? (a, b) : (b, a)
-                let feetFrom = all.filter { $0 != a && $0 != b }
+                let feetFrom = all.filter { $0 != aCenter && $0 != bCenter }
                 stances.append(stance(leftHand: l, rightHand: r, feetFrom: feetFrom, span: span, shape: shape))
             }
         }
         return Sequence(stances: stances, plan: plan, span: span, shape: shape)
+    }
+
+    /// Put a hand on the usable part of the traced hold rather than always at
+    /// its bounding-box centre. The planner still reasons about hold centres
+    /// (which keeps its geometry stable), but the rendered body should visibly
+    /// touch the plastic. For an outline we choose the point nearest the body's
+    /// current centre; for old routes with no outline we retain the centre.
+    private static func contactPoint(for index: Int, center: CGPoint,
+                                     toward target: CGPoint, line: LineEngine.Line) -> CGPoint {
+        guard line.outlines.indices.contains(index), !line.outlines[index].isEmpty else {
+            return center
+        }
+        return line.outlines[index].min {
+            distance($0, target) < distance($1, target)
+        } ?? center
     }
 
     // MARK: Planning the sequence

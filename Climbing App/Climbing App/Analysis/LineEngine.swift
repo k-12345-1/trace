@@ -51,6 +51,9 @@ enum LineEngine {
     struct Line {
         /// Every hold, bottom to top.
         let holds: [CGRect]
+        /// The saved traced outlines, aligned with `holds` when a route came
+        /// from the photo scanner. Empty for callers that only have rectangles.
+        let outlines: [[CGPoint]]
         /// The holds the hands go to, bottom to top, the start holds first.
         /// The route as a climber reads it: a sequence of hand moves, with
         /// the feet taking whatever is below.
@@ -104,10 +107,15 @@ enum LineEngine {
     /// - Parameter starts: the holds the start stickers sit under, as
     ///   indices into `holds`. Empty when none were read, in which case the
     ///   start is the lowest hand-sized holds.
-    static func read(holds: [CGRect], starts: [Int] = [], finishes: [Int] = []) -> Line? {
+    static func read(holds: [CGRect], starts: [Int] = [], finishes: [Int] = [],
+                     outlines: [[CGPoint]] = []) -> Line? {
         guard holds.count >= minimumHolds else { return nil }
         let ordered = order(holds)
         guard ordered.count >= minimumHolds else { return nil }
+        let orderedOutlines: [[CGPoint]] = ordered.map { rect in
+            guard let i = holds.firstIndex(of: rect), outlines.indices.contains(i) else { return [] }
+            return outlines[i]
+        }
 
         // Hands and feet. A start hold is a hand hold whatever its size;
         // everything below the lowest start is feet; a chip is feet.
@@ -160,8 +168,9 @@ enum LineEngine {
                               reach: reach, sideways: sideways, kind: kind))
         }
 
-        return Line(holds: ordered, hands: hands, feet: feet, startCount: startRects.count,
-                    finishes: finishRects, moves: moves, longest: moves.max { $0.reach < $1.reach })
+        return Line(holds: ordered, outlines: orderedOutlines, hands: hands, feet: feet,
+                    startCount: startRects.count, finishes: finishRects, moves: moves,
+                    longest: moves.max { $0.reach < $1.reach })
     }
 
     /// The order the holds are met: bottom to top, always.
