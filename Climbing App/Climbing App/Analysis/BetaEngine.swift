@@ -201,7 +201,15 @@ enum BetaEngine {
         read(line: line, shape: Shape(body))
     }
 
-    static func read(line: LineEngine.Line, shape: Shape) -> Sequence? {
+    /// A span is this share of a bouldering wall's height, at the least
+    /// and at the most: a 1.7 metre reach on a wall of 3.5 to 4.5 metres.
+    /// Sized from the gaps alone, a sparse route with long moves made a
+    /// climber half the height of the wall.
+    static let spanOverWall = 0.30...0.42
+
+    /// - Parameter wallHeight: how much of the picture the wall takes, top
+    ///   to mat, normalised. Nil when unknown, and the gaps alone decide.
+    static func read(line: LineEngine.Line, shape: Shape, wallHeight: Double? = nil) -> Sequence? {
         let hands = line.hands.map { CGPoint(x: $0.midX, y: $0.midY) }
         let all = line.holds.map { CGPoint(x: $0.midX, y: $0.midY) }
         guard hands.count >= 2 else { return nil }
@@ -209,7 +217,10 @@ enum BetaEngine {
         for (a, b) in zip(hands, hands.dropFirst()) { gaps.append(distance(a, b)) }
         let median = LineEngine.medianOf(gaps)
         guard median > 1e-6 else { return nil }
-        let span = median * spansPerGap
+        var span = median * spansPerGap
+        if let wallHeight, wallHeight > 0.1 {
+            span = min(max(span, wallHeight * spanOverWall.lowerBound), wallHeight * spanOverWall.upperBound)
+        }
 
         let plan = self.plan(line: line, span: span, shape: shape)
         var stances: [Pose] = []

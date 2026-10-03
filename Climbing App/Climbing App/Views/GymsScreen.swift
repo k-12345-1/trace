@@ -548,9 +548,22 @@ struct RouteDetailScreen: View {
             // Off the main thread: the search is the slow part of the page.
             let holds = live.holds, starts = live.startHolds ?? [], finishes = live.finishHolds ?? []
             let shape = store.figureShape
+            let photoPath = live.photoURL.path, outlines = live.outlines ?? []
             let result = await Task.detached(priority: .userInitiated) { () -> (LineEngine.Line, BetaEngine.Sequence?)? in
-                guard let l = LineEngine.read(holds: holds, starts: starts, finishes: finishes, outlines: live.outlines ?? []) else { return nil }
-                return (l, BetaEngine.read(line: l, shape: shape))
+                guard let l = LineEngine.read(holds: holds, starts: starts, finishes: finishes, outlines: outlines) else { return nil }
+                // The wall's height in the picture sizes the climber: from
+                // the top edge to the mat where both were found, the whole
+                // picture otherwise.
+                var wallHeight: Double?
+                if let cg = UIImage(contentsOfFile: photoPath)?.upright.cgImage,
+                   let bmp = Bitmap(cg, targetWidth: RouteScanner.workingWidth) {
+                    let r = FaceEngine.read(in: bmp)
+                    let mid = Double(bmp.width) / 2, h = Double(bmp.height)
+                    let top = r.top?.y(atX: mid).map { max(0, $0 / h) } ?? 0
+                    let floor = r.floor?.y(atX: mid).map { min(1, $0 / h) } ?? 1
+                    wallHeight = floor - top
+                }
+                return (l, BetaEngine.read(line: l, shape: shape, wallHeight: wallHeight))
             }.value
             planned = result
         }

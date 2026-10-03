@@ -193,3 +193,21 @@ struct ContactTests {
         #expect(outlines.flatMap { $0 }.contains { abs($0.x - b.leftHand.x) < 1e-6 && abs($0.y - b.leftHand.y) < 1e-6 })
     }
 }
+
+/// The climber is sized to the wall, not to the gaps.
+@Suite("Sizing the climber")
+struct SpanTests {
+    private func hold(_ x: Double, _ y: Double) -> CGRect { CGRect(x: x - 0.025, y: y - 0.025, width: 0.05, height: 0.05) }
+
+    @Test func aSparseRouteDoesNotMakeAGiant() throws {
+        // Four holds a third of the picture apart: by the gaps a span of
+        // nearly the whole picture.
+        let holds = [hold(0.3, 0.9), hold(0.6, 0.6), hold(0.3, 0.3), hold(0.6, 0.05)]
+        let line = try #require(LineEngine.read(holds: holds))
+        let loose = try #require(BetaEngine.read(line: line, shape: .average))
+        let sized = try #require(BetaEngine.read(line: line, shape: .average, wallHeight: 0.8))
+        #expect(loose.span > 0.7)
+        #expect(sized.span <= 0.8 * BetaEngine.spanOverWall.upperBound + 1e-9)
+        #expect(sized.span >= 0.8 * BetaEngine.spanOverWall.lowerBound - 1e-9)
+    }
+}
