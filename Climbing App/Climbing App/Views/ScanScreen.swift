@@ -595,7 +595,7 @@ struct ScanScreen: View {
         let gym = selectedGym ?? store.addGym(named: gymName)
         guard let filename = try? store.saveRoutePhoto(data) else { return }
 
-        store.save(Route(
+        let route = Route(
             gymID: gym.id,
             name: routeName,
             grade: grade.trimmingCharacters(in: .whitespaces),
@@ -610,8 +610,11 @@ struct ScanScreen: View {
             finishHolds: CoverageEngine.finishHolds(
                 holds: kept.map(\.rect), tags: tags,
                 others: swatches.filter { $0.id != chosen?.id }.flatMap { $0.holds.map(\.rect) })
-        ))
+        )
+        store.save(route)
         dismiss()
+        // After the cover has gone, so the push lands on a settled stack.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { store.justSaved = route }
     }
 }
 

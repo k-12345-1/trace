@@ -341,6 +341,11 @@ final class Store: ObservableObject {
         persistGyms()
     }
 
+    /// The route the scan screen just saved. The home stack opens it and
+    /// clears it; saving a route and landing back on the add menu left the
+    /// climber to go and find what they had just made.
+    @Published var justSaved: Route?
+
     func save(_ route: Route) {
         if let i = routes.firstIndex(where: { $0.id == route.id }) {
             routes[i] = route

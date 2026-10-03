@@ -37,6 +37,7 @@ struct MainTabs: View {
         }
     }
 
+    @ObservedObject private var store = Store.shared
     @State private var tab: Tab = .home
     // Tapping the tab you are already on pops it back to its root. Without this
     // a screen three levels deep inside Home has no answer to the house icon,
@@ -221,6 +222,8 @@ struct MainTabs: View {
             }
         }
         .fullScreenCover(isPresented: $showScan) { ScanScreen() }
+        // A saved route opens on the home stack, whichever tab was up.
+        .onChange(of: store.justSaved?.id) { _, id in if id != nil { tab = .home } }
         .fullScreenCover(isPresented: $showPaywall) {
             NavigationStack {
                 PaywallScreen { showScan = true }

@@ -326,42 +326,18 @@ struct RoutesScreen: View {
         GymSummary.line(routes: routes, climbed: climbed)
     }
 
-    /// The routes you have filmed here, newest first.
+    /// The routes you have filmed here, newest first, as the library shows
+    /// them: a still from the clip with the count on it. They were rows of
+    /// text here and video cards on the home page, two faces for one thing.
     private func climbsHere(_ entries: [LibraryEntry]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle("Climbs attempted")
                 .padding(.horizontal, Theme.gutter)
-            LazyVStack(spacing: 10) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 13),
+                                GridItem(.flexible(), spacing: 13)], spacing: 16) {
                 ForEach(entries) { entry in
                     NavigationLink { ClimbCardScreen(entry: entry) } label: {
-                        HStack(spacing: 13) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(entry.name)
-                                    .font(Theme.serif(17, .semibold))
-                                    .foregroundStyle(Theme.ink)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                HStack(spacing: 9) {
-                                    Text("\(entry.attemptCount) attempt\(entry.attemptCount == 1 ? "" : "s")")
-                                        .font(Theme.ui(13))
-                                        .foregroundStyle(Theme.ink3)
-                                    Text(entry.lastClimbed.formatted(date: .abbreviated, time: .omitted))
-                                        .font(Theme.ui(13))
-                                        .foregroundStyle(Theme.ink3)
-                                }
-                            }
-                            Spacer(minLength: 8)
-                            if entry.sendCount > 0 {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 26, height: 26)
-                                    .background(Circle().fill(Theme.blue))
-                            }
-                        }
-                        .padding(14)
-                        .card()
-                        .contentShape(Rectangle())
+                        LibraryCard(entry: entry)
                     }
                     .buttonStyle(.plain)
                 }

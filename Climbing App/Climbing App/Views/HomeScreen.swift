@@ -24,6 +24,7 @@ struct HomeScreen: View {
             .scrollIndicators(.hidden)
             .scrollBounceBehavior(.basedOnSize)
         }
+        .navigationDestination(item: savedRoute) { RouteDetailScreen(route: $0) }
         .toolbar(.hidden, for: .navigationBar)
         .alert("New gym", isPresented: $namingGym) {
             TextField("Name", text: $newGymName)
@@ -70,6 +71,12 @@ struct HomeScreen: View {
     // MARK: The session opening
     //
     // A partner picks up where you left off rather than greeting you blank.
+
+    /// A route just saved opens itself, from wherever on this stack the
+    /// scan was started.
+    private var savedRoute: Binding<Route?> {
+        Binding(get: { store.justSaved }, set: { store.justSaved = $0 })
+    }
 
     @ViewBuilder
     private var focusBanner: some View {
