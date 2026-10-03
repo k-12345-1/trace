@@ -222,8 +222,9 @@ struct MainTabs: View {
             }
         }
         .fullScreenCover(isPresented: $showScan) { ScanScreen() }
-        // A saved route opens on the home stack, whichever tab was up.
-        .onChange(of: store.justSaved?.id) { _, id in if id != nil { tab = .home } }
+        // A saved route opens on the home stack, whichever tab was up, and
+        // the panel closes: saving moves you on, the way a recording does.
+        .onChange(of: store.justSaved?.id) { _, id in if id != nil { tab = .home; done() } }
         .fullScreenCover(isPresented: $showPaywall) {
             NavigationStack {
                 PaywallScreen { showScan = true }
