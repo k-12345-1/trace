@@ -184,8 +184,10 @@ enum BetaEngine {
     static let legStretch = 1.25
     /// How far the hips move toward the feet when they are on holds, as a
     /// share of the gap. Weight over the feet, which is the thing every
-    /// finding in this app is about.
-    static let hipsTowardFeet = 0.45
+    /// finding in this app is about. Measured on the app's own climber,
+    /// the hips sat over one foot, about half a torso off the midpoint
+    /// of the two; at 0.45 the figure's sat over the midpoint.
+    static let hipsTowardFeet = 0.25
     /// Standing on planted feet, the hips sit between these shares of a
     /// leg above the lower foot: legs nearly straight, and a deep crouch.
     /// Real climbers at rest hold a knee at about a hundred and fifty
@@ -207,17 +209,21 @@ enum BetaEngine {
         return max(top - arm * standingLift, lower - arm * 0.95) + torso
     }
     /// The torso leans from the hips toward the hands: the shoulders
-    /// follow the hips toward the feet by this share of the hips' shift.
+    /// follow the hips toward the feet by this share of the hips' shift,
+    /// and lean toward the higher hand by this share of its offset. The
+    /// app's own climber leaned about twenty degrees on average.
     static let shouldersFollow = 0.5
+    static let leanToReach = 0.6
     /// How far a drawn elbow or knee may fold, as the tightest angle it
     /// shows. A hand near its shoulder is an arm reaching forward to the
     /// wall, which from in front is a short arm, not a folded one: on the
     /// real footage an elbow at rest sat past a hundred degrees and a
     /// knee past ninety, and mid-move the elbow closed to about sixty.
-    /// Past these the bones are drawn short. The elbow is given the
-    /// mid-move figure, because at a hundred the arm vanished whenever a
-    /// hand sat at the shoulder.
-    static let tightestElbow = 70.0
+    /// Past these the bones are drawn short. On five clips of the app's
+    /// own climber, filmed from the floor, the elbow at rest sat at about
+    /// a hundred and fifty with the lower quartile near a hundred and
+    /// ten.
+    static let tightestElbow = 110.0
     static let tightestKnee = 90.0
     /// Where a smeared foot goes when there is no hold for it.
     static let smearDrop = 0.44
@@ -336,7 +342,10 @@ enum BetaEngine {
     static let standingDrop = 1.5
     /// How far the hips may sit off the feet, in spans, before it costs.
     static let hipsLean = 0.12
-    static let matchCost = 0.15
+    /// Raised from 0.15 once the figure was measured against the app's
+    /// own climber: her hands were matched in fewer than one stance in
+    /// ten, the planner's in one in four.
+    static let matchCost = 0.5
     /// A hold this many times the width of the route's middle hand hold
     /// takes two hands: matching on it costs nothing, and a climber on a
     /// jug matches before the long reach rather than crossing through.
@@ -519,7 +528,7 @@ enum BetaEngine {
                     let run = st.last == mover ? st.run + 1 : 0
                     if run > 0 { c += sameHandCost * Double(run * run) }
                     if all[next.leftHand].x > all[next.rightHand].x + 0.02 { c += crossCost }
-                    if j == staying { c += isJug[j] ? 0 : matchCost }
+                    if j == staying { c += isJug[j] ? matchCost / 2 : matchCost }
                     c += costOfStanding(next)
                     let ns = State(p: next, last: mover, run: min(run, 3))
                     let nd = d + c
@@ -751,6 +760,17 @@ enum BetaEngine {
             // the way, so the torso leans from the feet toward the hands,
             // as a climber's does.
             neck.x += dx * shouldersFollow; hips.x += dx
+        }
+        // And toward the reach: the shoulders come across under the
+        // higher hand, as far as the other arm allows.
+        do {
+            let higher = leftHand.y <= rightHand.y ? leftHand : rightHand
+            let lower = leftHand.y <= rightHand.y ? rightHand : leftHand
+            var shift = (higher.x - neck.x) * leanToReach
+            let lowerShoulderX = neck.x + (lower.x <= neck.x ? -half : half)
+            let room = max(0, arm - distance(lower, CGPoint(x: lowerShoulderX, y: neck.y)))
+            shift = min(max(shift, -room), room)
+            neck.x += shift
         }
         // A smear is on the wall, not the mat: no lower than the route's
         // lowest hold, a little past it. At the start the smearing leg

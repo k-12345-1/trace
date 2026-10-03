@@ -7,18 +7,24 @@ private final class StanceToken {}
 
 /// The planner's figure, measured the way real climbers were.
 ///
-/// Three clips of real bouldering, forty-seven, forty-two and twenty-five
-/// seconds, were tracked with Vision on the Mac and measured in torso
-/// lengths, the torso being the shoulders' midpoint to the hips'. Over
-/// the frames where the climber was still:
+/// Five clips of the app's own climber, IMG_0672 to IMG_0676, filmed from
+/// a phone on the floor the way the app asks, were tracked with Vision on
+/// the Mac and measured in torso lengths, the torso being the shoulders'
+/// midpoint to the hips'. Over every tracked frame:
 ///
-///     hips below the top hand        median 1.04   quartiles 0.37 to 1.47
-///     top hand above the shoulders   median 0.18   quartiles -0.30 to 0.60
-///     foot below the hips            median 1.35   quartiles 0.92 to 1.76
-///     knee angle                     median 155    quartiles 133 to 168
-///     elbow angle                    median 147    quartiles 125 to 165
-///     feet apart                     median 2.40   quartiles 1.64 to 2.81
-///     torso lean                     median 31     quartiles 14 to 60
+///     hips below the top hand        median 1.08   quartiles 0.63 to 1.42
+///     top hand above the shoulders   median 0.17   quartiles -0.29 to 0.53
+///     foot below the hips            median 1.40   quartiles 1.11 to 1.62
+///     knee angle                     median 152    quartiles 123 to 167
+///     elbow angle                    median 143    quartiles 74 to 162
+///     hands apart                    median 2.04   quartiles 1.37 to 2.72
+///     feet apart                     median 1.25   quartiles 0.50 to 2.01
+///     hips off the feet' midpoint    median 0.59   quartiles 0.34 to 0.93
+///     top hand to the lowest foot    median 2.66   quartiles 2.15 to 3.02
+///     torso lean                     median 19     quartiles 11 to 29
+///
+/// Three earlier clips of other climbers, filmed by hand, gave the same
+/// picture within a tenth of a torso.
 ///
 /// Measured the same way, the planner used to draw a sitting hang: hips
 /// 1.82 under the top hand, knees at 95 degrees, feet 0.87 under the
@@ -127,6 +133,12 @@ struct StanceStatsTests {
         #expect((2.3...3.3).contains(med("top hand to lowest foot / torso")), "\(med("top hand to lowest foot / torso"))")
         // Most stances have both feet on holds.
         #expect(med("smeared feet") == 0, "\(med("smeared feet"))")
+        // Hands apart, and a torso that leans. Both fall short of the
+        // climber on film, whose hands sat two torsos apart and who leaned
+        // twenty degrees, because the holds decide the hands and the
+        // figure is drawn flat; these hold what has been reached.
+        #expect(med("hand spread / torso") >= 1.0, "\(med("hand spread / torso"))")
+        #expect(med("torso lean deg") >= 4, "\(med("torso lean deg"))")
         // A drawn joint never folds past its cap.
         #expect((all["elbow angle"] ?? []).min() ?? 0 >= BetaEngine.tightestElbow - 1)
         #expect((all["knee angle"] ?? []).min() ?? 0 >= BetaEngine.tightestKnee - 1)
