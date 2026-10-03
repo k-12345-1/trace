@@ -31,11 +31,21 @@ final class ClimbAnalyzer: ObservableObject {
             // and unknown is shown as such rather than as "still".
             let camera = try? await CameraMotion.read(url: stored)
 
+            // When the phone moved, the measuring is done on the skeleton
+            // with the phone's movement taken back out, so a climber the
+            // operator followed up the wall is measured against the wall and
+            // not against the frame. The stored frames stay as filmed: they
+            // are drawn over the footage, and the footage still moves. A
+            // still phone is left alone, because on a still phone the only
+            // thing that can drag the registration is the climber.
+            let measured = camera.map { $0.isStatic ? frames : CameraMotion.stabilized(frames, by: $0) }
+                ?? frames
+
             // Findings read the ascent, for the same reason the metrics do: the
             // descent is not climbing, and counting it produces stops you did
             // not take and a wandering line you did not wander.
-            let climbing = MetricsEngine.ascent(frames)
-            let metrics = MetricsEngine.compute(frames: frames)
+            let climbing = MetricsEngine.ascent(measured)
+            let metrics = MetricsEngine.compute(frames: measured)
             // Smoothness is judged against this climber's own earlier tracked
             // attempts, so the history has to come in with the frames.
             // Only the attempts measured the same way. A history that mixes
@@ -50,7 +60,7 @@ final class ClimbAnalyzer: ObservableObject {
             // the app something it just watched them do. It is only ever a
             // reading of where the body went, never a claim about the route,
             // and Mark unsent takes it back.
-            let outcome = OutcomeEngine.outcome(frames: frames)
+            let outcome = OutcomeEngine.outcome(frames: measured)
             let topped: Bool? = {
                 switch outcome {
                 case .topped: return true

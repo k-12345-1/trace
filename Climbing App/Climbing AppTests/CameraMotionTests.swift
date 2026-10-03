@@ -1,5 +1,7 @@
 import Testing
 import Foundation
+import CoreVideo
+import CoreGraphics
 @testable import ClimbingApp
 
 private final class BundleToken {}
@@ -50,6 +52,69 @@ struct CameraMotionTests {
         #expect(!unsure.isStatic)
         let sure = CameraMotion.Reading(travel: 0.001, drift: 0, confidence: 0.99)
         #expect(sure.isStatic)
+    }
+
+    // MARK: Steadying the skeleton
+
+    /// Vision answers with the transform that lays the new frame over the old
+    /// one, which is the opposite of where the picture went. The sign is
+    /// settled here, on a picture moved a known distance, not by reading.
+    @Test("The shift is where the picture went")
+    func theShiftIsWhereThePictureWent() throws {
+        let before = try #require(Self.picture(movedDownBy: 0, rightBy: 0))
+        let after = try #require(Self.picture(movedDownBy: 12, rightBy: 7))
+        let moved = try #require(CameraMotion.shift(from: before, to: after))
+        #expect(abs(moved.y - 12) <= 1.5, "read \(moved) for a picture moved down 12")
+        #expect(abs(moved.x - 7) <= 1.5, "read \(moved) for a picture moved right 7")
+    }
+
+    /// A climber tracked on a phone that panned up the wall is put back
+    /// where the wall is.
+    @Test("Steadied frames take the phone's movement back out")
+    func steadiedFramesTakeThePhoneOut() {
+        // The picture travelled a tenth of the frame downward over a second,
+        // which is the phone tilting up to follow.
+        let reading = CameraMotion.Reading(travel: 0.1, drift: 0.1, confidence: 1, path: [
+            .init(time: 0, dx: 0, dy: 0), .init(time: 1, dx: 0, dy: 0.1)])
+        var frame = PoseFrame(time: 0.5, joints: [:], com: CGPoint(x: 0.5, y: 0.5), meanConfidence: 1)
+        frame.joints[.leftWrist] = Joint(x: 0.4, y: 0.3, confidence: 1)
+        let out = CameraMotion.stabilized([frame], by: reading)
+        #expect(abs((out[0].com?.y ?? 0) - 0.45) < 1e-9)
+        #expect(abs((out[0].pt(.leftWrist)?.y ?? 0) - 0.25) < 1e-9)
+        #expect(abs((out[0].pt(.leftWrist)?.x ?? 0) - 0.4) < 1e-9)
+        // An older reading, with no path, changes nothing.
+        let old = CameraMotion.Reading(travel: 2, drift: 1, confidence: 1)
+        #expect(CameraMotion.stabilized([frame], by: old)[0].com == frame.com)
+    }
+
+    /// A busy picture, drawn with a fixed scatter of blocks, moved down the
+    /// buffer by `dy` rows and right by `dx` columns.
+    static func picture(movedDownBy dy: Int, rightBy dx: Int) -> CVPixelBuffer? {
+        let w = 180, h = 320
+        var made: CVPixelBuffer?
+        CVPixelBufferCreate(nil, w, h, kCVPixelFormatType_32BGRA,
+                            [kCVPixelBufferCGImageCompatibilityKey: true,
+                             kCVPixelBufferCGBitmapContextCompatibilityKey: true] as CFDictionary, &made)
+        guard let buffer = made else { return nil }
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        guard let ctx = CGContext(data: CVPixelBufferGetBaseAddress(buffer), width: w, height: h,
+                                  bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
+                                      | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
+        ctx.setFillColor(gray: 0.5, alpha: 1)
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        // Core Graphics counts rows upward from the bottom of the buffer, so
+        // moving content down the buffer is drawing it lower in CG.
+        var seed: UInt64 = 7
+        func next() -> Int { seed = seed &* 6364136223846793005 &+ 1442695040888963407; return Int(seed >> 33) }
+        for _ in 0..<60 {
+            let x = next() % (w - 40) + 15, y = next() % (h - 60) + 30, size = 4 + next() % 9
+            ctx.setFillColor(gray: CGFloat(next() % 100) / 100, alpha: 1)
+            ctx.fill(CGRect(x: x + dx, y: y - dy, width: size, height: size))
+        }
+        return buffer
     }
 
     // MARK: What the climb does with it

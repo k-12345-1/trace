@@ -50,11 +50,29 @@ enum CameraMotion {
         let drift: Double
         /// The share of sampled pairs Vision could register.
         let confidence: Double
+        /// Where the picture had got to at each sample, as a fraction of the
+        /// frame, so a skeleton can be put back where the wall is.
+        var path: [Offset] = []
+
+        init(travel: Double, drift: Double, confidence: Double, path: [Offset] = []) {
+            self.travel = travel
+            self.drift = drift
+            self.confidence = confidence
+            self.path = path
+        }
 
         /// Whether the phone was still enough to measure a climb against.
         var isStatic: Bool {
             confidence >= minimumConfidence && travel <= staticTravel
         }
+    }
+
+    /// Where the picture had moved to by a moment, in fractions of the frame
+    /// width and height, top-left origin like the joints.
+    struct Offset {
+        let time: Double
+        let dx: Double
+        let dy: Double
     }
 
     // MARK: The judgements
@@ -78,9 +96,58 @@ enum CameraMotion {
     static let samplesPerSecond = 6.0
     /// Registration runs on the picture at this height, which is plenty for a
     /// translation and a great deal cheaper than doing it at 1080p.
-    static let workingHeight = 240.0
+    ///
+    /// Raised from 240 once the reading was used to steady the skeleton as
+    /// well as to judge the phone: a pixel of registration noise at 240 is
+    /// 0.4 percent of the frame per sample, which against a torso a fifth of
+    /// the frame tall is most of the speed that counts as standing still.
+    static let workingHeight = 540.0
 
     // MARK: Reading
+
+    /// How far the picture moved between two frames, in pixels of the buffers,
+    /// rows counted downward like the joints.
+    ///
+    /// Vision answers with the transform that lays the new frame over the old
+    /// one, which is the opposite of where the picture went, and it counts
+    /// rows upward where the joints count them downward. Both signs are
+    /// settled against a synthetic shift in the tests, not the documentation.
+    static func shift(from last: CVPixelBuffer, to buffer: CVPixelBuffer) -> CGPoint? {
+        let request = VNTranslationalImageRegistrationRequest(targetedCVPixelBuffer: buffer)
+        let handler = VNImageRequestHandler(cvPixelBuffer: last)
+        try? handler.perform([request])
+        guard let alignment = request.results?.first as? VNImageTranslationAlignmentObservation
+        else { return nil }
+        let t = alignment.alignmentTransform
+        return CGPoint(x: -t.tx, y: t.ty)
+    }
+
+    /// The frames with the phone's movement taken back out, so what is left
+    /// is the climber against the wall.
+    ///
+    /// The picture's position is known at the sampled moments and read
+    /// between them by a straight line, which over a sixth of a second is
+    /// what a hand holding a phone does. The frames are left alone when the
+    /// reading has no path, which is what an older climb has.
+    static func stabilized(_ frames: [PoseFrame], by reading: Reading) -> [PoseFrame] {
+        let path = reading.path
+        guard path.count >= 2 else { return frames }
+        var k = 0
+        return frames.map { frame in
+            while k + 1 < path.count - 1, path[k + 1].time <= frame.time { k += 1 }
+            let a = path[k], b = path[k + 1]
+            let span = max(b.time - a.time, 1e-6)
+            let u = min(max((frame.time - a.time) / span, 0), 1)
+            let dx = a.dx + (b.dx - a.dx) * u
+            let dy = a.dy + (b.dy - a.dy) * u
+            var out = frame
+            for (id, j) in frame.joints {
+                out.joints[id] = Joint(x: j.x - dx, y: j.y - dy, confidence: j.confidence)
+            }
+            if let c = frame.com { out.com = CGPoint(x: c.x - dx, y: c.y - dy) }
+            return out
+        }
+    }
 
     static func read(url: URL) async throws -> Reading? {
         let asset = AVURLAsset(url: url)
@@ -105,7 +172,9 @@ enum CameraMotion {
         // Measured against the working height, so the answer is in frame
         // heights whatever the clip's resolution.
         let frameHeight = Double(size.height) * scale
+        let frameWidth = Double(size.width) * scale
         let interval = 1.0 / samplesPerSecond
+        var path: [Offset] = []
 
         var previous: CVPixelBuffer?
         var lastSampled = -Double.infinity
@@ -121,21 +190,22 @@ enum CameraMotion {
                 lastSampled = time
 
                 defer { previous = buffer }
-                guard let last = previous else { return false }
+                guard let last = previous else {
+                    path.append(Offset(time: time, dx: 0, dy: 0))
+                    return false
+                }
 
                 attempted += 1
-                let request = VNTranslationalImageRegistrationRequest(targetedCVPixelBuffer: buffer)
-                let handler = VNImageRequestHandler(cvPixelBuffer: last)
-                try? handler.perform([request])
-                guard let alignment = request.results?.first as? VNImageTranslationAlignmentObservation
-                else { return false }
+                guard let moved = shift(from: last, to: buffer) else { return false }
 
                 registered += 1
-                let t = alignment.alignmentTransform
-                let step = hypot(Double(t.tx), Double(t.ty)) / frameHeight
+                let step = hypot(Double(moved.x), Double(moved.y)) / frameHeight
                 travel += step
-                net.x += t.tx
-                net.y += t.ty
+                net.x += moved.x
+                net.y += moved.y
+                path.append(Offset(time: time,
+                                   dx: Double(net.x) / frameWidth,
+                                   dy: Double(net.y) / frameHeight))
                 return false
             }
             if stop { break }
@@ -144,6 +214,7 @@ enum CameraMotion {
         guard attempted > 0 else { return nil }
         return Reading(travel: travel,
                        drift: hypot(Double(net.x), Double(net.y)) / frameHeight,
-                       confidence: Double(registered) / Double(attempted))
+                       confidence: Double(registered) / Double(attempted),
+                       path: path)
     }
 }

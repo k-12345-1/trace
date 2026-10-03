@@ -189,6 +189,10 @@ struct ResultsScreen: View {
                     NotesCard(climb: climb)
                     ClimbStyleCard(climb: climb)
                     if ResultsReadout.of(climb) == .cameraMoved {
+                        // The posture is still the climber's, whoever held
+                        // the phone, so the moments are shown; the scores
+                        // built from the whole path are not.
+                        headline
                         cameraMoved
                     } else if ResultsReadout.of(climb) == .measurements {
                         efficiency
@@ -1147,13 +1151,13 @@ struct ResultsScreen: View {
     private var cameraMoved: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitle("The camera was moving")
-            Text("Trace followed you the whole way, but the picture travelled \(cameraTravelText) while it did. Everything Trace measures about where you went is measured inside the frame, so when the frame moves too there is no telling your movement from the phone's, and the numbers would be about whoever was holding it.")
+            Text("The picture travelled \(cameraTravelText) while this was filmed. Trace took the phone's movement back out before looking at the moments above, so what they show is you. The scores for the whole climb, how far you travelled and how much of it was wasted, are not shown, because over a whole climb the phone's movement cannot be taken out exactly, and they would be partly about whoever was holding it.")
                 .font(Theme.body(14.5))
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 7) {
                 MicroLabel(text: "Next time")
-                Text("Stand the phone on the floor, square to the wall, with the whole boulder in frame, and leave it alone. A clip somebody filmed following you up the wall is worth watching back, and it is on the clip above, but it cannot be measured.")
+                Text("Stand the phone on the floor, square to the wall, with the whole boulder in frame, and leave it alone. Then every number on this page can be measured.")
                     .font(Theme.body(13.5))
                     .foregroundStyle(Theme.ink3)
                     .fixedSize(horizontal: false, vertical: true)
