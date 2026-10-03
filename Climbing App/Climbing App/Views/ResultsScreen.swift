@@ -211,7 +211,6 @@ struct ResultsScreen: View {
                 .holdsThePageWidth()
             }
             .scrollIndicators(.hidden)
-            .ignoresSafeArea(edges: .top)
             .onPreferenceChange(StageBottomKey.self) { y in
                 // Written only while it matters: across the twenty points
                 // where the cover fades, and once on either side. Written
@@ -227,6 +226,11 @@ struct ResultsScreen: View {
             // FadesUnderTheTop.
             .fadesUnderTheTop(coverOpacity)
         }
+        // On the stack, not on the scroll view. With the scroll view told to
+        // ignore the top, iOS 26 drew its content a safe area lower than it
+        // laid it out: a band of paper above the footage, and every tap on
+        // the page landing sixty points above what it touched.
+        .ignoresSafeArea(edges: .top)
         .reachesTheTop()
         .toolbar(.hidden, for: .navigationBar)
         .alert("Rename climb", isPresented: $renaming) {
