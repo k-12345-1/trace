@@ -99,6 +99,8 @@ enum RouteRecommender {
             return "Close, positive holds you can hang below with the elbows tucked."
         case .highStep:
             return "Lots of holds, evenly spaced, so every step can be a small one."
+        case .hipsBehind:
+            return "Holds set off to the side of the line, so each reach across asks the hips to come first."
         }
     }
 
@@ -133,7 +135,7 @@ enum RouteRecommender {
             return rank(shape.spread, pool.map(\.spread), ascending: true)
         case .overReaching, .highStep:
             return rank(Double(shape.holdCount), pool.map { Double($0.holdCount) }, ascending: true)
-        case .squareHips:
+        case .squareHips, .hipsBehind:
             return rank(shape.spread, pool.map(\.spread), ascending: true)
         case .lockOffHeld, .elbowsFlared:
             return rank(shape.reachiness, pool.map(\.reachiness), ascending: false)

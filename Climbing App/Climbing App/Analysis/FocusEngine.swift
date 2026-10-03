@@ -26,6 +26,7 @@ enum FocusEngine {
         case .lockOffHeld:   return m.lockOffHeldSeconds
         case .elbowsFlared:  return m.elbowsFlaredSeconds
         case .highStep:      return m.highStepShare ?? 0
+        case .hipsBehind:    return m.hipsBehindShare ?? 0
         }
     }
 
@@ -81,6 +82,7 @@ enum FocusEngine {
         case .lockOffHeld:   return "The longest a bent arm stayed still on its hold, in seconds. Lower means you flowed through."
         case .elbowsFlared:  return "Seconds per climb an elbow sat above its shoulder. Lower means tucked."
         case .highStep:      return "Share of foot moves that landed near hip height. Lower means smaller steps."
+        case .hipsBehind:    return "Share of reaches across the body made with the hips left on the far side. Lower means the hips moved first."
         }
     }
 

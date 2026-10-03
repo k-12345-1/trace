@@ -21,6 +21,10 @@ enum FindingEngine {
     /// about five moves, so a climb of that shape reads as it did and only the
     /// scaling changes.
     static let footResetsPerMove = 0.6
+    /// The still elbow angle below which arms count as bent, in degrees.
+    static let bentArmsBelow = 135.0
+    /// The share of travel between moves, past which it is a detour.
+    static let wanderingAbove = 0.28
     /// How long a move takes on real footage, used only to count in moves when
     /// the moves themselves could not be read.
     static let secondsPerMove = 3.0
@@ -39,10 +43,17 @@ enum FindingEngine {
         let whole = (start: begins, end: begins + m.duration)
 
         // Bent arms while static. The most expensive common leak.
-        if m.staticElbowAngle < 155 {
-            let severity: Severity = m.staticElbowAngle < 115 ? .dominant
-                                   : m.staticElbowAngle < 130 ? .costly
-                                   : m.staticElbowAngle < 145 ? .moderate : .minor
+        //
+        // Below a hundred and thirty-five, not a hundred and fifty-five.
+        // Measured on five clips of the app's own climber, filmed from the
+        // floor, a resting arm read about a hundred and fifty degrees in
+        // the picture, because an arm reaching forward to the wall is
+        // foreshortened from in front. At the old threshold this fired on
+        // every clean climb, first, and drowned the rest.
+        if m.staticElbowAngle < bentArmsBelow {
+            let severity: Severity = m.staticElbowAngle < 90 ? .dominant
+                                   : m.staticElbowAngle < 105 ? .costly
+                                   : m.staticElbowAngle < 120 ? .moderate : .minor
             let worst = worstStaticElbowWindow(frames: frames) ?? whole
             // Where and for how long, the way a coach says it: the angle,
             // then the longest stretch and its length.
@@ -118,9 +129,12 @@ enum FindingEngine {
         //
         // Nil means there were not enough moves in the clip to read, which is
         // not the same as a climb with no detours in it.
-        if let waste = m.moveWaste, waste > 0.18 {
-            let severity: Severity = waste > 0.40 ? .costly
-                                   : waste > 0.28 ? .moderate : .minor
+        // Past twenty-eight percent, not eighteen. A volume in the way has
+        // to be gone round, and that read as a fifth of the travel wasted
+        // on a clean climb over one.
+        if let waste = m.moveWaste, waste > wanderingAbove {
+            let severity: Severity = waste > 0.50 ? .costly
+                                   : waste > 0.38 ? .moderate : .minor
             let share = Int((waste * 100).rounded())
             let w = worstDriftWindow(frames: frames) ?? whole
             out.append(Finding(
@@ -236,6 +250,7 @@ enum FindingEngine {
     static let overReachingShare = 0.5
     static let squareHipsShare = 0.4
     static let highStepShare = 0.3
+    static let hipsBehindShare = 0.5
     static let flaredSeconds = 1.5
 
     static func techniqueFindings(frames: [PoseFrame]) -> [Finding] {
@@ -279,6 +294,16 @@ enum FindingEngine {
                 kind: .elbowsFlared, severity: severity,
                 start: worst.start, end: worst.end,
                 message: String(format: "For %.1f seconds an elbow sat above its shoulder with the hand below it.", t.flaredSeconds)
+            ))
+        }
+
+        if let share = t.hipsBehindShare, share >= hipsBehindShare,
+           t.hipsBehind.count >= 2, let first = t.hipsBehind.first {
+            let severity: Severity = share >= 0.8 ? .costly : share >= 0.65 ? .moderate : .minor
+            out.append(Finding(
+                kind: .hipsBehind, severity: severity,
+                start: max(0, first.start - 0.6), end: first.end,
+                message: "On \(t.hipsBehind.count) of \(t.hipsJudgedForLead) reaches across, your hips stayed on the far side of your other hand while the arm went: the reach was longer than it needed to be."
             ))
         }
 

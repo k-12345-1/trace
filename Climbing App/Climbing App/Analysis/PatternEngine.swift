@@ -55,8 +55,11 @@ enum PatternEngine {
     }
 
     static let dimensions: [Dimension] = [
+        // Marks moved down twenty degrees once a resting arm was measured
+        // on real footage at about a hundred and fifty: an arm reaching to
+        // the wall is foreshortened from in front.
         Dimension(kind: .bentArms, higherIsBetter: true,
-                  strong: 168, flag: 155, weak: 130,
+                  strong: 150, flag: 135, weak: 110,
                   unit: { "\(Int($0.rounded()))°" }),
         Dimension(kind: .weightOnArms, higherIsBetter: false,
                   strong: 0.22, flag: 0.35, weak: 0.70,
@@ -65,7 +68,7 @@ enum PatternEngine {
         // thresholds move with the measure rather than being read in the old
         // units and quietly meaning something else.
         Dimension(kind: .wandering, higherIsBetter: false,
-                  strong: 0.12, flag: 0.18, weak: 0.32,
+                  strong: 0.15, flag: 0.28, weak: 0.45,
                   unit: { "\(Int(($0 * 100).rounded()))%" }),
         Dimension(kind: .impreciseFeet, higherIsBetter: false,
                   strong: 1, flag: 3, weak: 5,
@@ -98,7 +101,10 @@ enum PatternEngine {
                   unit: { String(format: "%.1f s flared", $0) }),
         Dimension(kind: .highStep, higherIsBetter: false,
                   strong: 0.1, flag: 0.3, weak: 0.55,
-                  unit: { "\(Int(($0 * 100).rounded()))% high" })
+                  unit: { "\(Int(($0 * 100).rounded()))% high" }),
+        Dimension(kind: .hipsBehind, higherIsBetter: false,
+                  strong: 0.2, flag: 0.5, weak: 0.75,
+                  unit: { "\(Int(($0 * 100).rounded()))% behind" })
     ]
 
     // MARK: A reading
@@ -217,6 +223,7 @@ enum PatternEngine {
         case .overReaching:     return m.feetStayedShare
         case .squareHips:       return m.squareReachShare
         case .highStep:         return m.highStepShare
+        case .hipsBehind:       return m.hipsBehindShare
         // Not FocusEngine's value, which is seconds. The share is what compares
         // across climbs of different lengths.
         case .unopposed:        return 1 - m.bracketedFraction

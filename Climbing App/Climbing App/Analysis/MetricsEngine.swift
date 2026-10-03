@@ -191,6 +191,7 @@ enum MetricsEngine {
             lockOffHeldSeconds: technique.lockOffHeldSeconds,
             elbowsFlaredSeconds: technique.flaredSeconds,
             highStepShare: technique.highStepShare,
+            hipsBehindShare: technique.hipsBehindShare,
             dynamicShare: style?.dynamicShare,
             reachTorsos: style?.reachTorsos
         )

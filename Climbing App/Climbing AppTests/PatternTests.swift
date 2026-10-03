@@ -56,18 +56,19 @@ struct PatternTests {
     }
 
     @Test func veryBentArmsReadAsTheWeakest() {
-        let report = PatternEngine.report(from: routes(5, elbow: 118))
+        let report = PatternEngine.report(from: routes(5, elbow: 100))
         let arms = report?.readings.first { $0.kind == .bentArms }
         #expect(arms?.standing == .weak)
         // Worst first, so it leads the list.
         #expect(report?.readings.first?.kind == .bentArms)
     }
 
-    /// The flag line here is the flag line in FindingEngine: 155 degrees.
+    /// The flag line here is the flag line in FindingEngine: 135 degrees.
     @Test func theFlagLineMatchesASingleClimb() {
-        let justUnder = PatternEngine.report(from: routes(5, elbow: 150))
+        #expect(PatternEngine.dimensions.first { $0.kind == .bentArms }?.flag == FindingEngine.bentArmsBelow)
+        let justUnder = PatternEngine.report(from: routes(5, elbow: 130))
         #expect(justUnder?.readings.first { $0.kind == .bentArms }?.standing == .working)
-        let justOver = PatternEngine.report(from: routes(5, elbow: 160))
+        let justOver = PatternEngine.report(from: routes(5, elbow: 140))
         #expect(justOver?.readings.first { $0.kind == .bentArms }?.standing == .solid)
     }
 

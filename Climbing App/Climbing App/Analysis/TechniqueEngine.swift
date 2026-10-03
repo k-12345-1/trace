@@ -76,6 +76,11 @@ enum TechniqueEngine {
         let hipJudged: Int
         /// Of those, hips square at launch and the arm bent at the catch.
         let squareAndBent: [ReachEngine.Reach]
+        /// Reaches across the body where the hips could be read at both ends.
+        let hipsJudgedForLead: Int
+        /// Of those, the ones where the hips started on the far side of the
+        /// other hand and did not come across while the arm reached.
+        let hipsBehind: [ReachEngine.Reach]
         /// Bent arms held still on their hold for longer than a few seconds.
         let lockOffs: [Span]
         /// Elbows held above their shoulder with the hand below.
@@ -93,6 +98,10 @@ enum TechniqueEngine {
             guard hipJudged >= minimumReaches else { return nil }
             return Double(squareAndBent.count) / Double(hipJudged)
         }
+        var hipsBehindShare: Double? {
+            guard hipsJudgedForLead >= minimumReaches else { return nil }
+            return Double(hipsBehind.count) / Double(hipsJudgedForLead)
+        }
         var highStepShare: Double? {
             guard steps.count >= minimumSteps else { return nil }
             return Double(highSteps.count) / Double(steps.count)
@@ -103,7 +112,8 @@ enum TechniqueEngine {
         var longestFlare: Span? { flares.max { $0.duration < $1.duration } }
 
         static let empty = Reading(upwardReaches: [], feetStayed: [], hipJudged: 0,
-                                   squareAndBent: [], lockOffs: [], flares: [], steps: [])
+                                   squareAndBent: [], hipsJudgedForLead: 0, hipsBehind: [],
+                                   lockOffs: [], flares: [], steps: [])
     }
 
     // MARK: The judgements
@@ -182,7 +192,13 @@ enum TechniqueEngine {
         var stayed: [ReachEngine.Reach] = []
         var judged = 0
         var square: [ReachEngine.Reach] = []
+        var leadJudged = 0
+        var behind: [ReachEngine.Reach] = []
         for r in reaches {
+            if let lead = hipsLead(of: r, in: usable, torso: torso) {
+                leadJudged += 1
+                if lead.behind { behind.append(r) }
+            }
             if let rise = rise(of: r, in: usable, torso: torso), rise >= upwardRise {
                 upward.append(r)
                 if r.share < armLed,
@@ -230,8 +246,44 @@ enum TechniqueEngine {
         }
 
         return Reading(upwardReaches: upward, feetStayed: stayed, hipJudged: judged,
-                       squareAndBent: square, lockOffs: lockOffs, flares: flares,
-                       steps: steps)
+                       squareAndBent: square, hipsJudgedForLead: leadJudged, hipsBehind: behind,
+                       lockOffs: lockOffs, flares: flares, steps: steps)
+    }
+
+    // MARK: Hips on the reach
+
+    /// A reach counts as across the body when the hold is this far, in
+    /// torso lengths, to one side of the other hand.
+    static let acrossReach = 0.3
+    /// The hips are behind when they sit this far, in torso lengths, on the
+    /// far side of the other hand from the hold as the reach sets off.
+    static let hipsBehindBy = 0.25
+    /// And did not come across: moved toward the hold by less than this
+    /// during the reach, in torso lengths.
+    static let hipsLeadBy = 0.15
+
+    /// Where the hips were when a reach set off, against the hand that
+    /// stayed and the hold the other went to.
+    ///
+    /// "Move your hips first" is the positioning cue every coach gives for
+    /// a long reach: the hand reaches as far as the shoulder, and the
+    /// shoulder goes where the hips go. From in front it shows as the hips
+    /// shifting toward the hold before or during the reach. A reach made
+    /// with the hips still over on the far side of the other hand is one
+    /// made longer than it needed to be. Nil when the reach was not
+    /// across the body, or the hips and hands could not all be read.
+    static func hipsLead(of r: ReachEngine.Reach, in frames: [PoseFrame], torso: Double) -> (behind: Bool, from: Double, toward: Double)? {
+        guard let a = frames.min(by: { abs($0.time - r.start) < abs($1.time - r.start) }),
+              let b = frames.min(by: { abs($0.time - r.end) < abs($1.time - r.end) }),
+              let hipsA = a.com, let hipsB = b.com else { return nil }
+        let other: JointID = r.hand == .leftWrist ? .rightWrist : .leftWrist
+        guard let otherA = a.pt(other), let target = b.pt(r.hand) else { return nil }
+        let across = Double(target.x - otherA.x) / torso
+        guard abs(across) >= acrossReach else { return nil }
+        let dir: Double = across > 0 ? 1 : -1
+        let from = Double(hipsA.x - otherA.x) / torso * dir
+        let toward = Double(hipsB.x - hipsA.x) / torso * dir
+        return (from < -hipsBehindBy && toward < hipsLeadBy, from, toward)
     }
 
     // MARK: Feet

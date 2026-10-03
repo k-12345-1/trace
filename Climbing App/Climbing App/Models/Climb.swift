@@ -21,6 +21,7 @@ enum LeakKind: String, Codable {
     case bentArms, weightOnArms, lurchy, impreciseFeet, hesitation, wandering
     case mistimedDynamics, unopposed
     case overReaching, squareHips, lockOffHeld, elbowsFlared, highStep
+    case hipsBehind
 
     var title: String {
         switch self {
@@ -37,6 +38,7 @@ enum LeakKind: String, Codable {
         case .lockOffHeld:      return "Holding a lock-off"
         case .elbowsFlared:     return "Elbows flared"
         case .highStep:         return "Stepping too high"
+        case .hipsBehind:       return "Hips behind the reach"
         }
     }
 
@@ -74,6 +76,8 @@ enum LeakKind: String, Codable {
             return "Tuck the elbow in and down, crease toward your face, and let your back take the load."
         case .highStep:
             return "Take two smaller steps instead of one high one, and keep your hips over the foot you stand on."
+        case .hipsBehind:
+            return "Before the hand goes, move your hips across toward the hold. The reach gets shorter and the arm can stay long."
         }
     }
 
@@ -106,6 +110,8 @@ enum LeakKind: String, Codable {
             return "Elbows in. Drop the grade and climb with both elbows tucked close to the wall, the crease of each turned slightly toward your face. On a gaston the elbow is meant to be out; everywhere else it is not."
         case .highStep:
             return "Small steps. Climb an easy problem using every intermediate foothold, never placing a foot above the opposite knee."
+        case .hipsBehind:
+            return "Hips first. On easy ground, before every reach shift your hips toward the hold until the foot on that side is taking your weight, and only then let the hand go."
         }
     }
 }
@@ -188,6 +194,8 @@ struct Metrics: Codable {
     var elbowsFlaredSeconds: Double = 0
     /// Foot moves that landed near hip height.
     var highStepShare: Double?
+    /// Share of reaches across the body made with the hips left behind.
+    var hipsBehindShare: Double?
 
     /// How the climb was climbed, for sorting routes by style.
     /// Share of the hand moves that were thrown off a rising body rather than
@@ -245,6 +253,7 @@ struct Metrics: Codable {
         lockOffHeldSeconds = try c.decodeIfPresent(Double.self, forKey: .lockOffHeldSeconds) ?? 0
         elbowsFlaredSeconds = try c.decodeIfPresent(Double.self, forKey: .elbowsFlaredSeconds) ?? 0
         highStepShare      = try c.decodeIfPresent(Double.self, forKey: .highStepShare)
+        hipsBehindShare    = try c.decodeIfPresent(Double.self, forKey: .hipsBehindShare)
         dynamicShare       = try c.decodeIfPresent(Double.self, forKey: .dynamicShare)
         reachTorsos        = try c.decodeIfPresent(Double.self, forKey: .reachTorsos)
     }
@@ -258,7 +267,7 @@ struct Metrics: Codable {
          movingJerk: Double? = nil,
          feetStayedShare: Double? = nil, squareReachShare: Double? = nil,
          lockOffHeldSeconds: Double = 0, elbowsFlaredSeconds: Double = 0,
-         highStepShare: Double? = nil,
+         highStepShare: Double? = nil, hipsBehindShare: Double? = nil,
          dynamicShare: Double? = nil, reachTorsos: Double? = nil) {
         self.dynamicShare = dynamicShare
         self.reachTorsos = reachTorsos
@@ -267,6 +276,7 @@ struct Metrics: Codable {
         self.lockOffHeldSeconds = lockOffHeldSeconds
         self.elbowsFlaredSeconds = elbowsFlaredSeconds
         self.highStepShare = highStepShare
+        self.hipsBehindShare = hipsBehindShare
         self.bracketedFraction = bracketedFraction
         self.compressionFraction = compressionFraction
         self.swingTotal = swingTotal

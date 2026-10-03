@@ -85,7 +85,7 @@ struct StrengthTests {
         case .lurchy:        return StrengthEngine.Kind.smoothForYou.rawValue
         // The coaches' list has no strength to contradict yet: nothing praises
         // feet-first reaching or tucked elbows, so nothing can clash with it.
-        case .overReaching, .squareHips, .lockOffHeld, .elbowsFlared, .highStep:
+        case .overReaching, .squareHips, .lockOffHeld, .elbowsFlared, .highStep, .hipsBehind:
             return "no strength for \(kind.rawValue)"
         }
     }

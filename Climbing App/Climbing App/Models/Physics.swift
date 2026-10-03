@@ -133,6 +133,15 @@ extension LeakKind {
                 measured: "Seconds an elbow sat above its shoulder while the hand was below it, on a hand that was not moving."
             )
 
+        case .hipsBehind:
+            return PhysicsNote(
+                plain: "A reach is measured from the hips, not the shoulder.",
+                concept: "Reach as the sum of hips, torso and arm",
+                law: "The hand reaches as far as the shoulder, and the shoulder goes where the hips go",
+                why: "An arm is a fixed length. What changes how far a hold is from the hand is where the shoulder starts, and the shoulder starts above the hips. Hips moved across first bring the shoulder half a torso closer before the arm does anything; left behind, the arm makes up the whole distance and arrives bent.",
+                measured: "Where the hips sat against the other hand as each reach across set off, and whether they moved toward the hold while the arm went."
+            )
+
         case .highStep:
             return PhysicsNote(
                 plain: "A foot near hip height is a foot you cannot stand up on without hauling.",

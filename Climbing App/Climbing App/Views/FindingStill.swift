@@ -271,6 +271,7 @@ struct FindingStill: View {
         case .lockOffHeld:  drawBentArm(&ctx, at)
         case .elbowsFlared: circleJoints([.leftElbow, .rightElbow], "up here", &ctx, at)
         case .highStep:     circleJoints([.leftAnkle, .rightAnkle], "this high", &ctx, at)
+        case .hipsBehind:   circleJoints([.leftHip, .rightHip], "left behind", &ctx, at)
         }
     }
 
