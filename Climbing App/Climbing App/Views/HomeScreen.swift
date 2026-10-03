@@ -73,7 +73,8 @@ struct HomeScreen: View {
 
     @ViewBuilder
     private var focusBanner: some View {
-        if let focus = store.focus {
+        // Nothing to work on until something has been climbed on camera.
+        if let focus = store.focus, !store.climbs.isEmpty {
             NavigationLink { ProgressScreen() } label: {
                 VStack(alignment: .leading, spacing: 9) {
                     HStack {

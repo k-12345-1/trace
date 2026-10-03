@@ -439,6 +439,7 @@ struct RouteDetailScreen: View {
     @State private var showFigure = false
     @State private var figureT = 0.0
     @State private var figurePlaying = false
+    @State private var confirmingDelete = false
 
     private var live: Route { store.routes.first { $0.id == route.id } ?? route }
     @State private var looksLike: String?
@@ -528,6 +529,25 @@ struct RouteDetailScreen: View {
                                 .contentShape(Capsule())
                         }
                         .buttonStyle(.plain)
+
+                        // Deleting lived in a long press on the gym page's
+                        // row, where nobody found it. It belongs here, on
+                        // the route, with a confirmation.
+                        Button(role: .destructive) { confirmingDelete = true } label: {
+                            Label("Delete this route", systemImage: "trash")
+                                .font(Theme.ui(15, .semibold))
+                                .foregroundStyle(Theme.ink2)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .alert("Delete \(live.displayName)?", isPresented: $confirmingDelete) {
+                            Button("Delete", role: .destructive) { store.deleteRoute(live); dismiss() }
+                            Button("Keep", role: .cancel) {}
+                        } message: {
+                            Text("The scan and its photo go. Climbs you recorded on it stay.")
+                        }
 
                         Text("Trace found these holds by color, not by reading the setter's intent. Anything it got wrong was dropped when you saved it.")
                             .font(Theme.ui(13))

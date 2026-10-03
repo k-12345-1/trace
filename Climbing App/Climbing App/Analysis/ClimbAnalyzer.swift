@@ -14,7 +14,8 @@ final class ClimbAnalyzer: ObservableObject {
 
     @Published var state: State = .idle
 
-    func analyze(sourceURL: URL, label: String, gymID: UUID? = nil) async {
+    func analyze(sourceURL: URL, label: String, gymID: UUID? = nil,
+                 grade: String = "", note: String = "") async {
         state = .working(0)
         do {
             let filename = try Store.shared.importVideo(from: sourceURL)
@@ -62,11 +63,14 @@ final class ClimbAnalyzer: ObservableObject {
                 recordedAt: Date(),
                 videoFilename: filename,
                 label: label,
+                grade: grade.trimmingCharacters(in: .whitespaces),
                 metrics: metrics,
                 findings: findings,
                 frames: frames,
                 sent: topped,
                 gymID: gymID,
+                notes: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? nil : ClimbNotes(note: note.trimmingCharacters(in: .whitespacesAndNewlines)),
                 cameraTravel: camera?.travel
             )
             Store.shared.save(climb)

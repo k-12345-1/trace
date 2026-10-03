@@ -130,6 +130,12 @@ struct ResultsScreen: View {
     /// So the cover is not always on, it arrives as the footage leaves.
     @State private var stageBottom: CGFloat = .greatestFiniteMagnitude
 
+    /// The grade the climber gave, set beside the name.
+    private var gradeSuffix: String {
+        let g = store.climbs.first { $0.id == climb.id }?.grade ?? climb.grade ?? ""
+        return g.isEmpty ? "" : "  " + g
+    }
+
     /// Read the label back out of the store so a rename shows immediately.
     private var label: String {
         let current = store.climbs.first { $0.id == climb.id }?.label ?? climb.label
@@ -151,6 +157,18 @@ struct ResultsScreen: View {
                     // the very top of the screen, under the status bar, with the
                     // back control floating on it.
                     stage
+                        // Pulled down past the top, the page used to leave
+                        // half a screen of paper above the footage. The
+                        // footage now stays pinned to the top and stretches
+                        // to cover the pull, the way a video header does.
+                        .visualEffect { content, proxy in
+                            let y = proxy.frame(in: .scrollView).minY
+                            let pull = max(0, y)
+                            let h = max(proxy.size.height, 1)
+                            return content
+                                .offset(y: -pull)
+                                .scaleEffect(x: 1, y: 1 + pull / h, anchor: .top)
+                        }
                         .background {
                             GeometryReader { geo in
                                 Color.clear.preference(key: StageBottomKey.self,
@@ -190,7 +208,15 @@ struct ResultsScreen: View {
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)
-            .onPreferenceChange(StageBottomKey.self) { stageBottom = $0 }
+            .onPreferenceChange(StageBottomKey.self) { y in
+                // Written only while it matters: across the twenty points
+                // where the cover fades, and once on either side. Written
+                // on every frame, the whole page was rebuilt on every frame
+                // of every scroll, which is what made scrolling catch.
+                let fadeOver: CGFloat = 20
+                let clamped = min(max(y, 62), 62 + fadeOver)
+                if clamped != stageBottom { stageBottom = clamped }
+            }
             // Arrives over the last twenty points of the footage leaving, so
             // there is no frame where it snaps on. A fade on the page itself
             // rather than paper painted over it, for the reason in
@@ -236,6 +262,7 @@ struct ResultsScreen: View {
                     // the Text it sits on the title's own baseline and wraps
                     // with the last word.
                     (Text(label).font(Theme.title(27)).foregroundColor(Theme.ink)
+                     + Text(gradeSuffix).font(Theme.ui(16, .semibold)).foregroundColor(Theme.accentText)
                      + Text("  ")
                      + Text(Image(systemName: "pencil"))
                         .font(.system(size: 13)).foregroundColor(Theme.ink3))
@@ -385,9 +412,14 @@ struct ResultsScreen: View {
                         .frame(width: progressWidth(geo.size.width), height: 2)
                 }
                 .contentShape(Rectangle())
-                .gesture(
+                // A drag that is more down than across is the page
+                // scrolling, not a scrub. The scrubber used to take every
+                // drag that began on it, which left a dead strip across
+                // the screen for scrolling.
+                .simultaneousGesture(
                     DragGesture(minimumDistance: 0).onChanged { g in
                         guard playback.duration > 0, geo.size.width > 0 else { return }
+                        guard abs(g.translation.width) >= abs(g.translation.height) else { return }
                         let ratio = min(max(g.location.x / geo.size.width, 0), 1)
                         playback.seek(to: ratio * playback.duration)
                     }

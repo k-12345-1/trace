@@ -7,6 +7,8 @@ struct AnalyzingScreen: View {
     @StateObject private var analyzer = ClimbAnalyzer()
     @ObservedObject private var store = Store.shared
     @State private var label = ""
+    @State private var grade = ""
+    @State private var note = ""
     @State private var started = false
     @State private var gymID: UUID?
     @State private var newGymName = ""
@@ -80,13 +82,25 @@ struct AnalyzingScreen: View {
                     MicroLabel(text: "Attempt \(n + 1) on this one", color: Theme.accentText)
                 }
 
+                // The grade, and what the climb was like, in the climber's
+                // own words: the half the camera cannot see.
+                HStack(spacing: 12) {
+                    field("V3", text: $grade)
+                        .frame(width: 96)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    MicroLabel(text: "Grade")
+                    Spacer()
+                }
+                field("What was it like? Slopers, a long move at the top, pumped by the end.", text: $note, lines: 3)
+
                 whichGym
 
                 FlatButton(title: "Analyze", filled: true) {
                     guard !started else { return }
                     started = true
                     let gym = gymID
-                    Task { await analyzer.analyze(sourceURL: sourceURL, label: label, gymID: gym) }
+                    Task { await analyzer.analyze(sourceURL: sourceURL, label: label, gymID: gym, grade: grade, note: note) }
                 }
                 .padding(.top, 6)
             }
@@ -116,6 +130,17 @@ struct AnalyzingScreen: View {
     /// climb, and one filmed outdoors has no right answer. The default is
     /// wherever you were last time, which is right nearly every session and
     /// costs one tap when it is not.
+    /// A text field in the same dress as the name field above.
+    private func field(_ prompt: String, text: Binding<String>, lines: Int = 1) -> some View {
+        TextField("", text: text, prompt: Text(prompt).foregroundStyle(Theme.ink3), axis: lines > 1 ? .vertical : .horizontal)
+            .lineLimit(lines > 1 ? lines...lines + 3 : 1...1)
+            .font(Theme.body(16))
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.r, style: .continuous))
+    }
+
     private var whichGym: some View {
         VStack(alignment: .leading, spacing: 9) {
             MicroLabel(text: "Where")

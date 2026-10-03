@@ -292,6 +292,9 @@ struct Climb: Codable, Identifiable {
     var recordedAt: Date
     var videoFilename: String
     var label: String              // free text, user typed, never validated against anything
+    /// The grade, as the climber typed it: "V3", "6b+". Optional so climbs
+    /// recorded before it existed still decode; empty when they left it.
+    var grade: String?
     var metrics: Metrics
     var findings: [Finding]
     var frames: [PoseFrame]
