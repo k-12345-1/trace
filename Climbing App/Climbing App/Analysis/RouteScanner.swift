@@ -1687,6 +1687,25 @@ enum RouteScanner {
     struct Tag: Equatable {
         enum Kind { case start, finish }
         let kind: Kind
+
+        /// What a sticker's writing says it marks, or nil for writing that
+        /// marks nothing.
+        ///
+        /// A grade sticker is a start: gyms put the V-number on the start
+        /// hold, with or without the word, and both hands start on the
+        /// hold under it. The grade is read as a V followed by a digit or
+        /// a B, with a space allowed, since the reader sometimes puts one
+        /// in.
+        static func kind(of raw: String) -> Kind? {
+            let text = raw.lowercased()
+            if text.contains("start") { return .start }
+            // "Top" as a word of its own: the sixth wall's gym sign has it
+            // inside a name, and read as a finish it put the finish on a
+            // sign.
+            if text.contains("finish") || text.range(of: #"(^|[^a-z])top([^a-z]|$)"#, options: .regularExpression) != nil { return .finish }
+            if text.range(of: #"(^|[^a-z])v ?([0-9]|b)"#, options: .regularExpression) != nil { return .start }
+            return nil
+        }
         /// Normalised, origin top left.
         let point: CGPoint
     }
@@ -1705,8 +1724,7 @@ enum RouteScanner {
                     let b = o.boundingBox
                     boxes.append(CGRect(x: b.minX, y: 1 - b.maxY, width: b.width, height: b.height))
                     let point = CGPoint(x: b.midX, y: 1 - b.midY)
-                    if text.contains("start") { tags.append(Tag(kind: .start, point: point)) }
-                    else if text.contains("finish") || text.contains("top") { tags.append(Tag(kind: .finish, point: point)) }
+                    if let kind = Tag.kind(of: text) { tags.append(Tag(kind: kind, point: point)) }
                 }
                 continuation.resume(returning: (tags, boxes))
             }

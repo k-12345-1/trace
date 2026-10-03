@@ -376,9 +376,13 @@ enum BetaEngine {
         let arm = shape.arm * span, leg = shape.leg * span
 
         // Start: the start holds, or the lowest hand hold and its neighbour.
+        // Two hands always start on the start holds: one on each where
+        // two are tagged, both on the one where one is. With more than two
+        // tagged, which happens when a grade sticker and a start sticker
+        // sit on different holds, the first two in the line are taken.
         var startL: Int, startR: Int
         switch line.startCount {
-        case 2: (startL, startR) = (handIndex[0], handIndex[1])
+        case 2...: (startL, startR) = (handIndex[0], handIndex[1])
         case 1: (startL, startR) = (handIndex[0], handIndex[0])
         default:
             // The lowest hand hold that has another within reach. A lone

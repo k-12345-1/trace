@@ -401,3 +401,24 @@ struct SameColourRouteTests {
         #expect(found[0].holds.count == 4)
     }
 }
+
+/// What a sticker's writing marks.
+@Suite("Sticker words")
+struct StickerWordTests {
+    @Test("A grade sticker marks a start, with or without the word")
+    func gradeIsAStart() {
+        #expect(RouteScanner.Tag.kind(of: "Start") == .start)
+        #expect(RouteScanner.Tag.kind(of: "V0") == .start)
+        #expect(RouteScanner.Tag.kind(of: "v3 start") == .start)
+        #expect(RouteScanner.Tag.kind(of: "V 7") == .start)
+        #expect(RouteScanner.Tag.kind(of: "VB") == .start)
+        #expect(RouteScanner.Tag.kind(of: "Finish") == .finish)
+        #expect(RouteScanner.Tag.kind(of: "TOP") == .finish)
+        // Writing that is not a sticker.
+        #expect(RouteScanner.Tag.kind(of: "WALLTOPIA") == nil, "a gym name with top inside it is not a finish")
+        #expect(RouteScanner.Tag.kind(of: "top out") == .finish)
+        #expect(RouteScanner.Tag.kind(of: "volume") == nil)
+        #expect(RouteScanner.Tag.kind(of: "love") == nil)
+        #expect(RouteScanner.Tag.kind(of: "12") == nil)
+    }
+}
