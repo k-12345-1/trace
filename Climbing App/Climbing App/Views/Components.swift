@@ -433,17 +433,21 @@ struct HoldOutline: Shape {
             CGPoint(x: frame.minX + q.x * frame.width, y: frame.minY + q.y * frame.height)
         }
         if outline.count >= 3 {
-            // A closed Catmull-Rom curve through the points, so the line
-            // round a hold reads as a drawn shape rather than a pixel trace.
+            // The scanner has already smoothed the pixel boundary. A closed
+            // quadratic through midpoints keeps that contour smooth without
+            // the overshoot a Catmull-Rom spline can introduce on a small
+            // concave hold (which made some outlines fold back into a D shape).
             let pts = outline.map(at)
             let n = pts.count
             func P(_ i: Int) -> CGPoint { pts[((i % n) + n) % n] }
-            p.move(to: P(0))
-            for i in 0..<n {
-                let p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2)
-                let c1 = CGPoint(x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6)
-                let c2 = CGPoint(x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6)
-                p.addCurve(to: p2, control1: c1, control2: c2)
+            func midpoint(_ a: CGPoint, _ b: CGPoint) -> CGPoint {
+                CGPoint(x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5)
+            }
+            p.move(to: midpoint(P(0), P(1)))
+            for i in 1...n {
+                let control = P(i)
+                let end = midpoint(P(i), P(i + 1))
+                p.addQuadCurve(to: end, control: control)
             }
             p.closeSubpath()
         } else {

@@ -351,3 +351,53 @@ struct TappedHoldTests {
         #expect(hold.rect.width < 0.10, "the box spanned both holds: \(hold.rect)")
     }
 }
+
+@Suite("Same-colour route separation")
+struct SameColourRouteTests {
+    @Test("Two separately tagged problems sharing a colour stay separate")
+    func separatesSamePlasticRoutes() {
+        func hold(_ x: Double, _ y: Double) -> RouteScanner.Hold {
+            RouteScanner.Hold(rect: CGRect(x: x, y: y, width: 0.04, height: 0.04), area: 0.0018)
+        }
+
+        let holds = [
+            hold(0.18, 0.86), hold(0.20, 0.70), hold(0.23, 0.54),
+            hold(0.72, 0.86), hold(0.70, 0.70), hold(0.67, 0.54)
+        ]
+        // Stickers sit under or beside their holds, never above them.
+        let tags: [RouteScanner.Tag] = [
+            .init(kind: .start, point: CGPoint(x: 0.20, y: 0.75)),
+            .init(kind: .finish, point: CGPoint(x: 0.23, y: 0.59)),
+            .init(kind: .start, point: CGPoint(x: 0.72, y: 0.91)),
+            .init(kind: .finish, point: CGPoint(x: 0.67, y: 0.59))
+        ]
+        let swatch = RouteScanner.Swatch(hex: "#F0C51A",
+                                         lab: Lab(hexString: "#F0C51A"),
+                                         holds: holds,
+                                         score: 1)
+        let found = RouteScanner.splitSameColorRoutes([swatch], tags: tags)
+        #expect(found.count == 2)
+        #expect(found.allSatisfy { $0.holds.count == 3 })
+        #expect(found.map(\.variant).compactMap { $0 }.sorted() == [1, 2])
+    }
+
+    @Test("Two start holds on one problem are not treated as two routes")
+    func pairedStartsStayTogether() {
+        func hold(_ x: Double, _ y: Double) -> RouteScanner.Hold {
+            RouteScanner.Hold(rect: CGRect(x: x, y: y, width: 0.05, height: 0.05), area: 0.0025)
+        }
+        let holds = [hold(0.42, 0.86), hold(0.48, 0.86), hold(0.45, 0.68), hold(0.47, 0.50)]
+        let tags: [RouteScanner.Tag] = [
+            .init(kind: .start, point: CGPoint(x: 0.44, y: 0.92)),
+            .init(kind: .start, point: CGPoint(x: 0.50, y: 0.92)),
+            .init(kind: .finish, point: CGPoint(x: 0.47, y: 0.56))
+        ]
+        let swatch = RouteScanner.Swatch(hex: "#F0C51A",
+                                         lab: Lab(hexString: "#F0C51A"),
+                                         holds: holds,
+                                         score: 1)
+        let found = RouteScanner.splitSameColorRoutes([swatch], tags: tags)
+        #expect(found.count == 1)
+        #expect(found[0].holds.count == 4)
+    }
+}

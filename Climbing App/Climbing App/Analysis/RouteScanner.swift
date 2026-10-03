@@ -418,6 +418,190 @@ enum RouteScanner {
         return other + free > 0 && Double(other) / Double(other + free) > share
     }
 
+    // MARK: Same-colour routes
+
+    /// A gym can set two problems in one colour. Colour alone cannot tell
+    /// them apart, so the split rests on the stickers: two tagged starts,
+    /// or two tagged finishes, far enough apart to be two routes. With
+    /// less evidence than that the colour stays one route; guessing a
+    /// boundary is worse than offering one chip with both on it.
+    static func splitSameColorRoutes(_ swatches: [Swatch], tags: [Tag]) -> [Swatch] {
+        var out: [Swatch] = []
+        for swatch in swatches {
+            let starts = taggedIndices(.start, holds: swatch.holds, tags: tags)
+            let finishes = taggedIndices(.finish, holds: swatch.holds, tags: tags)
+            let clusters = routeClusters(swatch.holds, starts: starts, finishes: finishes)
+            guard clusters.count > 1 else {
+                out.append(swatch)
+                continue
+            }
+
+            var kept = 0
+            for cluster in clusters {
+                guard cluster.count >= minimumHolds else { continue }
+                var copy = swatch
+                copy.id = UUID()
+                copy.holds = cluster.map { swatch.holds[$0] }
+                kept += 1
+                copy.variant = kept
+                copy.score = score(copy.holds)
+                out.append(copy)
+            }
+            if kept == 0 { out.append(swatch) }
+        }
+        return out
+    }
+
+    private static func taggedIndices(_ kind: Tag.Kind, holds: [Hold], tags: [Tag]) -> [Int] {
+        var result: [Int] = []
+        for tag in tags where tag.kind == kind {
+            var best: (index: Int, gap: Double)?
+            for (i, hold) in holds.enumerated() {
+                guard hold.area >= CoverageEngine.tagHold,
+                      hold.rect.minY <= tag.point.y + CoverageEngine.tagBelowHold else { continue }
+                let gap = Double(max(0, hypot(hold.rect.midX - tag.point.x,
+                                              hold.rect.midY - tag.point.y) - max(hold.rect.width, hold.rect.height) / 2))
+                if best == nil || gap < best!.gap { best = (index: i, gap: gap) }
+            }
+            if let best, best.gap <= CoverageEngine.tagReach, !result.contains(best.index) {
+                result.append(best.index)
+            }
+        }
+        return result
+    }
+
+    private static func routeClusters(_ holds: [Hold], starts: [Int], finishes: [Int]) -> [[Int]] {
+        guard holds.count >= minimumHolds else { return [Array(holds.indices)] }
+
+        // Multiple labelled starts are the strongest signal. Partition the
+        // colour by shortest graph distance from each start, then use the
+        // finish anchors only to reject a partition that never reaches its
+        // corresponding end. This keeps secondary holds that sit beside the
+        // setter's main hand sequence instead of throwing them away.
+        let startAnchors = anchorRepresentatives(starts, holds: holds)
+        let finishAnchors = anchorRepresentatives(finishes, holds: holds)
+
+        if startAnchors.count >= 2 {
+            let distances = startAnchors.map { graphDistances(from: $0, holds: holds) }
+            var groups = Array(repeating: [Int](), count: startAnchors.count)
+            for i in holds.indices {
+                // By the climbing graph where it reaches; a hold it does not
+                // reach, a foot hold below a start, goes to the nearest
+                // anchor as the crow flies rather than to nobody.
+                if let best = distances.indices.min(by: { distances[$0][i] < distances[$1][i] }),
+                   distances[best][i].isFinite {
+                    groups[best].append(i)
+                } else if let near = startAnchors.indices.min(by: {
+                    hypot(holds[startAnchors[$0]].rect.midX - holds[i].rect.midX, holds[startAnchors[$0]].rect.midY - holds[i].rect.midY)
+                        < hypot(holds[startAnchors[$1]].rect.midX - holds[i].rect.midX, holds[startAnchors[$1]].rect.midY - holds[i].rect.midY)
+                }) {
+                    groups[near].append(i)
+                }
+            }
+            let meaningful = groups.filter { $0.count >= minimumHolds }
+            if meaningful.count > 1 {
+                return meaningful
+            }
+        }
+
+        // Multiple finishes are the same evidence from the other end.
+        if finishAnchors.count >= 2 {
+            let distances = finishAnchors.map { graphDistances(from: $0, holds: holds) }
+            var groups = Array(repeating: [Int](), count: finishAnchors.count)
+            for i in holds.indices {
+                // By the climbing graph where it reaches; a hold it does not
+                // reach, a foot hold below a start, goes to the nearest
+                // anchor as the crow flies rather than to nobody.
+                if let best = distances.indices.min(by: { distances[$0][i] < distances[$1][i] }),
+                   distances[best][i].isFinite {
+                    groups[best].append(i)
+                } else if let near = finishAnchors.indices.min(by: {
+                    hypot(holds[finishAnchors[$0]].rect.midX - holds[i].rect.midX, holds[finishAnchors[$0]].rect.midY - holds[i].rect.midY)
+                        < hypot(holds[finishAnchors[$1]].rect.midX - holds[i].rect.midX, holds[finishAnchors[$1]].rect.midY - holds[i].rect.midY)
+                }) {
+                    groups[near].append(i)
+                }
+            }
+            let meaningful = groups.filter { $0.count >= minimumHolds }
+            if meaningful.count > 1 {
+                return meaningful
+            }
+        }
+
+        // If there are both ends but only one of each, there is no evidence of
+        // multiple same-colour routes. Do not manufacture a split.
+        if startAnchors.count == 1 && finishAnchors.count == 1 {
+            return [Array(holds.indices)]
+        }
+
+        // Without two tagged starts or two tagged finishes there is no
+        // evidence of a second route in this colour, and the holds stay
+        // together. A spatial split was tried here and cut nearly every
+        // real route on the six fixture walls in two: a boulder's holds
+        // are not evenly spread, and a gap in them is a long move, not a
+        // second problem.
+        return [Array(holds.indices)]
+    }
+
+    private static func anchorRepresentatives(_ anchors: [Int], holds: [Hold]) -> [Int] {
+        guard !anchors.isEmpty else { return [] }
+        let threshold = 0.16
+        var groups: [[Int]] = []
+        for anchor in anchors {
+            if let i = groups.firstIndex(where: { group in
+                group.contains { other in
+                    hypot(holds[anchor].rect.midX - holds[other].rect.midX,
+                          holds[anchor].rect.midY - holds[other].rect.midY) <= threshold
+                }
+            }) {
+                groups[i].append(anchor)
+            } else {
+                groups.append([anchor])
+            }
+        }
+        return groups.map { group in
+            group.min { a, b in
+                let da = group.reduce(0.0) { total, other in
+                    total + hypot(holds[a].rect.midX - holds[other].rect.midX,
+                                  holds[a].rect.midY - holds[other].rect.midY)
+                }
+                let db = group.reduce(0.0) { total, other in
+                    total + hypot(holds[b].rect.midX - holds[other].rect.midX,
+                                  holds[b].rect.midY - holds[other].rect.midY)
+                }
+                return da < db
+            }!
+        }
+    }
+
+    private static func graphDistances(from source: Int, holds: [Hold]) -> [Double] {
+        let n = holds.count
+        var cost = Array(repeating: Double.infinity, count: n)
+        var open: Set<Int> = [source]
+        cost[source] = 0
+        let maxStep = 0.30
+        let maxDown = 0.12
+        while !open.isEmpty {
+            guard let current = open.min(by: { cost[$0] < cost[$1] }) else { break }
+            open.remove(current)
+            for next in 0..<n where next != current {
+                let a = holds[current].rect, b = holds[next].rect
+                let d = hypot(a.midX - b.midX, a.midY - b.midY)
+                let down = b.midY - a.midY
+                guard d <= maxStep, down <= maxDown else { continue }
+                let edge = d + max(0, down) * 1.5
+                let candidate = cost[current] + edge
+                if candidate < cost[next] {
+                    cost[next] = candidate
+                    open.insert(next)
+                }
+            }
+        }
+        return cost
+    }
+
+
+
     // MARK: Stickers
 
     /// The holds that are stickers, taken out.
@@ -466,6 +650,9 @@ enum RouteScanner {
         var holds: [Hold]
         /// How much this color looks like a route rather than like scenery.
         var score: Double
+        /// When one colour is two routes, told apart by their stickers,
+        /// each chip carries its number. Nil for a colour that is one route.
+        var variant: Int? = nil
 
         static func == (a: Swatch, b: Swatch) -> Bool { a.id == b.id }
     }
@@ -525,13 +712,7 @@ enum RouteScanner {
         // well clear of every ground colour or they are dropped, which is what
         // keeps a route of white holds and loses the 41 boxes of panel shade
         // that led the list once shading was allowed for.
-        // Keep a wider candidate pool than the final ten swatches. A route can
-        // occupy surprisingly little of a photo when its holds are small, and
-        // the old top-20 histogram could discard it before shape filtering ever
-        // had a chance to recognise it. The extra candidates are cheap compared
-        // with a second image pass and are removed by route purity/shape tests.
-        let candidates = commonColors(in: bmp, keep: 32,
-                                      apart: tolerance * 0.6, ground: ground)
+        let candidates = commonColors(in: bmp, apart: tolerance * 0.6, ground: ground)
             .filter { c in
                 let chroma = (c.lab.a * c.lab.a + c.lab.b * c.lab.b).squareRoot()
                 // A grey, and a muted colour too, has to stand clear of the
@@ -1019,17 +1200,8 @@ enum RouteScanner {
     static func score(_ holds: [Hold]) -> Double {
         guard !holds.isEmpty else { return 0 }
         let ys = holds.map { Double($0.rect.midY) }
-        let xs = holds.map { Double($0.rect.midX) }
-        let ySpread = (ys.max() ?? 0) - (ys.min() ?? 0)
-        let xSpread = (xs.max() ?? 0) - (xs.min() ?? 0)
-
-        // A route should occupy a meaningful vertical run. Give a smaller
-        // secondary bonus to horizontal coverage so a row of volumes in one
-        // corner does not outrank a route that actually travels through the
-        // wall, while keeping the existing vertical ordering dominant.
-        let spatial = sqrt(max(0, ySpread) * max(0.08, xSpread))
-        let distribution = 0.75 + min(0.5, spatial * 0.9)
-        return Double(min(holds.count, 25)) * (0.35 + ySpread) * distribution
+        let spread = (ys.max() ?? 0) - (ys.min() ?? 0)
+        return Double(min(holds.count, 25)) * (0.35 + spread)
     }
 
     /// How far a colour stands out from the wall it is on.

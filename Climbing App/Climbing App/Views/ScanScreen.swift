@@ -284,9 +284,15 @@ struct ScanScreen: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .stroke(on ? Theme.ink : Theme.line, lineWidth: on ? 2.5 : 1))
-            Text("\(swatch.holds.count)")
-                .font(Theme.mono(10.5, weight: on ? .medium : .regular))
-                .foregroundStyle(on ? Theme.ink : Theme.ink3)
+            HStack(spacing: 4) {
+                Text("\(swatch.holds.count)")
+                    .font(Theme.mono(10.5, weight: on ? .medium : .regular))
+                if let variant = swatch.variant {
+                    Text("·\(variant)")
+                        .font(Theme.mono(9.5, weight: .medium))
+                }
+            }
+            .foregroundStyle(on ? Theme.ink : Theme.ink3)
         }
         .contentShape(Rectangle())
     }
@@ -508,6 +514,11 @@ struct ScanScreen: View {
             await MainActor.run { withAnimation(.easeOut(duration: 0.4)) { progress = 0.88 } }
             // Writing on a hold means it is not a hold.
             var found = RouteScanner.withoutStickers(read, text: writing.text)
+            // The same plastic colour can be used for two separate problems.
+            // Split only when the photograph gives us enough spatial or
+            // start/finish evidence; otherwise keep the colour together rather
+            // than pretending Trace knows the setter's intent.
+            found = RouteScanner.splitSameColorRoutes(found, tags: writing.tags)
             // The panels, so a route stays on its own; and the mat and the
             // top, so nothing off the wall is a hold.
             let bmp = Bitmap(cg, targetWidth: RouteScanner.workingWidth)
