@@ -199,6 +199,20 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 .ptxt b{font-size:15.5px;font-weight:600}
 .ptxt i{font-style:normal;font-size:13px;color:var(--ink3)}
 .hair{height:1px;background:var(--line)}
+.back-inline{width:38px;height:38px;border-radius:50%;border:1.5px dashed var(--ink3);background:none;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.back-inline svg{width:15px;height:15px}
+.chips{display:flex;gap:9px;margin:16px 0 8px}
+.fchip{font:inherit;font-size:14px;font-weight:600;color:var(--ink2);background:var(--surface);border:0;border-radius:999px;padding:9px 16px;cursor:pointer}
+.fchip.on{background:var(--blue);color:#fff}
+.vrow{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:14px 0;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.vrow .vname{font-size:15.5px;font-weight:600}
+.vrow .vsub{font-size:13px;color:var(--ink3)}
+.vrow .vcount{margin-left:auto;font-size:13px;color:var(--ink3)}
+.arow{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface);border:0;border-radius:14px;padding:14px 16px;margin-bottom:9px;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.arow .adate{font-size:14.5px;font-weight:600}
+.arow .ameta{font-size:12.5px;color:var(--ink3)}
+.arow .chev{margin-left:auto;color:var(--ink3)}
+.arow .chev svg{width:15px;height:15px}
 .hide{display:none !important}
 </style>
 </head>
@@ -421,7 +435,71 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
           <button class="prow"><span class="pic leaving"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
             <span class="ptxt"><b>Delete account</b><i>Permanently remove your data</i></span></button>
         </div>
-        <p class="body dim" style="margin-top:18px;font-size:13px">Your climbs stay on this phone.</p>
+      </div>
+    </div>
+
+    <!-- ══════════ EXPLORE ══════════ -->
+    <div class="pane" id="pane-explore">
+      <div class="pad" style="padding-top:22px">
+        <div class="rowb"><h2 style="font-size:31px">Explore</h2><button class="pill" id="explore-map">Map</button></div>
+        <input class="field" id="explore-q" placeholder="Gym, city or state" style="margin-top:16px">
+        <p class="micro" style="margin:20px 0 10px" id="explore-head">Near you</p>
+        <div id="explore-list"></div>
+        <p class="body dim" style="margin-top:22px;font-size:12.5px">Gym data from OpenStreetMap contributors, under the Open Database License. This demo carries a handful of that directory, not all of it.</p>
+      </div>
+    </div>
+
+    <!-- ══════════ LIBRARY ══════════ -->
+    <div class="pane" id="pane-library">
+      <div class="pad" style="padding-top:22px">
+        <button class="back-inline" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="rowb" style="margin-top:22px"><h2 style="font-size:31px">Your library</h2><button class="link" data-go="progress">Over time</button></div>
+        <p class="body" style="margin-top:4px" id="library-counts"></p>
+        <div class="chips" id="library-chips">
+          <button class="fchip on">Recent</button><button class="fchip">Efficiency</button><button class="fchip">Sent</button>
+        </div>
+        <p class="body dim" id="library-sort" style="font-size:13px">Newest first</p>
+      </div>
+      <p class="body pad hide" id="library-empty">Nothing yet. Import a clip you already have, and Trace will analyze your movement pattern.</p>
+      <div class="lib" id="library-grid"></div>
+    </div>
+
+    <!-- ══════════ PROGRESS ══════════ -->
+    <div class="pane" id="pane-progress">
+      <div class="pad" style="padding-top:22px">
+        <button class="back-inline" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 style="font-size:31px;margin-top:22px">Movement over time</h2>
+        <div id="progress-body"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ CLIMB CARD ══════════ -->
+    <div class="pane" id="pane-climb">
+      <div class="stage"><img id="climb-shot" alt="">
+        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+      </div>
+      <div class="pad" style="margin-top:16px">
+        <div class="rowb"><h2 id="climb-title"></h2><span class="micro" id="climb-grade" style="color:var(--accent)"></span></div>
+        <p class="body" style="margin-top:4px">Central Rock Watertown</p>
+        <div class="sev" style="margin-top:8px;display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink2)">
+          <span class="dot" id="climb-dot"></span><span id="climb-verdict"></span></div>
+        <div class="stats" id="climb-stats"></div>
+        <h2 style="font-size:22px;margin:28px 0 12px">Attempts</h2>
+        <div id="climb-attempts"></div>
+        <h2 style="font-size:22px;margin:28px 0 12px">What the movement showed</h2>
+        <div id="climb-showed"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ PERSONAL INFO ══════════ -->
+    <div class="pane" id="pane-personal">
+      <div class="pad" style="padding-top:22px">
+        <button class="back-inline" data-go="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 style="font-size:31px;margin-top:22px">Personal info</h2>
+        <p class="body" style="margin-top:8px">Trace uses your height and reach to size the climber it draws on a route, and nothing else.</p>
+        <div style="margin-top:20px"><span class="micro">Height</span><input class="field" placeholder="170 cm"></div>
+        <div style="margin-top:14px"><span class="micro">Reach</span><input class="field" placeholder="172 cm"></div>
+        <div style="margin-top:14px"><span class="micro">Weight</span><input class="field" placeholder="Optional"></div>
       </div>
     </div>
 
@@ -768,19 +846,24 @@ async function trackVideo(video, onProgress) {
 }
 
 /* ════════════════ Navigation ════════════════ */
-const PANES = ['home','name','working','results','scan','route','gyms','gym','profile'];
+const PANES = ['home','name','working','results','scan','route','gyms','gym','profile',
+               'explore','library','progress','climb','personal'];
 function go(name) {
   PANES.forEach(p => $('#pane-'+p).classList.toggle('on', p === name));
-  $('#app').classList.toggle('flush', name === 'results' || name === 'scan' || name === 'route');
   $('#app').scrollTop = 0;
   // Naming, analyzing and scanning are full-screen covers in the app, and
   // a cover has no tab bar under it.
   document.querySelector('.tabbar').classList.toggle('gone',
     name === 'name' || name === 'working' || name === 'scan');
+  $('#app').classList.toggle('flush', name === 'results' || name === 'scan'
+    || name === 'route' || name === 'climb');
   document.querySelector('.tab-home:not(.tab-profile)').classList.toggle('active', name === 'home');
   document.querySelector('.tab-profile').classList.toggle('active', name === 'profile');
   if (name === 'profile') renderProfile();
   if (name === 'gym') renderGym();
+  if (name === 'library') renderLibraryScreen();
+  if (name === 'progress') renderProgress();
+  if (name === 'explore') renderExplore();
   syncMask();
   if (name !== 'results') { vid.pause(); setPlayIcon(false); }
   closeSheet();
@@ -826,6 +909,9 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
 const library = [];
 function renderLibrary() {
   $('#lib-count').textContent = library.length ? `See all ${library.length}` : '';
+  $('#lib-count').onclick = () => library.length && go('library');
+  $('#focus').onclick = () => go('progress');
+  $('#focus').style.cursor = 'pointer';
   $('#lib-empty').classList.toggle('hide', library.length > 0);
   $('#lib').innerHTML = '';
   library.forEach((c, i) => {
@@ -838,7 +924,7 @@ function renderLibrary() {
       <div class="sev"><span class="dot" style="background:${top?EMBER[top.rank]:'var(--e0)'}"></span>
         ${top ? top.severity : 'No findings'}</div>
       <div class="meta">1 attempt &middot; ${c.grade || '&mdash;'}</div>`;
-    el.onclick = () => openClimb(i);
+    el.onclick = () => openCard(i);
     $('#lib').appendChild(el);
   });
   const top = library[0]?.findings[0];
@@ -1293,6 +1379,119 @@ function renderGym() {
 }
 document.querySelectorAll('.tile .box.gym').forEach(b => b.closest('.tile').onclick = () => go('gym'));
 document.querySelectorAll('.pad.rowb .link').forEach(b => { if (b.textContent === 'View all') b.onclick = () => go('gyms'); });
+
+/* ── Library ─────────────────────────────────────────────── */
+function cardHTML(c) {
+  const top = c.findings[0];
+  return `<div class="thumb"><img src="${c.poster}" alt=""></div>
+    <h3>${c.label}</h3>
+    <div class="sev"><span class="dot" style="background:${top?EMBER[top.rank]:'var(--e0)'}"></span>${top ? top.severity : 'No findings'}</div>
+    <div class="meta">1 attempt · ${c.grade || '—'}</div>`;
+}
+function renderLibraryScreen() {
+  $('#library-counts').textContent =
+    `${library.length} route${library.length===1?'':'s'} · ${library.length} climb${library.length===1?'':'s'}`;
+  $('#library-empty').classList.toggle('hide', library.length > 0);
+  $('#library-grid').innerHTML = '';
+  library.forEach((c, i) => {
+    const el = document.createElement('button');
+    el.className = 'card'; el.innerHTML = cardHTML(c);
+    el.onclick = () => openCard(i);
+    $('#library-grid').appendChild(el);
+  });
+}
+document.querySelectorAll('#library-chips .fchip').forEach(chip => chip.onclick = () => {
+  document.querySelectorAll('#library-chips .fchip').forEach(c => c.classList.toggle('on', c === chip));
+  $('#library-sort').textContent =
+    chip.textContent === 'Recent' ? 'Newest first'
+    : chip.textContent === 'Efficiency' ? 'Cleanest first' : 'Sent first';
+});
+
+/* ── Over time ───────────────────────────────────────────── */
+function renderProgress() {
+  const usable = library.filter(c => c.metrics.trackingConfidence >= TRUSTWORTHY);
+  $('#progress-body').innerHTML = usable.length < 2
+    ? `<h2 style="font-size:22px;margin:26px 0 8px">Not enough tracked climbing yet</h2>
+       <p class="body">Trace needs at least two clips it could see clearly before it will claim
+       anything about a trend. One climb is noise.</p>`
+    : `<p class="micro" style="margin:26px 0 10px">Geometric entropy, last ${usable.length} climbs</p>
+       <p class="body">Lower is smoother.</p>
+       <div class="stats">${usable.slice(0,3).map(c =>
+         `<div><div class="v">${Math.round(c.metrics.staticElbowAngle)}°</div><div class="k">${c.label}</div></div>`).join('')}</div>`;
+}
+
+/* ── The climb card, which is what a library card opens ──── */
+let currentCard = -1;
+function openCard(i) {
+  currentCard = i;
+  const c = library[i], top = c.findings[0], m = c.metrics;
+  $('#climb-shot').src = c.poster;
+  $('#climb-title').textContent = c.label;
+  $('#climb-grade').textContent = c.grade;
+  $('#climb-dot').style.background = top ? EMBER[top.rank] : 'var(--e0)';
+  $('#climb-verdict').textContent = top ? `${top.severity} · ${top.kind}` : 'No findings';
+  $('#climb-stats').innerHTML = [
+    ['1', 'Attempt'], [`${Math.round(m.duration)}s`, 'Length'],
+    [`${Math.round(m.trackingConfidence*100)}%`, 'Tracked'],
+  ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  $('#climb-attempts').innerHTML = '';
+  const row = document.createElement('button');
+  row.className = 'arow';
+  row.innerHTML = `<span><span class="adate">Today</span><br><span class="ameta">${Math.round(m.duration)}s · tracking ${Math.round(m.trackingConfidence*100)}%</span></span>
+    <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></span>`;
+  row.onclick = () => openClimb(i);
+  $('#climb-attempts').appendChild(row);
+  $('#climb-showed').innerHTML = c.findings.length
+    ? c.findings.map(f => `<p class="body" style="margin-bottom:8px"><strong style="color:var(--ink)">${f.kind}.</strong> ${f.message}</p>`).join('')
+    : `<p class="body">Nothing on this route crossed the threshold worth mentioning.</p>`;
+  go('climb');
+}
+
+/* ── Explore ─────────────────────────────────────────────── */
+const VENUES = [
+  { name:'Central Rock Gym', city:'Watertown, MA', routes:1 },
+  { name:'Brooklyn Boulders', city:'Somerville, MA', routes:0 },
+  { name:'MetroRock', city:'Everett, MA', routes:0 },
+  { name:'Rock Spot Climbing', city:'South Boston, MA', routes:0 },
+  { name:'Crux Climbing Center', city:'Austin, TX', routes:0 },
+  { name:'Movement', city:'Denver, CO', routes:0 },
+];
+function renderExplore() {
+  const q = $('#explore-q').value.trim().toLowerCase();
+  const list = VENUES.filter(v => !q || (v.name+' '+v.city).toLowerCase().includes(q));
+  $('#explore-head').textContent = q ? 'Matches' : 'Near you';
+  $('#explore-list').innerHTML = '';
+  if (!list.length) {
+    $('#explore-list').innerHTML =
+      `<p class="body">Nothing here matches that. The list is what OpenStreetMap has been told
+       about, so it can be missing yours.</p>`;
+    return;
+  }
+  list.forEach(v => {
+    const el = document.createElement('button');
+    el.className = 'vrow';
+    el.innerHTML = `<span><span class="vname">${v.name}</span><br><span class="vsub">${v.city}</span></span>
+      <span class="vcount">${v.routes ? v.routes + ' route' + (v.routes===1?'':'s') : 'Add'}</span>`;
+    el.onclick = () => go('gym');
+    $('#explore-list').appendChild(el);
+  });
+}
+$('#explore-q').oninput = renderExplore;
+$('#explore-map').onclick = function () {
+  this.textContent = this.textContent === 'Map' ? 'List' : 'Map';
+};
+
+/* ── Everything else that is a button in the app ─────────── */
+document.querySelectorAll('#pane-home .tile').forEach((tile, i) => {
+  if (i === 0) tile.onclick = () => go('explore');
+  if (i === 2) tile.onclick = () => go('explore');
+});
+document.querySelectorAll('#pane-gyms .tile').forEach((tile, i) => {
+  tile.onclick = () => go(i === 0 ? 'gym' : 'explore');
+});
+document.querySelectorAll('#pane-profile .prow').forEach((r, i) => {
+  if (i === 0) r.onclick = () => go('personal');
+});
 
 renderLibrary();
 go('home');   /* sets the tab bar up, which a statically-on pane never did */
