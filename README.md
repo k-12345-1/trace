@@ -13,9 +13,16 @@ unrelated apps. The home screen reads Trace.*
   <img src="docs/screens/route.png" width="240">
 </p>
 
-Trace is a native iOS app, so a browser cannot run it. This page is the next best
-thing: every picture below is the real app, captured from the running build. To use
-it, clone the repository and press Run in Xcode.
+### [Try it in your browser &rarr;](https://k-12345-1.github.io/trace/)
+
+Trace is a native iOS app, so a browser cannot run the Swift. The link above is the
+analysis ported to JavaScript: give it a climbing video and a pose model in the page
+tracks you, then the same arithmetic on the same thresholds produces the same
+findings. Tap a hold on a photo of a wall and it reads the route off it by colour.
+Nothing you load there leaves your device.
+
+Every picture below is the real iOS app, captured from the running build. To use that,
+clone the repository and press Run in Xcode.
 
 ---
 
