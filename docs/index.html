@@ -362,7 +362,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <div class="pane" id="pane-scan">
       <div class="stage">
         <canvas id="wall"></canvas>
-        <button class="back" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
       <div class="pad" style="margin-top:18px">
         <h2>Scan a route</h2>
@@ -1265,6 +1265,7 @@ async function analyze(src) {
   });
   renderLibrary();
   openClimb(0);
+  navStack.length = 0; navStack.push('home');
 }
 
 /* ════════════════ Wall scanning ════════════════
@@ -1548,6 +1549,7 @@ $('#save-route').onclick = () => {
   gymRoutes.unshift({ name, grade, hex: r.hex, holds: r.blobs.length,
                       poster: routeCanvas.toDataURL('image/jpeg', 0.7) });
   go('route');
+  navStack.length = 0; navStack.push('home', 'gym');
 };
 
 /* First run: the sample wall is one tap away, and the library starts empty
