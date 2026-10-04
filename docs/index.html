@@ -101,6 +101,8 @@ body{
 .tiles::-webkit-scrollbar{display:none}
 .tile{width:130px;flex:none}
 .tile .box{width:130px;height:130px;border-radius:20px;display:grid;place-items:center}
+.tile .box svg{width:44px;height:44px}
+.tile .box.add svg{width:30px;height:30px}
 .tile .box.explore{background:var(--blue-light);color:#fff}
 .tile .box.gym{background:var(--blue);color:#fff;font-family:var(--f-serif);font-size:38px;font-weight:600}
 .tile .box.add{border:2px dashed #D6D0C4;color:var(--accent)}
@@ -807,7 +809,7 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
   const d = document.querySelector('.device');
   const apply = () => {
     if (window.matchMedia('(max-width:460px)').matches) { d.style.transform = ''; return; }
-    const s = Math.min(1, (window.innerHeight - 40) / 874, (window.innerWidth - 32) / 402);
+    const s = Math.max(0.25, Math.min(1, (window.innerHeight - 40) / 874, (window.innerWidth - 32) / 402));
     d.style.transform = `scale(${s.toFixed(4)})`;
   };
   apply();
