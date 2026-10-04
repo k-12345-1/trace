@@ -90,8 +90,8 @@ body{
 .link{font-size:14.5px;font-weight:600;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
 /* masthead */
 .masthead{display:flex;align-items:center;gap:10px;padding:22px 21px 24px}
-.masthead svg{width:42px;height:42px;color:var(--accent);flex:none}
-.wordmark{font-family:var(--f-serif);font-style:italic;font-weight:700;font-size:31px;color:var(--accent);letter-spacing:-.01em}
+.masthead .mark{width:46px;height:46px;object-fit:contain;flex:none}
+.masthead .wordmark{height:30px;object-fit:contain}
 /* focus banner */
 .focus{background:var(--blue-wash);border-radius:18px;padding:17px 18px;margin:0 21px 26px}
 .focus .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -234,7 +234,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 .gbtn svg{width:18px;height:18px}
 .gbtn.on{background:var(--blue-wash);color:var(--accent)}
 .climbit{display:flex;align-items:center;gap:9px;background:var(--blue);color:#fff;border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;margin-top:14px}
-.climbit svg{width:19px;height:19px}
+.climbit img{width:20px;height:20px;object-fit:contain;filter:brightness(0) invert(1)}
 .climbit:disabled{opacity:.4;cursor:default}
 .danger{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:none;border:0;padding:16px;font:inherit;font-weight:600;font-size:15px;color:#A2402F;cursor:pointer}
 .hide{display:none !important}
@@ -260,8 +260,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ HOME ══════════ -->
     <div class="pane on" id="pane-home">
       <div class="masthead">
-        <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M38 6c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6 2.7-6 6-6zM24 22l12-3 10 7 8 3-2 6-10-4-4 3 8 9 2 15-7 1-2-13-11-9-6 12-11 7-4-6 9-6 5-11-5 2-5 9-6-3 6-12 13-7z"/></svg>
-        <span class="wordmark">Trace</span>
+        <img class="mark" src="img/mark.png" alt="">
+        <img class="wordmark" src="img/wordmark.png" alt="Trace">
       </div>
 
       <div class="focus hide" id="focus">
@@ -418,8 +418,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
             </div>
           </div>
           <button class="climbit" id="climb-it" disabled>
-            <svg viewBox="0 0 64 64" fill="currentColor"><path d="M38 6c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6 2.7-6 6-6zM24 22l12-3 10 7 8 3-2 6-10-4-4 3 8 9 2 15-7 1-2-13-11-9-6 12-11 7-4-6 9-6 5-11-5 2-5 9-6-3 6-12 13-7z"/></svg>
-            Climb it
+            <img src="img/mark.png" alt="">Climb it
           </button>
           <p class="body" id="route-line" style="margin-top:14px"></p>
           <p class="body dim" style="font-size:13px">Read from the shape of the holds in your photo, and nothing else. Trace cannot see hold types, how good a hold is, or how steep the wall is, so this is the line rather than the beta.</p>
@@ -494,7 +493,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <div class="pane" id="pane-explore">
       <div class="pad" style="padding-top:22px">
         <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
-        <div class="rowb" style="margin-top:22px"><h2 style="font-size:31px">Explore</h2><button class="pill" id="explore-map">Map</button></div>
+        <h2 style="font-size:31px;margin-top:22px">Explore</h2>
         <input class="field" id="explore-q" placeholder="Gym, city or state" style="margin-top:16px">
         <p class="micro" style="margin:20px 0 10px" id="explore-head">Near you</p>
         <div id="explore-list"></div>
@@ -1680,8 +1679,7 @@ function renderExplore() {
   $('#explore-list').innerHTML = '';
   if (!list.length) {
     $('#explore-list').innerHTML =
-      `<p class="body">Nothing here matches that. The list is what OpenStreetMap has been told
-       about, so it can be missing yours.</p>`;
+      `<p class="body">Nothing here matches that.</p>`;
     return;
   }
   list.forEach(v => {
@@ -1694,9 +1692,6 @@ function renderExplore() {
   });
 }
 $('#explore-q').oninput = renderExplore;
-$('#explore-map').onclick = function () {
-  this.textContent = this.textContent === 'Map' ? 'List' : 'Map';
-};
 
 /* ── Everything else that is a button in the app ─────────── */
 document.querySelectorAll('#pane-home .tile').forEach((tile, i) => {
