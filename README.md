@@ -6,10 +6,11 @@ by unrelated apps. The home screen reads Trace.*
 An iOS training partner for bouldering. Point your phone at yourself, climb, and it
 tells you one thing you could do better, with the moment highlighted on your own video.
 
-Trace never tells you which holds to use. Everyone's beta is different, so it
-measures how well you executed the sequence you chose, not which sequence you chose.
-That constraint is why it needs no route database, no hold detection and no gym
-partnership: it works anywhere, from the first climb.
+Trace measures how well you executed the sequence you chose, not which sequence you
+chose, so it needs no route database and no gym partnership: it works anywhere, from
+the first climb. It can also photograph a wall, read the routes off it by colour, and
+draw one shape through the line you pick, sized to the wall and standing the way
+climbers on film stand.
 
 ## Running it
 
@@ -28,8 +29,15 @@ xcodebuild test -project "Climbing App/Climbing App.xcodeproj" -scheme "Climbing
   -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-48 tests in 11 suites, all known-answer: every expected value comes from the
-geometry or the colour maths rather than from a previous run.
+497 tests in 109 suites. Most are known-answer, every expected value coming from the
+geometry or the colour maths; the rest run the engines over six photographed walls
+and five tracked climbs kept as fixtures.
+
+## Signing in
+
+Trace asks for an account. Until the server issues them, a demo pair signs in locally
+with no request made: email `trace@climb.co`, password `ClimbOn!`. In debug builds
+only.
 
 ## What it measures
 
