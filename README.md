@@ -2,7 +2,7 @@
 
 **An iOS training partner for bouldering.** Film a climb and Trace tells you one thing
 to fix, with the moment marked on your own video. Photograph a wall and it reads the
-routes off it by colour and draws a line through the one you pick.
+routes off it by color and draws a line through the one you pick.
 
 *Listed on the App Store as Trace Climbing, because the bare name is taken there by
 unrelated apps. The home screen reads Trace.*
@@ -18,7 +18,7 @@ unrelated apps. The home screen reads Trace.*
 Trace is a native iOS app, so a browser cannot run the Swift. The link above is the
 analysis ported to JavaScript: give it a climbing video and a pose model in the page
 tracks you, then the same arithmetic on the same thresholds produces the same
-findings. Tap a hold on a photo of a wall and it reads the route off it by colour.
+findings. Tap a hold on a photo of a wall and it reads the route off it by color.
 Nothing you load there leaves your device.
 
 Every picture below is the real iOS app, captured from the running build. To use that,
@@ -41,7 +41,7 @@ Trace tracked drawn over them. The analysis runs on the phone, in a few seconds.
 <td width="46%"><img src="docs/screens/analysis.png" width="300"></td>
 <td width="54%">
 
-**On the footage.** The skeleton, the centre of mass, and the elbow angles as they
+**On the footage.** The skeleton, the center of mass, and the elbow angles as they
 change, scrubbable frame by frame at quarter speed.
 
 A clip Trace could not see clearly enough is told so rather than coached: below 55
@@ -65,8 +65,8 @@ firing on every clean climb.
 
 | Metric | What it is |
 |---|---|
-| Geometric entropy | `ln(2L / C)` over the centre-of-mass path and its convex hull. The established climbing-specific efficiency measure. Lower is smoother. |
-| Log dimensionless jerk | Third derivative of COM position, normalised by duration and path length. Lower is more continuous. |
+| Geometric entropy | `ln(2L / C)` over the center-of-mass path and its convex hull. The established climbing-specific efficiency measure. Lower is smoother. |
+| Log dimensionless jerk | Third derivative of COM position, normalized by duration and path length. Lower is more continuous. |
 | Path ratio | COM path length over straight-line distance. |
 | Static elbow angle | Mean elbow angle while the COM is near-still. |
 | Weight on arms | How far the COM sits sideways of the feet, in torso lengths, while resting. |
@@ -84,19 +84,19 @@ because over a climb the registration's small errors accumulate.
 ## It reads a wall
 
 <p align="center">
-  <img src="docs/screens/scan-colours.png" width="240">
+  <img src="docs/screens/scan-colors.png" width="240">
   <img src="docs/screens/scan-route.png" width="240">
   <img src="docs/screens/beta.png" width="240">
 </p>
 
-Photograph a wall. Every blob within a CIE Lab colour distance is picked out, chalk
+Photograph a wall. Every blob within a CIE Lab color distance is picked out, chalk
 on a hold is adopted as part of it, and the routes are offered as a palette: tap a
-colour to see that route alone. Start and finish stickers and the V-grade are read
+color to see that route alone. Start and finish stickers and the V-grade are read
 with Vision text recognition. No trained model and no route database, so it works on
 the first photo in any gym.
 
-It cannot tell a route apart from unrelated holds of the same colour, which is why
-you drop the wrong ones before saving. Two routes set in one colour are told apart by
+It cannot tell a route apart from unrelated holds of the same color, which is why
+you drop the wrong ones before saving. Two routes set in one color are told apart by
 their stickers.
 
 ### And draws a line through it
@@ -147,7 +147,7 @@ xcodebuild test -project "Climbing App/Climbing App.xcodeproj" -scheme "Climbing
 ```
 
 497 tests in 109 suites. Most are known-answer, every expected value coming from the
-geometry or the colour maths; the rest run the engines over six photographed walls
+geometry or the color maths; the rest run the engines over six photographed walls
 and five tracked climbs kept as fixtures.
 
 **Signing in.** Trace asks for an account. Until the server issues them, a demo pair
