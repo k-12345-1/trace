@@ -223,7 +223,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
         <p class="body" id="focus-line"></p>
       </div>
 
-      <div class="pad rowb"><h2>Your gyms</h2></div>
+      <div class="pad rowb"><h2>Your gyms</h2><button class="link">View all</button></div>
       <div class="tiles">
         <div class="tile">
           <div class="box explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 3L3 5.5v15L9 18l6 2.5 6-2.5v-15L15 5.5 9 3zm0 0v15m6-12.5v15"/></svg></div>
@@ -239,7 +239,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
         </div>
       </div>
 
-      <div class="pad rowb" style="margin-top:28px"><h2>Your library</h2><span class="link dim" id="lib-count"></span></div>
+      <div class="pad rowb" style="margin-top:28px"><h2>Your library</h2><span class="link" id="lib-count"></span></div>
       <p class="body pad hide" id="lib-empty" style="margin-top:10px">Nothing yet. Import a clip you already have, and Trace will analyze your movement pattern.</p>
       <div class="lib" id="lib"></div>
     </div>
@@ -751,7 +751,7 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
 /* ════════════════ Library ════════════════ */
 const library = [];
 function renderLibrary() {
-  $('#lib-count').textContent = library.length ? `${library.length} climb${library.length===1?'':'s'}` : '';
+  $('#lib-count').textContent = library.length ? `See all ${library.length}` : '';
   $('#lib-empty').classList.toggle('hide', library.length > 0);
   $('#lib').innerHTML = '';
   library.forEach((c, i) => {
@@ -1189,7 +1189,7 @@ $('#save-route').onclick = () => {
 /* First run: the sample wall is one tap away, and the library starts empty
    exactly as it does on a fresh install. */
 renderLibrary();
-$('#opt-scan').addEventListener('contextmenu', e => e.preventDefault());
+go('home');   /* sets the tab bar up, which a statically-on pane never did */
 $('#try-wall').onclick = () => loadWall('sample/wall.jpg');
 $('#try-climb').onclick = () => {
   pendingSrc = 'sample/climb.mp4';
