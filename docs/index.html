@@ -23,14 +23,9 @@ html,body{margin:0;height:100%}
 body{
   background:#EDEBE4; color:var(--ink); font-family:var(--f-ui); font-size:15px;
   -webkit-font-smoothing:antialiased;
-  display:flex; flex-direction:column; align-items:center; gap:18px;
-  padding:26px 16px 40px; min-height:100%;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px 16px; min-height:100%;
 }
-/* ── the page around the phone ─────────────────────────────── */
-.page-head{text-align:center;max-width:430px}
-.page-head h1{font-family:var(--f-serif);font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
-.page-head p{margin:0;color:var(--ink2);font-size:14px;line-height:1.5}
-.page-head a{color:var(--accent)}
 /* ── the phone ──────────────────────────────────────────────── */
 .device{
   width:393px; height:852px; flex:none; position:relative;
@@ -42,8 +37,7 @@ body{
   border-radius:45px; background:var(--ground); display:flex; flex-direction:column;
 }
 @media (max-width:460px){
-  body{padding:0;gap:0;background:var(--ground)}
-  .page-head{display:none}
+  body{padding:0;background:var(--ground)}
   .device{width:100%;height:100dvh;border-radius:0;padding:0;box-shadow:none}
   .screen{border-radius:0}
 }
@@ -79,6 +73,10 @@ body{
 }
 .tabbar button{background:none;border:0;padding:0;cursor:pointer;color:#fff;opacity:.85;display:grid;place-items:center}
 .tabbar svg{width:23px;height:23px}
+.tab-home span{display:grid;place-items:center;gap:5px}
+.ind{width:15px;height:2px;border-radius:2px;background:#fff;opacity:0}
+.tab-home.active .ind{opacity:.9}
+.tabbar.gone{display:none}
 .plus{width:46px;height:46px;border-radius:50%;background:var(--blue-light);display:grid;place-items:center}
 .plus svg{width:22px;height:22px;color:#fff}
 /* typography inside the app */
@@ -193,11 +191,6 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 </head>
 <body>
 
-<div class="page-head">
-  <h1>Trace</h1>
-  <p>The bouldering training partner, running in your browser. Tap <strong>+</strong> and try the sample climb, or give it one of your own. Everything stays on your device. <a href="https://github.com/k-12345-1/trace">Source</a></p>
-</div>
-
 <div class="device">
 <div class="screen">
 
@@ -205,8 +198,9 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <span id="clock">9:41</span>
     <div class="island"></div>
     <div class="glyphs">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 18.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0-4.6c1.7 0 3.2.7 4.3 1.8l-1.5 1.5a4 4 0 00-5.6 0l-1.5-1.5a6 6 0 014.3-1.8zm0-4.6c3 0 5.7 1.2 7.6 3.2l-1.5 1.5a8.6 8.6 0 00-12.2 0L4.4 12.5A10.6 10.6 0 0112 9.3z"/></svg>
-      <svg viewBox="0 0 26 14" fill="none"><rect x=".6" y=".6" width="21" height="12.8" rx="4" stroke="currentColor" stroke-width="1.2"/><rect x="2.4" y="2.4" width="17.4" height="9.2" rx="2.6" fill="currentColor"/><path d="M23.4 5v4a2.6 2.6 0 000-4z" fill="currentColor"/></svg>
+      <svg viewBox="0 0 22 6" fill="currentColor" style="width:21px;height:6px;opacity:.55"><circle cx="2.4" cy="3" r="2.4"/><circle cx="8.6" cy="3" r="2.4"/><circle cx="14.8" cy="3" r="2.4"/><circle cx="21" cy="3" r="2.4"/></svg>
+      <svg viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 11.4L6.3 9.1a3.1 3.1 0 014.4 0l-2.2 2.3zM3.9 6.7L2.2 5A9 9 0 0114.8 5l-1.7 1.7a6.6 6.6 0 00-9.2 0zm2.3 2.3h0z"/><path d="M5.2 8l-1.7-1.7a7.1 7.1 0 0110 0L11.8 8a4.7 4.7 0 00-6.6 0z"/></svg>
+      <svg viewBox="0 0 27 13" fill="none"><rect x=".65" y=".65" width="22" height="11.7" rx="3.6" stroke="currentColor" stroke-width="1.3" opacity=".4"/><rect x="2.3" y="2.3" width="18.7" height="8.4" rx="2.2" fill="currentColor"/><path d="M24.4 4.4v4.2a2.3 2.3 0 000-4.2z" fill="currentColor" opacity=".4"/></svg>
     </div>
   </div>
 
@@ -389,8 +383,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
   </div>
 
   <div class="tabbar">
-    <button data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11l8-7 8 7v8a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19v-8z"/></svg></button>
-    <button id="tab-plus"><span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></span></button>
+    <button data-go="home" class="tab-home"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11l8-7 8 7v8a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19v-8z"/></svg><i class="ind"></i></span></button>
+    <button id="tab-plus"><span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="plus-glyph"><path d="M12 5v14M5 12h14"/></svg></span></button>
     <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4"/></svg></button>
   </div>
 
@@ -707,6 +701,11 @@ function go(name) {
   PANES.forEach(p => $('#pane-'+p).classList.toggle('on', p === name));
   $('#app').classList.toggle('flush', name === 'results' || name === 'scan' || name === 'route');
   $('#app').scrollTop = 0;
+  // Naming, analyzing and scanning are full-screen covers in the app, and
+  // a cover has no tab bar under it.
+  document.querySelector('.tabbar').classList.toggle('gone',
+    name === 'name' || name === 'working' || name === 'scan');
+  document.querySelector('.tab-home').classList.toggle('active', name === 'home');
   syncMask();
   if (name !== 'results') { vid.pause(); setPlayIcon(false); }
   closeSheet();
@@ -720,8 +719,14 @@ function syncMask() {
 }
 $('#app').addEventListener('scroll', syncMask, { passive: true });
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
-const closeSheet = () => $('#sheet').classList.remove('on');
-$('#tab-plus').onclick = () => $('#sheet').classList.add('on');
+/* With the sheet up the tab bar's plus becomes the way out, as it does
+   in the app. */
+function setSheet(open) {
+  $('#sheet').classList.toggle('on', open);
+  $('#plus-glyph').innerHTML = open ? '<path d="M18 6L6 18M6 6l12 12"/>' : '<path d="M12 5v14M5 12h14"/>';
+}
+const closeSheet = () => setSheet(false);
+$('#tab-plus').onclick = () => setSheet(!$('#sheet').classList.contains('on'));
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
 (function tick(){
   const d = new Date();
