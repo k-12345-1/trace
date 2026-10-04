@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trace</title>
+<meta name="description" content="Film a boulder and Trace tells you one thing to fix. The iOS app's analysis, running in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap">
+<style>
+:root{
+  --ground:#FAF9F4; --surface:#F1EFE7; --line:#EAE7DD;
+  --ink:#0F2C5C; --ink2:#4A6183; --ink3:#8C9CB0;
+  --accent:#0128A1; --blue:#0F2C5C; --blue-light:#8094D0;
+  --e0:#BBD4EE; --e1:#8FB6E0; --e2:#5B95D6; --e3:#2E639F; --e4:#0F2C5C;
+  --f-ui:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --f-serif:'Newsreader',ui-serif,Georgia,serif;
+  --f-mono:ui-monospace,'SF Mono',Menlo,monospace;
+  --page:760px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--ground); color:var(--ink); font-family:var(--f-ui);
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--page); margin:0 auto; padding:28px 20px 80px}
+h1,h2,h3{font-family:var(--f-serif); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.01em}
+h1{font-size:34px}
+h2{font-size:25px; margin:0 0 10px}
+h3{font-size:19px; margin:0 0 6px}
+p{margin:0 0 12px; color:var(--ink2)}
+a{color:var(--accent)}
+.micro{
+  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink3);
+}
+header{display:flex; align-items:center; gap:12px; margin-bottom:6px}
+header svg{width:34px;height:34px;flex:none}
+.lede{font-size:17px; max-width:56ch}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px}
+section{margin-top:34px}
+.tabs{display:flex; gap:8px; margin:22px 0 20px; flex-wrap:wrap}
+.tab{
+  font:inherit; font-weight:600; font-size:14px; cursor:pointer;
+  padding:9px 16px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink2);
+}
+.tab[aria-selected="true"]{background:var(--blue); border-color:var(--blue); color:#fff}
+button.go{
+  font:inherit; font-weight:600; font-size:15px; cursor:pointer; color:#fff;
+  background:var(--blue); border:0; border-radius:999px; padding:12px 22px;
+}
+button.go:disabled{opacity:.45; cursor:default}
+button.ghost{
+  font:inherit; font-weight:600; font-size:14px; cursor:pointer; color:var(--accent);
+  background:transparent; border:1px solid var(--line); border-radius:999px; padding:10px 18px;
+}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.stage{position:relative; border-radius:14px; overflow:hidden; background:#000; line-height:0}
+.stage video,.stage canvas,.stage img{display:block; width:100%; height:auto}
+.stage canvas.over{position:absolute; inset:0; width:100%; height:100%}
+.bar{height:6px; border-radius:999px; background:var(--line); overflow:hidden; margin:14px 0 6px}
+.bar i{display:block; height:100%; background:var(--accent); width:0; transition:width .15s linear}
+.finding{
+  border:1px solid var(--line); background:#fff; border-radius:16px;
+  padding:16px 18px; margin-bottom:10px; cursor:pointer; text-align:left; width:100%;
+  font:inherit; color:inherit; display:block;
+}
+.finding:hover{border-color:var(--blue-light)}
+.finding .top{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.finding .msg{color:var(--ink2); margin:0 0 8px}
+.finding .instead{display:flex; gap:8px; color:var(--ink); font-weight:600}
+.finding .instead span:first-child{color:var(--accent)}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
+.metric{background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px}
+.metric .v{font-family:var(--f-mono); font-size:21px; font-weight:500; font-variant-numeric:tabular-nums}
+.metric .n{font-size:13px; color:var(--ink3)}
+.note{font-size:13.5px; color:var(--ink3)}
+.swatches{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0}
+.sw{width:42px;height:42px;border-radius:11px;border:2px solid transparent;cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{border-color:var(--blue); box-shadow:0 0 0 3px #fff inset}
+input[type=range]{accent-color:var(--accent)}
+.hide{display:none !important}
+footer{margin-top:46px; padding-top:20px; border-top:1px solid var(--line); font-size:13.5px; color:var(--ink3)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101722; --surface:#18202D; --line:#26303F;
+    --ink:#EDF1F7; --ink2:#A9B6C9; --ink3:#73829A;
+    --accent:#8FB6E0; --blue:#2E639F; --blue-light:#5B95D6;
+  }
+  :root:not([data-theme="light"]) .finding,
+  :root:not([data-theme="light"]) .metric{background:#131B26}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M38 6c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6 2.7-6 6-6zM24 22l12-3 10 7 8 3-2 6-10-4-4 3 8 9 2 15-7 1-2-13-11-9-6 12-11 7-4-6 9-6 5-11-5 2-5 9-6-3 6-12 13-7z"/></svg>
+  <h1>Trace</h1>
+</header>
+<p class="lede">Film a boulder and Trace tells you one thing to fix, with the moment marked on your own video. This is the iOS app's analysis, ported to run in your browser. Nothing you load here leaves your device.</p>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-screen="climb">Analyse a climb</button>
+  <button class="tab" role="tab" aria-selected="false" data-screen="wall">Scan a wall</button>
+  <button class="tab" role="tab" aria-selected="false" data-screen="about">How it works</button>
+</div>
+
+<!-- ─────────────────────────── CLIMB ─────────────────────────── -->
+<section id="screen-climb">
+  <div class="card" id="climb-intro">
+    <h2>Give it a climb</h2>
+    <p>Phone on the floor, square to the wall, whole boulder in frame. A still camera matters: everything Trace measures is where your body went inside the picture, so if the camera moves too, the numbers are about whoever held it.</p>
+    <div class="row">
+      <button class="go" id="pick-climb">Choose a video</button>
+      <button class="ghost" id="sample-climb">Use the sample</button>
+      <input type="file" id="climb-file" accept="video/*" class="hide">
+    </div>
+    <p class="note" style="margin-top:12px">The pose model downloads once, about 5 MB, then runs on your device.</p>
+  </div>
+
+  <div id="climb-work" class="hide">
+    <div class="stage" id="climb-stage">
+      <video id="vid" playsinline muted preload="auto"></video>
+      <canvas class="over" id="overlay"></canvas>
+    </div>
+    <div class="bar"><i id="prog"></i></div>
+    <div class="row" style="justify-content:space-between">
+      <span class="micro" id="status">Loading</span>
+      <span class="micro" id="track"></span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="ghost" id="play">Play</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0" style="flex:1">
+    </div>
+  </div>
+
+  <div id="climb-out" class="hide">
+    <section>
+      <h2 id="verdict">Work on this</h2>
+      <div id="findings"></div>
+    </section>
+    <section>
+      <h2>What was measured</h2>
+      <div class="grid" id="metrics"></div>
+      <p class="note" style="margin-top:12px">Click a finding to jump the video to the moment it is about.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ─────────────────────────── WALL ─────────────────────────── -->
+<section id="screen-wall" class="hide">
+  <div class="card" id="wall-intro">
+    <h2>Photograph a wall</h2>
+    <p>Then tap one hold. Every blob on the wall within a colour distance of it is picked out, so a route is read by its colour rather than from a database. It works on the first photo in any gym, and it cannot tell your route from unrelated holds of the same colour, which is why you drop the wrong ones.</p>
+    <div class="row">
+      <button class="go" id="pick-wall">Choose a photo</button>
+      <button class="ghost" id="sample-wall">Use the sample</button>
+      <input type="file" id="wall-file" accept="image/*" class="hide">
+    </div>
+  </div>
+
+  <div id="wall-work" class="hide">
+    <div class="stage"><canvas id="wall-canvas"></canvas></div>
+    <p class="micro" style="margin-top:12px" id="wall-status">Tap a hold</p>
+    <div class="swatches" id="wall-swatches"></div>
+    <div class="row">
+      <label class="note" for="tol">Colour tolerance</label>
+      <input type="range" id="tol" min="6" max="40" value="18" style="flex:1;max-width:260px">
+      <span class="micro" id="tol-val">18</span>
+      <button class="ghost" id="wall-reset">Start over</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────── ABOUT ─────────────────────────── -->
+<section id="screen-about" class="hide">
+  <h2>How it works</h2>
+  <p>Trace is a native iOS app written in Swift. A browser cannot run that, so this page is a port of the two things the app does, using the same arithmetic on the same thresholds.</p>
+  <h3>Watching you climb</h3>
+  <p>A body-pose model gives the joints in each frame. Everything after that is arithmetic: no model is trained, and nothing is uploaded. The centre of mass is a weighted sum of eleven body segments. Elbow angle is measured only while you are still, where "still" is relative to your own torso length so that a climber filmed from further away is not called still twice as often. Pauses, foot resets and the wander between moves come off the same series.</p>
+  <p>Where the app and this page differ: iOS uses Apple's Vision body-pose model, and this page uses MoveNet, which is the closest thing a browser can run. The joints are the same, the confidence numbers are not, so a clip may track a little better or worse here.</p>
+  <h3>Reading a wall</h3>
+  <p>Colours are compared in CIE Lab, where distance roughly matches what the eye calls a different colour, rather than in RGB where it does not. The holds of a route are the connected blobs within that distance, outlined by the convex hull of their pixels.</p>
+  <h3>What is not here</h3>
+  <p>The figure that climbs the route for you, the start and finish sticker reading, grades, gyms, and your library of past attempts are all in the iOS app and not on this page. Those lean on the parts of the app that hold state and read text, and this is meant to be the part you can try in one click.</p>
+  <p><a href="https://github.com/k-12345-1/trace">The source, and the rest of the app</a></p>
+</section>
+
+<footer>
+  Trace. Everything on this page runs on your device; no video or photo is uploaded.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.22.0/dist/tf-converter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.22.0/dist/tf-backend-webgl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<script>
+"use strict";
+
+/* ══════════════ Trace's arithmetic, ported from the Swift ══════════════
+   Names and constants match Climbing App/Climbing App/Analysis/*.swift so
+   the two can be compared line for line. */
+
+const USABLE = 0.25;                 // Joint.isUsable
+const STILL_TORSO_PER_SECOND = 0.175; // MetricsEngine.stillTorsoPerSecond
+const PAUSE_SECONDS = 0.8;
+const PLAUSIBLE_ELBOW = 35;
+const FOOT_PLANT_RADIUS = 0.12, FOOT_PLANT_WINDOW = 0.15;
+const FOOT_SETTLE_SECONDS = 0.15, FOOT_ADJUST_DISTANCE = 0.9, FOOT_ADJUST_SECONDS = 2.0;
+const SWING_OVERHANG = 0.35, SWING_SECONDS = 0.5;
+const ASCENT_TOP = 0.10, TOP_PERCENTILE = 0.02;
+const REST_FRACTION = 0.55, MINIMUM_GAP = 0.30, MINIMUM_MOVE = 0.35, MINIMUM_MOVES = 3;
+const BENT_ARMS_BELOW = 135;         // FindingEngine.bentArmsBelow
+const WANDERING_ABOVE = 0.28;        // FindingEngine.wanderingAbove
+const TRUSTWORTHY = 0.55;            // Climb.isTrustworthy
+
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const median = xs => xs.length ? xs.slice().sort((a, b) => a - b)[xs.length >> 1] : null;
+const pt = (f, id) => { const j = f.joints[id]; return j && j.confidence >= USABLE ? j : null; };
+
+function angleAt(vertex, a, b) {
+  const v1x = a.x - vertex.x, v1y = a.y - vertex.y;
+  const v2x = b.x - vertex.x, v2y = b.y - vertex.y;
+  const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+  if (m1 <= 0 || m2 <= 0) return 180;
+  const c = Math.max(-1, Math.min(1, (v1x * v2x + v1y * v2y) / (m1 * m2)));
+  return Math.acos(c) * 180 / Math.PI;
+}
+
+/* CenterOfMass.swift: eleven segments, mass fractions summing to one. */
+const SEGMENTS = [
+  ['leftShoulder', 'rightShoulder', 0.081],
+  ['leftShoulder', 'rightHip', 0.2485], ['rightShoulder', 'leftHip', 0.2485],
+  ['leftShoulder', 'leftElbow', 0.028], ['rightShoulder', 'rightElbow', 0.028],
+  ['leftElbow', 'leftWrist', 0.022], ['rightElbow', 'rightWrist', 0.022],
+  ['leftHip', 'leftKnee', 0.100], ['rightHip', 'rightKnee', 0.100],
+  ['leftKnee', 'leftAnkle', 0.061], ['rightKnee', 'rightAnkle', 0.061],
+];
+function centerOfMass(joints) {
+  let x = 0, y = 0, w = 0;
+  for (const [an, bn, fr] of SEGMENTS) {
+    const a = joints[an], b = joints[bn];
+    if (!a || !b || a.confidence < USABLE || b.confidence < USABLE) continue;
+    x += (a.x + b.x) / 2 * fr; y += (a.y + b.y) / 2 * fr; w += fr;
+  }
+  return w >= 0.6 ? { x: x / w, y: y / w } : null;   // most of the body, or drop the frame
+}
+
+function torsoLength(f) {
+  const ls = pt(f, 'leftShoulder'), rs = pt(f, 'rightShoulder');
+  const lh = pt(f, 'leftHip'), rh = pt(f, 'rightHip');
+  if (!ls || !rs || !lh || !rh) return null;
+  return dist({ x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2 },
+              { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 });
+}
+const medianTorso = frames => median(frames.map(torsoLength).filter(v => v != null));
+
+function speedSeries(path, times) {
+  if (path.length < 2) return [];
+  const out = [0];
+  for (let i = 1; i < path.length; i++)
+    out.push(dist(path[i], path[i - 1]) / Math.max(times[i] - times[i - 1], 0.0005));
+  return out;
+}
+const stillSpeed = torso => (torso > 0.02 ? torso * STILL_TORSO_PER_SECOND : 0.035);
+
+/* The ascent: the descent is not climbing, and counting it produces stops
+   you did not take. Trimmed at the top rather than at both ends. */
+function ascent(frames) {
+  const usable = frames.filter(f => f.com);
+  const torso = medianTorso(usable);
+  if (usable.length < 4 || !torso || torso <= 0.01) return frames;
+  const heights = usable.map(f => f.com.y).sort((a, b) => a - b);
+  const peak = heights[Math.min(heights.length - 1, Math.floor(heights.length * TOP_PERCENTILE))];
+  const kept = [];
+  for (const f of frames) {
+    kept.push(f);
+    if (f.com && (f.com.y - peak) / torso <= ASCENT_TOP) break;
+  }
+  return kept.length >= 4 ? kept : frames;
+}
+
+function pauses(path, times, torso) {
+  const speeds = speedSeries(path, times), still = stillSpeed(torso), out = [];
+  let runStart = null;
+  speeds.forEach((s, i) => {
+    const t = times[i] ?? 0;
+    if (s < still) { if (runStart === null) runStart = t; }
+    else if (runStart !== null) {
+      if (t - runStart >= PAUSE_SECONDS) out.push({ start: runStart, end: t });
+      runStart = null;
+    }
+  });
+  const last = times[times.length - 1];
+  if (runStart !== null && last - runStart >= PAUSE_SECONDS) out.push({ start: runStart, end: last });
+  return out;
+}
+
+/* Elbow angle, averaged over the frames where the body is near-still. The
+   arm that is holding on is the straighter of the two. */
+function staticElbowAngle(all) {
+  const frames = all.filter(f => f.com);
+  const speeds = speedSeries(frames.map(f => f.com), frames.map(f => f.time));
+  const still = stillSpeed(medianTorso(frames) ?? 0);
+  const angles = [];
+  frames.forEach((f, i) => {
+    if (i >= speeds.length || speeds[i] >= still) return;
+    const arms = [];
+    for (const [s, e, w] of [['leftShoulder', 'leftElbow', 'leftWrist'],
+                             ['rightShoulder', 'rightElbow', 'rightWrist']]) {
+      const S = pt(f, s), E = pt(f, e), W = pt(f, w);
+      if (!S || !E || !W) continue;
+      const a = angleAt(E, S, W);
+      if (a >= PLAUSIBLE_ELBOW) arms.push(a);
+    }
+    if (arms.length) angles.push(Math.max(...arms));
+  });
+  return angles.length ? angles.reduce((a, b) => a + b) / angles.length : 180;
+}
+
+/* A foot that lands, shifts, and lands again near where it was. */
+function footAdjustments(frames) {
+  const torso = medianTorso(frames);
+  if (!torso || torso <= 0.01) return 0;
+  let count = 0;
+  for (const ankle of ['leftAnkle', 'rightAnkle']) {
+    const series = [];
+    for (const f of frames) { const p = pt(f, ankle); if (p) series.push({ t: f.time, p }); }
+    if (series.length <= 4) continue;
+
+    const planted = series.map((s, i) => {
+      let worst = 0;
+      for (const k of series)
+        if (Math.abs(k.t - s.t) <= FOOT_PLANT_WINDOW) worst = Math.max(worst, dist(k.p, s.p));
+      return worst / torso <= FOOT_PLANT_RADIUS;
+    });
+
+    const places = [];
+    const push = (from, to) => {
+      if (to < from || series[to].t - series[from].t < FOOT_SETTLE_SECONDS) return;
+      places.push({ start: series[from].t, end: series[to].t, at: series[(from + to) >> 1].p });
+    };
+    let runStart = null;
+    planted.forEach((p, i) => {
+      if (p) { if (runStart === null) runStart = i; }
+      else if (runStart !== null) { push(runStart, i - 1); runStart = null; }
+    });
+    if (runStart !== null) push(runStart, series.length - 1);
+
+    for (let k = 1; k < places.length; k++) {
+      const a = places[k - 1], b = places[k];
+      if (dist(a.at, b.at) / torso < FOOT_ADJUST_DISTANCE && b.start - a.end < FOOT_ADJUST_SECONDS) count++;
+    }
+  }
+  return count;
+}
+
+/* Hanging outside your contacts: the centre of mass beyond the span of the
+   hands and feet, so nothing cancels the sideways pull. */
+function swingTotal(frames) {
+  let total = 0, start = null, last = null;
+  for (const f of frames) {
+    const torso = torsoLength(f);
+    if (!f.com || !torso || torso <= 0.01) continue;
+    const xs = ['leftWrist', 'rightWrist', 'leftAnkle', 'rightAnkle']
+      .map(id => pt(f, id)).filter(Boolean).map(p => p.x);
+    if (xs.length < 2) continue;
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    const over = f.com.x < lo ? (lo - f.com.x) / torso
+               : f.com.x > hi ? (f.com.x - hi) / torso : 0;
+    if (over > SWING_OVERHANG) { if (start === null) start = f.time; last = f.time; }
+    else if (start !== null) {
+      if (last - start >= SWING_SECONDS) total += last - start;
+      start = null; last = null;
+    }
+  }
+  if (start !== null && last - start >= SWING_SECONDS) total += last - start;
+  return total;
+}
+
+/* The long way between moves. Against the shortest path from each position
+   to the next, not against a straight line up the wall: a boulder does not
+   offer one of those. */
+function moveWaste(frames) {
+  const usable = frames.filter(f => f.com);
+  const torso = medianTorso(usable);
+  if (usable.length < 8 || !torso || torso <= 0.01) return null;
+  const path = usable.map(f => f.com), times = usable.map(f => f.time);
+  const speeds = speedSeries(path, times);
+  if (speeds.length !== path.length || path.length < 3) return null;
+
+  const sorted = speeds.slice().sort((a, b) => a - b);
+  const high = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))];
+  const moving = speeds.filter(s => s > high * 0.05).sort((a, b) => a - b);
+  const med = moving.length ? moving[moving.length >> 1] : sorted[sorted.length >> 1];
+  if (!(med > 1e-6)) return null;
+  const ceiling = med * REST_FRACTION;
+
+  const bounds = [0];
+  for (let i = 1; i < speeds.length - 1; i++) {
+    if (speeds[i] > ceiling || speeds[i] > speeds[i - 1] || speeds[i] > speeds[i + 1]) continue;
+    if (times[i] - times[bounds[bounds.length - 1]] < MINIMUM_GAP) continue;
+    bounds.push(i);
+  }
+  const end = path.length - 1;
+  if (times[end] - times[bounds[bounds.length - 1]] < MINIMUM_GAP && bounds.length > 1) bounds.pop();
+  bounds.push(end);
+  if (bounds.length < MINIMUM_MOVES + 1) return null;
+
+  let travelled = 0, direct = 0, moves = 0;
+  for (let k = 0; k < bounds.length - 1; k++) {
+    const a = bounds[k], b = bounds[k + 1];
+    if (b <= a) continue;
+    let t = 0;
+    for (let i = a; i < b; i++) t += dist(path[i], path[i + 1]);
+    if (t / torso < MINIMUM_MOVE) continue;
+    travelled += t; direct += dist(path[a], path[b]); moves++;
+  }
+  if (moves < MINIMUM_MOVES || travelled <= 1e-6) return null;
+  return Math.max(0, travelled - direct) / travelled;
+}
+
+function computeMetrics(frames) {
+  const tracked = frames.filter(f => f.com);
+  const torso = medianTorso(tracked) ?? 0.2;
+  const times = tracked.map(f => f.time);
+  const rests = pauses(tracked.map(f => f.com), times, torso);
+  const duration = frames.length ? frames[frames.length - 1].time - frames[0].time : 0;
+  return {
+    trackingConfidence: frames.length ? tracked.length / frames.length : 0,
+    duration,
+    staticElbowAngle: staticElbowAngle(tracked),
+    pauseTotal: rests.reduce((s, r) => s + (r.end - r.start), 0),
+    pauseCount: rests.length,
+    footAdjustments: footAdjustments(tracked),
+    swingTotal: swingTotal(tracked),
+    moveWaste: moveWaste(tracked),
+  };
+}
+
+/* FindingEngine. Worst first; every message says what was measured so the
+   climber can look at the moment and disagree. */
+const SEVERITY = ['Negligible', 'Minor', 'Moderate', 'Costly', 'Dominant'];
+const EMBER = ['var(--e0)', 'var(--e1)', 'var(--e2)', 'var(--e3)', 'var(--e4)'];
+
+function findings(m, frames) {
+  if (m.trackingConfidence < TRUSTWORTHY) return [];
+  const out = [];
+  const begin = frames.length ? frames[0].time : 0;
+  const whole = { start: begin, end: begin + m.duration };
+  const add = (rank, kind, message, instead, w) =>
+    out.push({ rank, severity: SEVERITY[rank], kind, message, instead, ...(w ?? whole) });
+
+  if (m.staticElbowAngle < BENT_ARMS_BELOW) {
+    const a = m.staticElbowAngle;
+    add(a < 90 ? 4 : a < 105 ? 3 : a < 120 ? 2 : 1, 'Bent arms while static',
+      `Your arms sat at about ${Math.round(a)} degrees while you were still.`,
+      'Hang between moves with your arms nearly straight and your shoulders engaged, not sagging. Bend them only to pull.',
+      worstStaticElbowWindow(frames));
+  }
+  if (m.moveWaste != null && m.moveWaste > WANDERING_ABOVE) {
+    const w = m.moveWaste;
+    add(w > 0.50 ? 3 : w > 0.38 ? 2 : 1, 'The long way between moves',
+      `Between moves your hips drifted: about ${Math.round(w * 100)} percent of the distance they covered was sideways or back, not toward the next hold.`,
+      'Go straight to the next hold instead of setting off and correcting.');
+  }
+  if (m.pauseTotal > m.duration * 0.35 && m.pauseCount >= 2) {
+    add(m.pauseTotal > m.duration * 0.6 ? 3 : 2, 'Reading the route while hanging on it',
+      `You spent ${Math.round(m.pauseTotal)} of ${Math.round(m.duration)} seconds not moving, across ${m.pauseCount} stops.`,
+      'Read the next two moves from a rest, not while hanging on.');
+  }
+  if (m.swingTotal > 1.0) {
+    const s = Math.round(m.swingTotal);
+    add(m.swingTotal > 4 ? 3 : m.swingTotal > 2 ? 2 : 1, 'Hanging outside your contacts',
+      `For ${s} second${s === 1 ? '' : 's'} your weight hung outside your hands and feet rather than between them.`,
+      'Find the second force. Put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving.');
+  }
+  /* Foot precision, per move rather than per climb: a longer climb should
+     not be faulted for being longer. */
+  const perMinute = m.duration > 0 ? m.footAdjustments / (m.duration / 60) : 0;
+  if (m.footAdjustments >= 3 && perMinute > 8) {
+    add(perMinute > 24 ? 3 : perMinute > 14 ? 2 : 1, 'Imprecise feet',
+      `You repositioned a foot after placing it ${m.footAdjustments} times in ${Math.round(m.duration)} seconds.`,
+      'Look at the foothold until your shoe is on it, then leave it there.');
+  }
+  return out.sort((a, b) => b.rank - a.rank);
+}
+
+/* The moment worth looking at: the best second or so of still, bent arms. */
+function worstStaticElbowWindow(frames) {
+  const usable = frames.filter(f => f.com);
+  if (usable.length < 3) return null;
+  const speeds = speedSeries(usable.map(f => f.com), usable.map(f => f.time));
+  const still = stillSpeed(medianTorso(usable) ?? 0);
+  let best = null, bestScore = -1;
+  usable.forEach((f, i) => {
+    if (i >= speeds.length || speeds[i] >= still) return;
+    const arms = [];
+    for (const [s, e, w] of [['leftShoulder', 'leftElbow', 'leftWrist'],
+                             ['rightShoulder', 'rightElbow', 'rightWrist']]) {
+      const S = pt(f, s), E = pt(f, e), W = pt(f, w);
+      if (S && E && W) arms.push(angleAt(E, S, W));
+    }
+    if (!arms.length) return;
+    const score = 180 - arms.reduce((a, b) => a + b) / arms.length;
+    if (score > bestScore) { bestScore = score; best = f.time; }
+  });
+  return best == null ? null : { start: best, end: best + 1.1 };
+}
+
+/* ══════════════════════════ Pose tracking ══════════════════════════ */
+
+const JOINT_OF = {
+  nose: 'nose',
+  left_shoulder: 'leftShoulder', right_shoulder: 'rightShoulder',
+  left_elbow: 'leftElbow', right_elbow: 'rightElbow',
+  left_wrist: 'leftWrist', right_wrist: 'rightWrist',
+  left_hip: 'leftHip', right_hip: 'rightHip',
+  left_knee: 'leftKnee', right_knee: 'rightKnee',
+  left_ankle: 'leftAnkle', right_ankle: 'rightAnkle',
+};
+const BONES = [
+  ['leftShoulder', 'rightShoulder'], ['leftShoulder', 'leftElbow'], ['leftElbow', 'leftWrist'],
+  ['rightShoulder', 'rightElbow'], ['rightElbow', 'rightWrist'],
+  ['leftShoulder', 'leftHip'], ['rightShoulder', 'rightHip'], ['leftHip', 'rightHip'],
+  ['leftHip', 'leftKnee'], ['leftKnee', 'leftAnkle'],
+  ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
+];
+const SAMPLES_PER_SECOND = 10;
+
+let detector = null;
+async function getDetector() {
+  if (detector) return detector;
+  await tf.setBackend('webgl');
+  await tf.ready();
+  detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,
+    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER });
+  return detector;
+}
+
+const seekTo = (video, t) => new Promise(res => {
+  const done = () => { video.removeEventListener('seeked', done); res(); };
+  video.addEventListener('seeked', done);
+  video.currentTime = Math.min(t, Math.max(0, video.duration - 0.01));
+});
+
+async function trackVideo(video, onProgress) {
+  const det = await getDetector();
+  const frames = [];
+  const step = 1 / SAMPLES_PER_SECOND;
+  const total = Math.max(video.duration, 0.1);
+  for (let t = 0; t <= total; t += step) {
+    await seekTo(video, t);
+    const poses = await det.estimatePoses(video, { maxPoses: 1, flipHorizontal: false });
+    const joints = {};
+    if (poses[0]) for (const k of poses[0].keypoints) {
+      const id = JOINT_OF[k.name];
+      if (id) joints[id] = { x: k.x / video.videoWidth, y: k.y / video.videoHeight, confidence: k.score };
+    }
+    frames.push({ time: t, joints, com: centerOfMass(joints) });
+    onProgress(Math.min(1, t / total));
+  }
+  return frames;
+}
+
+/* ═══════════════════════════ Climb screen ═══════════════════════════ */
+
+const $ = s => document.querySelector(s);
+const vid = $('#vid'), overlay = $('#overlay');
+let climbFrames = [], climbMetrics = null;
+
+function drawOverlay() {
+  const w = vid.videoWidth, h = vid.videoHeight;
+  if (!w || !h) return;
+  if (overlay.width !== w) { overlay.width = w; overlay.height = h; }
+  const c = overlay.getContext('2d');
+  c.clearRect(0, 0, w, h);
+  if (!climbFrames.length) return;
+  const t = vid.currentTime;
+  let f = climbFrames[0];
+  for (const g of climbFrames) if (Math.abs(g.time - t) < Math.abs(f.time - t)) f = g;
+  if (Math.abs(f.time - t) > 0.25) return;
+
+  const P = id => { const j = pt(f, id); return j ? { x: j.x * w, y: j.y * h } : null; };
+  const scale = Math.max(w, h) / 900;
+  for (const pass of [0, 1]) {
+    c.strokeStyle = pass === 0 ? 'rgba(255,255,255,.95)' : '#2E63CF';
+    c.lineWidth = (pass === 0 ? 9 : 4.5) * scale;
+    c.lineCap = 'round';
+    c.beginPath();
+    for (const [a, b] of BONES) {
+      const A = P(a), B = P(b);
+      if (A && B) { c.moveTo(A.x, A.y); c.lineTo(B.x, B.y); }
+    }
+    c.stroke();
+  }
+  for (const id of Object.values(JOINT_OF)) {
+    const p = P(id); if (!p) continue;
+    c.beginPath(); c.arc(p.x, p.y, 5 * scale, 0, 7);
+    c.fillStyle = '#2E63CF'; c.fill();
+    c.lineWidth = 2 * scale; c.strokeStyle = '#fff'; c.stroke();
+  }
+  if (f.com) {
+    const p = { x: f.com.x * w, y: f.com.y * h };
+    c.beginPath(); c.arc(p.x, p.y, 9 * scale, 0, 7);
+    c.strokeStyle = '#fff'; c.lineWidth = 3.5 * scale; c.stroke();
+    c.strokeStyle = '#2E63CF'; c.lineWidth = 2 * scale; c.stroke();
+  }
+}
+
+async function runClimb(src) {
+  $('#climb-intro').classList.add('hide');
+  $('#climb-work').classList.remove('hide');
+  $('#climb-out').classList.add('hide');
+  $('#status').textContent = 'Loading the pose model';
+  $('#prog').style.width = '0%';
+  vid.src = src;
+  await new Promise(r => vid.addEventListener('loadeddata', r, { once: true }));
+  drawOverlay();
+
+  $('#status').textContent = 'Tracking you, frame by frame';
+  climbFrames = await trackVideo(vid, p => {
+    $('#prog').style.width = (p * 100).toFixed(0) + '%';
+    $('#status').textContent = `Tracking you, frame by frame — ${(p * 100).toFixed(0)}%`;
+  });
+
+  climbMetrics = computeMetrics(climbFrames);
+  const conf = Math.round(climbMetrics.trackingConfidence * 100);
+  $('#track').textContent = `Tracking ${conf}%`;
+  $('#status').textContent = 'Done';
+  await seekTo(vid, 0);
+  drawOverlay();
+  renderClimb();
+}
+
+function renderClimb() {
+  const m = climbMetrics;
+  const out = $('#climb-out');
+  out.classList.remove('hide');
+
+  if (m.trackingConfidence < TRUSTWORTHY) {
+    $('#verdict').textContent = 'I could not see that one clearly';
+    $('#findings').innerHTML =
+      `<p>Only ${Math.round(m.trackingConfidence * 100)} percent of frames had a usable skeleton, so any
+       coaching from this clip would be guesswork. Confidently wrong feedback is worse than none.</p>
+       <p class="note">Usually the phone was too far away, you were facing into the wall for most of the
+       climb, or someone crossed the frame.</p>`;
+  } else {
+    const fs = findings(m, ascent(climbFrames));
+    $('#verdict').textContent = fs.length ? 'Work on this' : 'That was clean';
+    $('#findings').innerHTML = fs.length ? '' :
+      `<p>No leak crossed the threshold worth mentioning. Climb it again and see whether it gets
+       smoother, or take it to something harder.</p>`;
+    fs.forEach(f => {
+      const el = document.createElement('button');
+      el.className = 'finding';
+      const mins = Math.floor(f.start / 60), secs = Math.floor(f.start % 60);
+      el.innerHTML = `
+        <div class="top">
+          <span class="dot" style="background:${EMBER[f.rank]}"></span>
+          <span class="micro">${f.severity}</span>
+          <span class="micro" style="margin-left:auto">${mins}:${String(secs).padStart(2, '0')}</span>
+        </div>
+        <h3>${f.kind}</h3>
+        <p class="msg">${f.message}</p>
+        <div class="instead"><span>&#8627;</span><span>${f.instead}</span></div>`;
+      el.onclick = async () => { vid.pause(); $('#play').textContent = 'Play'; await seekTo(vid, f.start); drawOverlay(); };
+      $('#findings').appendChild(el);
+    });
+  }
+
+  const cells = [
+    ['Bent arms', `${Math.round(m.staticElbowAngle)}°`, 'while still'],
+    ['Between moves', m.moveWaste == null ? '—' : `${Math.round(m.moveWaste * 100)}%`, 'not toward the next hold'],
+    ['Not moving', `${Math.round(m.pauseTotal)}s`, `of ${Math.round(m.duration)}s, ${m.pauseCount} stops`],
+    ['Foot resets', `${m.footAdjustments}`, 'placements corrected'],
+    ['Hanging outside', `${m.swingTotal.toFixed(1)}s`, 'weight outside your contacts'],
+    ['Tracking', `${Math.round(m.trackingConfidence * 100)}%`, 'frames with a skeleton'],
+  ];
+  $('#metrics').innerHTML = cells.map(([n, v, note]) =>
+    `<div class="metric"><div class="v">${v}</div><div class="n"><strong>${n}</strong><br>${note}</div></div>`).join('');
+}
+
+$('#pick-climb').onclick = () => $('#climb-file').click();
+$('#climb-file').onchange = e => { if (e.target.files[0]) runClimb(URL.createObjectURL(e.target.files[0])); };
+$('#sample-climb').onclick = () => runClimb('sample/climb.mp4');
+$('#play').onclick = () => {
+  if (vid.paused) { vid.play(); $('#play').textContent = 'Pause'; }
+  else { vid.pause(); $('#play').textContent = 'Play'; }
+};
+$('#scrub').oninput = e => { if (vid.duration) vid.currentTime = vid.duration * e.target.value / 1000; };
+vid.addEventListener('timeupdate', () => {
+  if (vid.duration) $('#scrub').value = String(Math.round(vid.currentTime / vid.duration * 1000));
+});
+(function loop() { drawOverlay(); requestAnimationFrame(loop); })();
+
+/* ════════════════════════ Wall screen: colour ════════════════════════
+   Colours are compared in CIE Lab, where distance is roughly what the eye
+   calls a different colour, rather than in RGB where it is not. */
+
+function rgbToLab(r, g, b) {
+  const f = v => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; };
+  const R = f(r), G = f(g), B = f(b);
+  const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+  const Y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
+  const Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  const g2 = v => v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116;
+  const fx = g2(X), fy = g2(Y), fz = g2(Z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+const wallCanvas = $('#wall-canvas');
+let wallImage = null, wallData = null, wallLab = null, lastPick = null;
+
+function loadWall(src) {
+  const img = new Image();
+  img.onload = () => {
+    const W = Math.min(900, img.naturalWidth);
+    const H = Math.round(img.naturalHeight * W / img.naturalWidth);
+    wallCanvas.width = W; wallCanvas.height = H;
+    const c = wallCanvas.getContext('2d', { willReadFrequently: true });
+    c.drawImage(img, 0, 0, W, H);
+    wallImage = c.getImageData(0, 0, W, H);
+    wallData = wallImage.data;
+    wallLab = new Float32Array(W * H * 3);
+    for (let i = 0, p = 0; i < wallData.length; i += 4, p += 3) {
+      const [L, a, b] = rgbToLab(wallData[i], wallData[i + 1], wallData[i + 2]);
+      wallLab[p] = L; wallLab[p + 1] = a; wallLab[p + 2] = b;
+    }
+    $('#wall-intro').classList.add('hide');
+    $('#wall-work').classList.remove('hide');
+    $('#wall-status').textContent = 'Tap a hold';
+    $('#wall-swatches').innerHTML = '';
+    lastPick = null;
+  };
+  img.src = src;
+}
+
+/* Every blob within a colour distance of the tapped hold, as connected
+   components, each outlined by the convex hull of its pixels. */
+function pickRoute(px, py) {
+  const W = wallCanvas.width, H = wallCanvas.height;
+  const tol = +$('#tol').value;
+  const i = (py * W + px) * 3;
+  const target = [wallLab[i], wallLab[i + 1], wallLab[i + 2]];
+
+  const match = new Uint8Array(W * H);
+  for (let p = 0, q = 0; p < W * H; p++, q += 3) {
+    const dL = wallLab[q] - target[0], da = wallLab[q + 1] - target[1], db = wallLab[q + 2] - target[2];
+    if (Math.sqrt(dL * dL + da * da + db * db) <= tol) match[p] = 1;
+  }
+
+  const minArea = Math.max(40, Math.round(W * H * 0.00012));
+  const seen = new Uint8Array(W * H), blobs = [], stack = [];
+  for (let s = 0; s < W * H; s++) {
+    if (!match[s] || seen[s]) continue;
+    stack.length = 0; stack.push(s); seen[s] = 1;
+    const pts = [];
+    while (stack.length) {
+      const p = stack.pop(), x = p % W, y = (p / W) | 0;
+      pts.push([x, y]);
+      if (x > 0 && match[p - 1] && !seen[p - 1]) { seen[p - 1] = 1; stack.push(p - 1); }
+      if (x < W - 1 && match[p + 1] && !seen[p + 1]) { seen[p + 1] = 1; stack.push(p + 1); }
+      if (y > 0 && match[p - W] && !seen[p - W]) { seen[p - W] = 1; stack.push(p - W); }
+      if (y < H - 1 && match[p + W] && !seen[p + W]) { seen[p + W] = 1; stack.push(p + W); }
+    }
+    if (pts.length >= minArea) blobs.push(pts);
+  }
+
+  const c = wallCanvas.getContext('2d');
+  c.putImageData(wallImage, 0, 0);
+  const rgb = `rgb(${wallData[(py * W + px) * 4]},${wallData[(py * W + px) * 4 + 1]},${wallData[(py * W + px) * 4 + 2]})`;
+  for (const pts of blobs) {
+    const hull = convexHull(pts);
+    if (hull.length < 3) continue;
+    for (const pass of [0, 1]) {
+      c.beginPath();
+      hull.forEach(([x, y], k) => k ? c.lineTo(x, y) : c.moveTo(x, y));
+      c.closePath();
+      c.lineWidth = pass === 0 ? 5 : 2.2;
+      c.strokeStyle = pass === 0 ? 'rgba(255,255,255,.92)' : '#0128A1';
+      c.stroke();
+    }
+  }
+  lastPick = rgb;
+  $('#wall-status').textContent =
+    `${blobs.length} hold${blobs.length === 1 ? '' : 's'} on this route. Drag the tolerance, or tap another hold.`;
+  $('#wall-swatches').innerHTML =
+    `<button class="sw" aria-pressed="true" style="background:${rgb}" title="${rgb}"></button>`;
+}
+
+function convexHull(points) {
+  const p = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (p.length < 3) return p;
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const build = src => {
+    const h = [];
+    for (const q of src) {
+      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], q) <= 0) h.pop();
+      h.push(q);
+    }
+    h.pop();
+    return h;
+  };
+  return build(p).concat(build(p.reverse()));
+}
+
+wallCanvas.addEventListener('click', e => {
+  if (!wallLab) return;
+  const r = wallCanvas.getBoundingClientRect();
+  const x = Math.round((e.clientX - r.left) / r.width * wallCanvas.width);
+  const y = Math.round((e.clientY - r.top) / r.height * wallCanvas.height);
+  if (x >= 0 && y >= 0 && x < wallCanvas.width && y < wallCanvas.height) pickRoute(x, y);
+});
+$('#pick-wall').onclick = () => $('#wall-file').click();
+$('#wall-file').onchange = e => { if (e.target.files[0]) loadWall(URL.createObjectURL(e.target.files[0])); };
+$('#sample-wall').onclick = () => loadWall('sample/wall.jpg');
+$('#wall-reset').onclick = () => {
+  $('#wall-work').classList.add('hide'); $('#wall-intro').classList.remove('hide');
+};
+$('#tol').oninput = e => {
+  $('#tol-val').textContent = e.target.value;
+  if (lastPick && wallImage) wallCanvas.getContext('2d').putImageData(wallImage, 0, 0);
+};
+
+/* ═══════════════════════════ Screens ═══════════════════════════ */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    for (const name of ['climb', 'wall', 'about'])
+      $('#screen-' + name).classList.toggle('hide', name !== tab.dataset.screen);
+  };
+});
+</script>
+</body>
+</html>
