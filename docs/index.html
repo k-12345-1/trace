@@ -61,6 +61,13 @@ body{
 .app{flex:1;overflow-y:auto;overflow-x:hidden;padding:54px 0 108px;scrollbar-width:none}
 .app::-webkit-scrollbar{display:none}
 .app.flush{padding-top:0}
+/* The page fades out as it passes under the clock, the way the app does.
+   On a screen whose footage reaches the very top, the fade arrives only
+   once that footage has scrolled away. */
+.app.masked{
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,transparent 44px,#000 60px);
+  mask-image:linear-gradient(to bottom,transparent 0,transparent 44px,#000 60px);
+}
 .pane{display:none}
 .pane.on{display:block}
 .pad{padding:0 20px}
@@ -700,9 +707,18 @@ function go(name) {
   PANES.forEach(p => $('#pane-'+p).classList.toggle('on', p === name));
   $('#app').classList.toggle('flush', name === 'results' || name === 'scan' || name === 'route');
   $('#app').scrollTop = 0;
+  syncMask();
   if (name !== 'results') { vid.pause(); setPlayIcon(false); }
   closeSheet();
 }
+function syncMask() {
+  const app = $('#app');
+  const flush = app.classList.contains('flush');
+  const stage = app.querySelector('.pane.on .stage');
+  const past = !flush || app.scrollTop > (stage ? stage.offsetHeight - 90 : 0);
+  app.classList.toggle('masked', past);
+}
+$('#app').addEventListener('scroll', syncMask, { passive: true });
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
 const closeSheet = () => $('#sheet').classList.remove('on');
 $('#tab-plus').onclick = () => $('#sheet').classList.add('on');
