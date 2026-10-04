@@ -68,7 +68,7 @@ body{
 .pad{padding:0 21px}
 /* tab bar */
 .tabbar{
-  position:absolute;left:10px;right:10px;bottom:37px;height:60px;z-index:30;
+  position:absolute;left:10px;right:10px;bottom:37px;height:60px;z-index:36;
   background:var(--blue);border-radius:30px;display:flex;align-items:center;
   justify-content:space-around;box-shadow:0 8px 24px -8px rgba(15,44,92,.5);
 }
@@ -130,18 +130,20 @@ body{
 .sheet.on{display:block}
 .sheet .scrim{position:absolute;inset:0;background:var(--ground)}
 .sheet .panel{
-  position:absolute;left:14px;right:14px;top:60px;bottom:88px;background:var(--blue);
-  border-radius:30px;padding:22px 18px;overflow-y:auto;scrollbar-width:none;
+  position:absolute;left:14px;right:14px;top:82px;bottom:121px;background:var(--blue);
+  border-radius:30px;padding:20px 18px;overflow:hidden;
+  display:flex;flex-direction:column;
 }
 .sheet .panel::-webkit-scrollbar{display:none}
-.sheet .head{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:20px}
+.sheet .head{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:30px;flex:none}
 .sheet .head span{font-family:var(--f-serif);font-size:21px;font-weight:600;color:#fff}
 .sheet .x{position:absolute;right:0;width:34px;height:34px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.5);background:none;color:#fff;cursor:pointer;display:grid;place-items:center}
 .sheet .x svg{width:13px;height:13px}
-.opt{display:flex;gap:15px;align-items:flex-start;width:100%;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:18px;margin-bottom:14px;cursor:pointer;font:inherit}
-.opt .ic{width:46px;height:46px;border-radius:50%;background:var(--blue-light);display:grid;place-items:center;flex:none;color:#fff}
-.opt .ic svg{width:21px;height:21px}
-.opt h3{color:#fff;margin-bottom:4px}
+.opt{display:flex;gap:16px;align-items:center;width:100%;flex:1;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:22px;cursor:pointer;font:inherit}
+.opt + .opt{margin-top:29px}
+.opt .ic{width:53px;height:53px;border-radius:50%;background:var(--blue-light);display:grid;place-items:center;flex:none;color:#fff}
+.opt .ic svg{width:24px;height:24px}
+.opt h3{color:#fff;margin-bottom:5px;font-size:20px}
 .opt p{margin:0;font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.45}
 .asample{background:none;border:0;padding:0;font:inherit;color:#fff;font-weight:600;text-decoration:underline;cursor:pointer}
 /* stage (video / photo at the top of a screen) */
@@ -213,6 +215,11 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 .arow .ameta{font-size:12.5px;color:var(--ink3)}
 .arow .chev{margin-left:auto;color:var(--ink3)}
 .arow .chev svg{width:15px;height:15px}
+.nocam{position:absolute;inset:0;background:#000;padding:62px 24px 0;display:flex;flex-direction:column}
+.nocam .mid{margin:auto;text-align:center;width:100%}
+.nocam h2{font-size:26px}
+.go.light{background:#fff;color:var(--blue)}
+.pill.light{background:rgba(255,255,255,.14);color:#fff;align-self:flex-start}
 .hide{display:none !important}
 </style>
 </head>
@@ -273,7 +280,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ NAMING ══════════ -->
     <div class="pane" id="pane-name">
       <div class="pad" style="padding-top:18px">
-        <button class="pill" data-go="home">&times;&nbsp; Cancel</button>
+        <button class="pill" data-back>&times;&nbsp; Cancel</button>
         <h2 style="margin:26px 0 8px">What were you on?</h2>
         <p class="body">Climbs sharing a label are compared against each other, attempt by attempt.</p>
         <div style="margin-top:22px">
@@ -305,7 +312,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
       <div class="stage" id="res-stage">
         <video id="vid" playsinline muted preload="auto"></video>
         <canvas class="over" id="overlay"></canvas>
-        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="back" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="tracking"><span class="dot" style="background:var(--accent)"></span><span id="res-track"></span></div>
       </div>
       <div class="transport">
@@ -330,7 +337,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <div class="pane" id="pane-scan">
       <div class="stage">
         <canvas id="wall"></canvas>
-        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button class="back" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
       <div class="pad" style="margin-top:18px">
         <h2>Scan a route</h2>
@@ -367,7 +374,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <div class="pane" id="pane-route">
       <div class="stage">
         <canvas id="route-canvas"></canvas>
-        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="back" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
       </div>
       <div class="pad" style="margin-top:16px">
         <div class="rowb">
@@ -383,7 +390,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ GYMS ══════════ -->
     <div class="pane" id="pane-gyms">
       <div class="pad" style="padding-top:22px">
-        <h2 style="font-size:31px">Your gyms</h2>
+        <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 style="font-size:31px;margin-top:22px">Your gyms</h2>
         <p class="body" style="margin-top:8px">A gym is made the first time you scan a route at it.</p>
         <div class="tiles" style="padding-left:0;padding-right:0;margin-top:18px">
           <div class="tile" id="gyms-tile">
@@ -401,7 +409,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ GYM ══════════ -->
     <div class="pane" id="pane-gym">
       <div class="pad" style="padding-top:22px">
-        <h2 style="font-size:31px">Central Rock Watertown</h2>
+        <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 style="font-size:31px;margin-top:22px">Central Rock Watertown</h2>
         <p class="body" style="margin-top:6px" id="gym-counts">No routes yet</p>
         <h2 style="font-size:22px;margin-top:32px">Routes scanned here</h2>
         <p class="body dim" id="gym-empty" style="margin-top:10px">Nothing scanned here yet. Photograph a wall. Trace reads the route colors on it and saves the one you pick to Central Rock Watertown.</p>
@@ -441,7 +450,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ EXPLORE ══════════ -->
     <div class="pane" id="pane-explore">
       <div class="pad" style="padding-top:22px">
-        <div class="rowb"><h2 style="font-size:31px">Explore</h2><button class="pill" id="explore-map">Map</button></div>
+        <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="rowb" style="margin-top:22px"><h2 style="font-size:31px">Explore</h2><button class="pill" id="explore-map">Map</button></div>
         <input class="field" id="explore-q" placeholder="Gym, city or state" style="margin-top:16px">
         <p class="micro" style="margin:20px 0 10px" id="explore-head">Near you</p>
         <div id="explore-list"></div>
@@ -452,7 +462,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ LIBRARY ══════════ -->
     <div class="pane" id="pane-library">
       <div class="pad" style="padding-top:22px">
-        <button class="back-inline" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="rowb" style="margin-top:22px"><h2 style="font-size:31px">Your library</h2><button class="link" data-go="progress">Over time</button></div>
         <p class="body" style="margin-top:4px" id="library-counts"></p>
         <div class="chips" id="library-chips">
@@ -467,7 +477,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ PROGRESS ══════════ -->
     <div class="pane" id="pane-progress">
       <div class="pad" style="padding-top:22px">
-        <button class="back-inline" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
         <h2 style="font-size:31px;margin-top:22px">Movement over time</h2>
         <div id="progress-body"></div>
       </div>
@@ -476,7 +486,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ CLIMB CARD ══════════ -->
     <div class="pane" id="pane-climb">
       <div class="stage"><img id="climb-shot" alt="">
-        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="back" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
       </div>
       <div class="pad" style="margin-top:16px">
         <div class="rowb"><h2 id="climb-title"></h2><span class="micro" id="climb-grade" style="color:var(--accent)"></span></div>
@@ -494,12 +504,25 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
     <!-- ══════════ PERSONAL INFO ══════════ -->
     <div class="pane" id="pane-personal">
       <div class="pad" style="padding-top:22px">
-        <button class="back-inline" data-go="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="back-inline" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
         <h2 style="font-size:31px;margin-top:22px">Personal info</h2>
         <p class="body" style="margin-top:8px">Trace uses your height and reach to size the climber it draws on a route, and nothing else.</p>
         <div style="margin-top:20px"><span class="micro">Height</span><input class="field" placeholder="170 cm"></div>
         <div style="margin-top:14px"><span class="micro">Reach</span><input class="field" placeholder="172 cm"></div>
         <div style="margin-top:14px"><span class="micro">Weight</span><input class="field" placeholder="Optional"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ NO CAMERA ══════════ -->
+    <div class="pane" id="pane-nocam">
+      <div class="nocam">
+        <button class="pill light" data-back>&times;&nbsp; Cancel</button>
+        <div class="mid">
+          <h2 style="color:#fff">No camera here</h2>
+          <p style="color:rgba(255,255,255,.62);margin:10px 0 26px" id="nocam-note"></p>
+          <button class="go light" id="nocam-pick"></button>
+          <button class="asample" style="margin-top:20px" id="nocam-sample"></button>
+        </div>
       </div>
     </div>
 
@@ -524,11 +547,6 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V6a2 2 0 012-2h3M20 9V6a2 2 0 00-2-2h-3M4 15v3a2 2 0 002 2h3M20 15v3a2 2 0 01-2 2h-3"/></svg></span>
         <span><h3>Scan a route</h3><p>Photograph a wall. Trace reads the route colors on it and saves the one you pick to your gym.</p></span>
       </button>
-      <p style="margin:18px 2px 0;font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.62)">
-        No camera here, which is always true of a browser. Use something you already filmed, or try
-        <button class="asample" id="try-climb">the sample climb</button> or
-        <button class="asample" id="try-wall">the sample wall</button>.
-      </p>
     </div>
   </div>
 
@@ -847,16 +865,23 @@ async function trackVideo(video, onProgress) {
 
 /* ════════════════ Navigation ════════════════ */
 const PANES = ['home','name','working','results','scan','route','gyms','gym','profile',
-               'explore','library','progress','climb','personal'];
-function go(name) {
+               'explore','library','progress','climb','personal','nocam'];
+/* Where back goes: the screen you came from, not always home. */
+const navStack = [];
+function back() { go(navStack.pop() ?? 'home', true); }
+function go(name, isBack) {
+  const now = PANES.find(p => $('#pane-'+p).classList.contains('on'));
+  if (!isBack && now && now !== name) navStack.push(now);
+  if (isBack) { /* popped already */ }
   PANES.forEach(p => $('#pane-'+p).classList.toggle('on', p === name));
   $('#app').scrollTop = 0;
   // Naming, analyzing and scanning are full-screen covers in the app, and
   // a cover has no tab bar under it.
   document.querySelector('.tabbar').classList.toggle('gone',
-    name === 'name' || name === 'working' || name === 'scan');
+    name === 'name' || name === 'working' || name === 'scan' || name === 'nocam');
   $('#app').classList.toggle('flush', name === 'results' || name === 'scan'
-    || name === 'route' || name === 'climb');
+    || name === 'route' || name === 'climb' || name === 'nocam');
+  if (name === 'home' || name === 'profile') navStack.length = 0;
   document.querySelector('.tab-home:not(.tab-profile)').classList.toggle('active', name === 'home');
   document.querySelector('.tab-profile').classList.toggle('active', name === 'profile');
   if (name === 'profile') renderProfile();
@@ -877,6 +902,7 @@ function syncMask() {
 }
 $('#app').addEventListener('scroll', syncMask, { passive: true });
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = back);
 /* With the sheet up the tab bar's plus becomes the way out, as it does
    in the app. */
 function setSheet(open) {
@@ -1075,7 +1101,25 @@ vid.addEventListener('ended', () => setPlayIcon(false));
 /* ════════════════ Import and analyze ════════════════ */
 let pendingSrc = null;
 $('#opt-import').onclick = () => $('#file-video').click();
-$('#opt-record').onclick = () => $('#file-video').click();
+$('#opt-record').onclick = () => noCamera('clip');
+$('#opt-scan').onclick = () => noCamera('photo');
+
+/* The app shows this when the device has no camera, which a browser never
+   has. It is also where the samples live. */
+function noCamera(kind) {
+  const clip = kind === 'clip';
+  $('#nocam-note').textContent = clip
+    ? 'This device has no camera Trace can use, which is always true of a browser. Use a clip you already filmed instead.'
+    : 'This device has no camera Trace can use, which is always true of a browser. Choose a photo you already took instead.';
+  $('#nocam-pick').textContent = clip ? 'Choose a clip' : 'Choose a photo';
+  $('#nocam-sample').textContent = clip ? 'Use the sample climb' : 'Use the sample wall';
+  $('#nocam-pick').onclick = () => $(clip ? '#file-video' : '#file-photo').click();
+  $('#nocam-sample').onclick = clip
+    ? () => { pendingSrc = 'sample/climb.mp4'; $('#in-label').value = 'Yellow prow';
+              $('#in-grade').value = 'V4'; go('name'); }
+    : () => loadWall('sample/wall.jpg');
+  go('nocam');
+}
 $('#file-video').onchange = e => {
   if (!e.target.files[0]) return;
   pendingSrc = URL.createObjectURL(e.target.files[0]);
@@ -1310,7 +1354,6 @@ $('#tol').oninput = e => {
   $('#tol-val').textContent = e.target.value;
   if (chosen === 0 && lastTap) { routes.shift(); tapRoute(); }
 };
-$('#opt-scan').onclick = () => $('#file-photo').click();
 $('#file-photo').onchange = e => { if (e.target.files[0]) loadWall(URL.createObjectURL(e.target.files[0])); };
 $('#scan-reset').onclick = () => { chosen = -1; lastTap = null; drawWall(); renderScan(); };
 
@@ -1495,12 +1538,6 @@ document.querySelectorAll('#pane-profile .prow').forEach((r, i) => {
 
 renderLibrary();
 go('home');   /* sets the tab bar up, which a statically-on pane never did */
-$('#try-wall').onclick = () => loadWall('sample/wall.jpg');
-$('#try-climb').onclick = () => {
-  pendingSrc = 'sample/climb.mp4';
-  $('#in-label').value = 'Yellow prow'; $('#in-grade').value = 'V4';
-  go('name');
-};
 </script>
 </body>
 </html>
