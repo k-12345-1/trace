@@ -965,10 +965,19 @@ function loadWall(src) {
    several separate holds rather than one big region of wall. */
 function palette() {
   const W = wallCanvas.width, H = wallCanvas.height;
+  // The wall's own color, so a route is never the wall. Volumes and panels
+  // are a tinted gray that clears a plain chroma floor: on the sample they
+  // came back as a 25-hold "route" sitting on top of the real ones.
+  const Ls = [], as = [], bs = [];
+  for (let y = 0; y < H; y += 6) for (let x = 0; x < W; x += 6) {
+    const q = (y*W + x)*3; Ls.push(wallLab[q]); as.push(wallLab[q+1]); bs.push(wallLab[q+2]);
+  }
+  const wall = [median(Ls), median(as), median(bs)];
+
   const buckets = new Map();
   for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
     const q = (y*W + x)*3, L = wallLab[q], a = wallLab[q+1], b = wallLab[q+2];
-    if (Math.hypot(a, b) < 18) continue;          // gray: the wall itself
+    if (Math.hypot(a, b) < 24) continue;          // gray: the wall itself
     if (L < 12 || L > 93) continue;               // shadow and blown highlight
     const key = `${Math.round(a/16)},${Math.round(b/16)},${Math.round(L/26)}`;
     let e = buckets.get(key);
@@ -981,6 +990,7 @@ function palette() {
 
   const out = [];
   for (const c of cands) {
+    if (Math.hypot(c.lab[0]-wall[0], c.lab[1]-wall[1], c.lab[2]-wall[2]) < 26) continue;
     if (out.some(o => Math.hypot(o.lab[0]-c.lab[0], o.lab[1]-c.lab[1], o.lab[2]-c.lab[2]) < 26)) continue;
     const blobs = findBlobs(c.lab, 30);
     if (blobs.length < 3) continue;
