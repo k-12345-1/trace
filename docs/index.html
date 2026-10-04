@@ -28,7 +28,7 @@ body{
 }
 /* ── the phone ──────────────────────────────────────────────── */
 .device{
-  width:393px; height:852px; flex:none; position:relative;
+  width:402px; height:874px; flex:none; position:relative;
   transform-origin:center center;
   background:#000; border-radius:56px; padding:11px;
   box-shadow:0 2px 6px rgba(15,44,92,.18), 0 26px 60px -18px rgba(15,44,92,.45);
@@ -53,7 +53,7 @@ body{
 .statusbar .glyphs{display:flex;gap:5px;align-items:center;opacity:.9}
 .statusbar svg{width:17px;height:17px}
 /* scrolling app content */
-.app{flex:1;overflow-y:auto;overflow-x:hidden;padding:54px 0 108px;scrollbar-width:none}
+.app{flex:1;overflow-y:auto;overflow-x:hidden;padding:54px 0 120px;scrollbar-width:none}
 .app::-webkit-scrollbar{display:none}
 .app.flush{padding-top:0}
 /* The page fades out as it passes under the clock, the way the app does.
@@ -65,11 +65,11 @@ body{
 }
 .pane{display:none}
 .pane.on{display:block}
-.pad{padding:0 20px}
+.pad{padding:0 21px}
 /* tab bar */
 .tabbar{
-  position:absolute;left:14px;right:14px;bottom:14px;height:62px;z-index:30;
-  background:var(--blue);border-radius:31px;display:flex;align-items:center;
+  position:absolute;left:10px;right:10px;bottom:37px;height:60px;z-index:30;
+  background:var(--blue);border-radius:30px;display:flex;align-items:center;
   justify-content:space-around;box-shadow:0 8px 24px -8px rgba(15,44,92,.5);
 }
 .tabbar button{background:none;border:0;padding:0;cursor:pointer;color:#fff;opacity:.85;display:grid;place-items:center}
@@ -89,15 +89,15 @@ body{
 .rowb{display:flex;align-items:baseline;justify-content:space-between}
 .link{font-size:14.5px;font-weight:600;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
 /* masthead */
-.masthead{display:flex;align-items:center;gap:10px;padding:16px 20px 22px}
+.masthead{display:flex;align-items:center;gap:10px;padding:22px 21px 24px}
 .masthead svg{width:42px;height:42px;color:var(--accent);flex:none}
 .wordmark{font-family:var(--f-serif);font-style:italic;font-weight:700;font-size:31px;color:var(--accent);letter-spacing:-.01em}
 /* focus banner */
-.focus{background:var(--blue-wash);border-radius:18px;padding:17px 18px;margin:0 20px 26px}
+.focus{background:var(--blue-wash);border-radius:18px;padding:17px 18px;margin:0 21px 26px}
 .focus .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .focus h3{margin:0 0 6px}
 /* gym tiles */
-.tiles{display:flex;gap:14px;padding:14px 20px 0;overflow-x:auto;scrollbar-width:none}
+.tiles{display:flex;gap:14px;padding:14px 21px 0;overflow-x:auto;scrollbar-width:none}
 .tiles::-webkit-scrollbar{display:none}
 .tile{width:130px;flex:none}
 .tile .box{width:130px;height:130px;border-radius:20px;display:grid;place-items:center}
@@ -106,12 +106,12 @@ body{
 .tile .box.add{border:2px dashed #D6D0C4;color:var(--accent)}
 .tile .name{margin-top:9px;font-size:15px;font-weight:600}
 /* library */
-.lib{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;padding:14px 20px 0}
+.lib{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px;padding:14px 21px 0}
 .card{cursor:pointer;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit}
-.card .thumb{position:relative;aspect-ratio:1.08;border-radius:15px;overflow:hidden;background:var(--surface)}
+.card .thumb{position:relative;aspect-ratio:1.55;border-radius:15px;overflow:hidden;background:var(--surface)}
 .card .thumb img,.card .thumb canvas{width:100%;height:100%;object-fit:cover;display:block}
-.card .chip{position:absolute;left:7px;top:7px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px}
-.card .tick{position:absolute;right:7px;top:7px;width:23px;height:23px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
+.card .chip{position:absolute;left:8px;top:8px;background:var(--blue);color:#fff;font-size:10.5px;font-weight:700;padding:4px 6px;border-radius:7px;line-height:1}
+.card .tick{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
 .card .tick svg{width:12px;height:12px}
 .card h3{font-size:18px;margin:9px 0 3px}
 .card .sev{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink2)}
@@ -187,6 +187,16 @@ body{
 hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 .spin{width:26px;height:26px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
+.rows{background:var(--surface);border-radius:18px;padding:6px 18px}
+.prow{display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;padding:15px 0;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.pic{width:34px;display:grid;place-items:center;color:var(--blue);flex:none}
+.pic svg{width:23px;height:23px}
+.pic.leaving{width:30px;height:30px;border-radius:50%;background:var(--ink3);color:#fff}
+.pic.leaving svg{width:14px;height:14px}
+.ptxt{display:grid;gap:2px}
+.ptxt b{font-size:15.5px;font-weight:600}
+.ptxt i{font-style:normal;font-size:13px;color:var(--ink3)}
+.hair{height:1px;background:var(--line)}
 .hide{display:none !important}
 </style>
 </head>
@@ -354,6 +364,65 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
       </div>
     </div>
 
+    <!-- ══════════ GYMS ══════════ -->
+    <div class="pane" id="pane-gyms">
+      <div class="pad" style="padding-top:22px">
+        <h2 style="font-size:31px">Your gyms</h2>
+        <p class="body" style="margin-top:8px">A gym is made the first time you scan a route at it.</p>
+        <div class="tiles" style="padding-left:0;padding-right:0;margin-top:18px">
+          <div class="tile" id="gyms-tile">
+            <div class="box gym">CR</div>
+            <div class="name">Central Rock&hellip;</div>
+          </div>
+          <div class="tile">
+            <div class="box add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div>
+            <div class="name">Add gym</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ GYM ══════════ -->
+    <div class="pane" id="pane-gym">
+      <div class="pad" style="padding-top:22px">
+        <h2 style="font-size:31px">Central Rock Watertown</h2>
+        <p class="body" style="margin-top:6px" id="gym-counts">No routes yet</p>
+        <h2 style="font-size:22px;margin-top:32px">Routes scanned here</h2>
+        <p class="body dim" id="gym-empty" style="margin-top:10px">Nothing scanned here yet. Photograph a wall. Trace reads the route colors on it and saves the one you pick to Central Rock Watertown.</p>
+        <div class="lib" id="gym-routes" style="padding-left:0;padding-right:0"></div>
+        <h2 style="font-size:22px;margin-top:32px">Climbs attempted</h2>
+        <p class="body dim" id="gym-noclimbs" style="margin-top:10px">Nothing here yet.</p>
+        <div class="lib" id="gym-climbs" style="padding-left:0;padding-right:0"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ PROFILE ══════════ -->
+    <div class="pane" id="pane-profile">
+      <div class="pad" style="padding-top:22px">
+        <h2 style="font-size:30px">Demo climber</h2>
+        <p style="margin:4px 0 0;font-size:13px;color:var(--ink3)">Member since today</p>
+        <div class="stats" id="profile-counts" style="margin-top:26px"></div>
+        <h2 style="font-size:22px;margin:30px 0 12px">Profile</h2>
+        <div class="rows">
+          <button class="prow"><span class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4"/></svg></span>
+            <span class="ptxt"><b>Personal info</b><i>Height, reach and weight</i></span></button>
+          <div class="hair"></div>
+          <button class="prow"><span class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18"/></svg></span>
+            <span class="ptxt"><b>Manage subscription</b><i>Trace Pro</i></span></button>
+          <div class="hair"></div>
+          <button class="prow"><span class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>
+            <span class="ptxt"><b>Privacy &amp; AI</b><i>On-device analysis &middot; Policy</i></span></button>
+          <div class="hair"></div>
+          <button class="prow"><span class="pic leaving"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+            <span class="ptxt"><b>Sign out</b><i>End your session</i></span></button>
+          <div class="hair"></div>
+          <button class="prow"><span class="pic leaving"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+            <span class="ptxt"><b>Delete account</b><i>Permanently remove your data</i></span></button>
+        </div>
+        <p class="body dim" style="margin-top:18px;font-size:13px">Your climbs stay on this phone.</p>
+      </div>
+    </div>
+
   </div><!-- /app -->
 
   <!-- add sheet -->
@@ -386,7 +455,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
   <div class="tabbar">
     <button data-go="home" class="tab-home"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11l8-7 8 7v8a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19v-8z"/></svg><i class="ind"></i></span></button>
     <button id="tab-plus"><span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="plus-glyph"><path d="M12 5v14M5 12h14"/></svg></span></button>
-    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4"/></svg></button>
+    <button data-go="profile" class="tab-home tab-profile"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4"/></svg><i class="ind"></i></span></button>
   </div>
 
 </div><!-- /screen -->
@@ -697,7 +766,7 @@ async function trackVideo(video, onProgress) {
 }
 
 /* ════════════════ Navigation ════════════════ */
-const PANES = ['home','name','working','results','scan','route'];
+const PANES = ['home','name','working','results','scan','route','gyms','gym','profile'];
 function go(name) {
   PANES.forEach(p => $('#pane-'+p).classList.toggle('on', p === name));
   $('#app').classList.toggle('flush', name === 'results' || name === 'scan' || name === 'route');
@@ -706,7 +775,10 @@ function go(name) {
   // a cover has no tab bar under it.
   document.querySelector('.tabbar').classList.toggle('gone',
     name === 'name' || name === 'working' || name === 'scan');
-  document.querySelector('.tab-home').classList.toggle('active', name === 'home');
+  document.querySelector('.tab-home:not(.tab-profile)').classList.toggle('active', name === 'home');
+  document.querySelector('.tab-profile').classList.toggle('active', name === 'profile');
+  if (name === 'profile') renderProfile();
+  if (name === 'gym') renderGym();
   syncMask();
   if (name !== 'results') { vid.pause(); setPlayIcon(false); }
   closeSheet();
@@ -735,7 +807,7 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
   const d = document.querySelector('.device');
   const apply = () => {
     if (window.matchMedia('(max-width:460px)').matches) { d.style.transform = ''; return; }
-    const s = Math.min(1, (window.innerHeight - 40) / 852, (window.innerWidth - 32) / 393);
+    const s = Math.min(1, (window.innerHeight - 40) / 874, (window.innerWidth - 32) / 402);
     d.style.transform = `scale(${s.toFixed(4)})`;
   };
   apply();
@@ -971,6 +1043,7 @@ function rgbToLab(r, g, b) {
 }
 const wallCanvas = $('#wall'), routeCanvas = $('#route-canvas');
 let wallImage = null, wallData = null, wallLab = null, routes = [], chosen = -1, lastTap = null;
+const gymRoutes = [];
 
 function loadWall(src) {
   const img = new Image();
@@ -1183,11 +1256,42 @@ $('#save-route').onclick = () => {
   $('#route-stats').innerHTML = [
     [`${r.blobs.length}`, 'Holds'], [grade || '—', 'Grade'], ['Not yet', 'Sent'],
   ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  gymRoutes.unshift({ name, grade, hex: r.hex, holds: r.blobs.length,
+                      poster: routeCanvas.toDataURL('image/jpeg', 0.7) });
   go('route');
 };
 
 /* First run: the sample wall is one tap away, and the library starts empty
    exactly as it does on a fresh install. */
+function renderProfile() {
+  $('#profile-counts').innerHTML = [
+    [String(library.length), library.length === 1 ? 'Climb' : 'Climbs'],
+    [String(gymRoutes.length ? 1 : 1), 'Gym'],
+  ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+}
+function renderGym() {
+  const sent = 0;
+  $('#gym-counts').textContent = gymRoutes.length
+    ? `${gymRoutes.length} route${gymRoutes.length === 1 ? '' : 's'} · ${sent} sent`
+    : 'No routes yet';
+  $('#gym-empty').classList.toggle('hide', gymRoutes.length > 0);
+  $('#gym-routes').innerHTML = gymRoutes.map(r => `
+    <div class="card"><div class="thumb"><img src="${r.poster}" alt=""></div>
+      <h3>${r.name}</h3>
+      <div class="sev"><span class="dot" style="background:${r.hex};border-radius:3px"></span>${r.grade || '—'}</div>
+      <div class="meta">${r.holds} holds</div></div>`).join('');
+  $('#gym-noclimbs').classList.toggle('hide', library.length > 0);
+  $('#gym-climbs').innerHTML = library.map(c => {
+    const top = c.findings[0];
+    return `<div class="card"><div class="thumb"><img src="${c.poster}" alt=""></div>
+      <h3>${c.label}</h3>
+      <div class="sev"><span class="dot" style="background:${top?EMBER[top.rank]:'var(--e0)'}"></span>${top ? top.severity : 'No findings'}</div>
+      <div class="meta">1 attempt · ${c.grade || '—'}</div></div>`;
+  }).join('');
+}
+document.querySelectorAll('.tile .box.gym').forEach(b => b.closest('.tile').onclick = () => go('gym'));
+document.querySelectorAll('.pad.rowb .link').forEach(b => { if (b.textContent === 'View all') b.onclick = () => go('gyms'); });
+
 renderLibrary();
 go('home');   /* sets the tab bar up, which a statically-on pane never did */
 $('#try-wall').onclick = () => loadWall('sample/wall.jpg');
