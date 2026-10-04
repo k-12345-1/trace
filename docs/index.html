@@ -171,8 +171,8 @@ footer{margin-top:46px; padding-top:20px; border-top:1px solid var(--line); font
     <div class="swatches" id="wall-swatches"></div>
     <div class="row">
       <label class="note" for="tol">Colour tolerance</label>
-      <input type="range" id="tol" min="6" max="40" value="18" style="flex:1;max-width:260px">
-      <span class="micro" id="tol-val">18</span>
+      <input type="range" id="tol" min="12" max="45" value="30" style="flex:1;max-width:260px">
+      <span class="micro" id="tol-val">30</span>
       <button class="ghost" id="wall-reset">Start over</button>
     </div>
   </div>
@@ -748,8 +748,18 @@ function loadWall(src) {
 function pickRoute(px, py) {
   const W = wallCanvas.width, H = wallCanvas.height;
   const tol = +$('#tol').value;
-  const i = (py * W + px) * 3;
-  const target = [wallLab[i], wallLab[i + 1], wallLab[i + 2]];
+  lastPick = [px, py];
+
+  /* The colour of the hold, not of one pixel. A single pixel is often a
+     specular highlight on the plastic, which matches nothing else on the
+     wall: tapped on a pink jug it found one hold instead of thirteen. */
+  let L = 0, A = 0, B = 0, n = 0;
+  for (let y = py - 4; y <= py + 4; y++) for (let x = px - 4; x <= px + 4; x++) {
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    const q = (y * W + x) * 3;
+    L += wallLab[q]; A += wallLab[q + 1]; B += wallLab[q + 2]; n++;
+  }
+  const target = [L / n, A / n, B / n];
 
   const match = new Uint8Array(W * H);
   for (let p = 0, q = 0; p < W * H; p++, q += 3) {
@@ -789,7 +799,6 @@ function pickRoute(px, py) {
       c.stroke();
     }
   }
-  lastPick = rgb;
   $('#wall-status').textContent =
     `${blobs.length} hold${blobs.length === 1 ? '' : 's'} on this route. Drag the tolerance, or tap another hold.`;
   $('#wall-swatches').innerHTML =
@@ -827,7 +836,7 @@ $('#wall-reset').onclick = () => {
 };
 $('#tol').oninput = e => {
   $('#tol-val').textContent = e.target.value;
-  if (lastPick && wallImage) wallCanvas.getContext('2d').putImageData(wallImage, 0, 0);
+  if (lastPick && wallImage) pickRoute(lastPick[0], lastPick[1]);
 };
 
 /* ═══════════════════════════ Screens ═══════════════════════════ */
