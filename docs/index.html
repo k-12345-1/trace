@@ -17,6 +17,9 @@
   --f-ui:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --f-serif:'Newsreader',ui-serif,Georgia,serif;
   --f-mono:ui-monospace,'SF Mono',Menlo,monospace;
+  /* How far down content starts. On the mock phone that is the drawn
+     status bar; on a real one it is the notch the phone itself owns. */
+  --top:54px; --bot:37px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
@@ -41,6 +44,12 @@ body{
   body{padding:0;background:var(--ground)}
   .device{width:100%;height:100dvh;border-radius:0;padding:0;box-shadow:none;transform:none !important}
   .screen{border-radius:0}
+  /* The phone already has a status bar. Ours would sit under it. */
+  .statusbar{display:none}
+  :root{
+    --top:max(14px, env(safe-area-inset-top));
+    --bot:max(14px, env(safe-area-inset-bottom));
+  }
 }
 /* status bar */
 .statusbar{
@@ -53,22 +62,22 @@ body{
 .statusbar .glyphs{display:flex;gap:5px;align-items:center;opacity:.9}
 .statusbar svg{width:17px;height:17px}
 /* scrolling app content */
-.app{flex:1;overflow-y:auto;overflow-x:hidden;padding:54px 0 120px;scrollbar-width:none}
+.app{flex:1;overflow-y:auto;overflow-x:hidden;padding:var(--top) 0 120px;scrollbar-width:none}
 .app::-webkit-scrollbar{display:none}
 .app.flush{padding-top:0}
 /* The page fades out as it passes under the clock, the way the app does.
    On a screen whose footage reaches the very top, the fade arrives only
    once that footage has scrolled away. */
 .app.masked{
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0,transparent 44px,#000 60px);
-  mask-image:linear-gradient(to bottom,transparent 0,transparent 44px,#000 60px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,transparent calc(var(--top) - 10px),#000 calc(var(--top) + 6px));
+  mask-image:linear-gradient(to bottom,transparent 0,transparent calc(var(--top) - 10px),#000 calc(var(--top) + 6px));
 }
 .pane{display:none}
 .pane.on{display:block}
 .pad{padding:0 21px}
 /* tab bar */
 .tabbar{
-  position:absolute;left:10px;right:10px;bottom:37px;height:60px;z-index:36;
+  position:absolute;left:10px;right:10px;bottom:var(--bot);height:60px;z-index:36;
   background:var(--blue);border-radius:30px;display:flex;align-items:center;
   justify-content:space-around;box-shadow:0 8px 24px -8px rgba(15,44,92,.5);
 }
@@ -130,7 +139,7 @@ body{
 .sheet.on{display:block}
 .sheet .scrim{position:absolute;inset:0;background:var(--ground)}
 .sheet .panel{
-  position:absolute;left:14px;right:14px;top:82px;bottom:121px;background:var(--blue);
+  position:absolute;left:14px;right:14px;top:calc(var(--top) + 28px);bottom:calc(var(--bot) + 84px);background:var(--blue);
   border-radius:30px;padding:20px 18px;overflow:hidden;
   display:flex;flex-direction:column;
 }
@@ -150,9 +159,9 @@ body{
 .stage{position:relative;background:#000;line-height:0}
 .stage video,.stage img,.stage canvas{width:100%;display:block}
 .stage canvas.over{position:absolute;inset:0;height:100%}
-.back{position:absolute;left:16px;top:62px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.4);border:1.5px dashed rgba(255,255,255,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:5}
+.back{position:absolute;left:16px;top:calc(var(--top) + 8px);width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.4);border:1.5px dashed rgba(255,255,255,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:5}
 .back svg{width:15px;height:15px}
-.tracking{position:absolute;right:14px;top:64px;background:var(--ground);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;z-index:5}
+.tracking{position:absolute;right:14px;top:calc(var(--top) + 10px);background:var(--ground);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;z-index:5}
 /* transport */
 .transport{display:flex;align-items:center;gap:11px;padding:14px 21px 4px;color:var(--ink)}
 .transport .t{font-family:var(--f-mono);font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
@@ -223,7 +232,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 .arow .ameta{font-size:12.5px;color:var(--ink3)}
 .arow .chev{margin-left:auto;color:var(--ink3)}
 .arow .chev svg{width:15px;height:15px}
-.nocam{position:absolute;inset:0;background:#000;padding:62px 24px 0;display:flex;flex-direction:column}
+.nocam{position:absolute;inset:0;background:#000;padding:calc(var(--top) + 8px) 24px 0;display:flex;flex-direction:column}
 .nocam .mid{margin:auto;text-align:center;width:100%}
 .nocam h2{font-size:26px}
 .go.light{background:#fff;color:var(--blue)}
