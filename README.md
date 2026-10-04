@@ -31,32 +31,24 @@ Trace tracked drawn over them. The analysis runs on the phone, in a few seconds.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screens/analysis.png" width="320"></td>
-<td width="50%">
+<td width="46%"><img src="docs/screens/analysis.png" width="300"></td>
+<td width="54%">
 
-**On the footage**
-
-The skeleton, the centre of mass, and the elbow angles as they change, scrubbable
-frame by frame at quarter speed.
+**On the footage.** The skeleton, the centre of mass, and the elbow angles as they
+change, scrubbable frame by frame at quarter speed.
 
 A clip Trace could not see clearly enough is told so rather than coached: below 55
 percent tracking confidence it draws nothing and says nothing. Confidently wrong
 coaching is the failure mode that kills this product.
 
-</td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/screens/finding.png" width="320"></td>
-<td width="50%">
+**One thing to work on.** Each finding names what was measured, freezes the frame it
+happened on, marks the joints it is about, and gives the correction in one sentence.
+Worst first, and that is the card in the middle of the three above.
 
-**One thing to work on**
-
-Each finding names what was measured, freezes the frame it happened on, marks the
-joints it is about, and gives the correction in one sentence. Worst first.
-
-Thresholds were set against real climbing, not synthetic fixtures: on five tracked
+Thresholds come from real climbing rather than synthetic fixtures. On five tracked
 clips a resting arm reads about 150 degrees in the picture, because an arm reaching
-to the wall is foreshortened from in front, so "bent arms" starts at 135.
+to the wall is foreshortened from in front, so "bent arms" starts at 135 and stops
+firing on every clean climb.
 
 </td>
 </tr>
