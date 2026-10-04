@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trace</title>
-<meta name="description" content="Film a boulder and Trace tells you one thing to fix. The iOS app's analysis, running in your browser.">
+<meta name="description" content="Trace, the bouldering training partner. Import a climb and it tells you one thing to fix. Photograph a wall and it reads the routes off it by color.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap">
@@ -12,190 +12,386 @@
 :root{
   --ground:#FAF9F4; --surface:#F1EFE7; --line:#EAE7DD;
   --ink:#0F2C5C; --ink2:#4A6183; --ink3:#8C9CB0;
-  --accent:#0128A1; --blue:#0F2C5C; --blue-light:#8094D0;
+  --accent:#0128A1; --blue:#0F2C5C; --blue-light:#8094D0; --blue-wash:#DDE2F1;
   --e0:#BBD4EE; --e1:#8FB6E0; --e2:#5B95D6; --e3:#2E639F; --e4:#0F2C5C;
   --f-ui:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --f-serif:'Newsreader',ui-serif,Georgia,serif;
   --f-mono:ui-monospace,'SF Mono',Menlo,monospace;
-  --page:760px;
 }
-*{box-sizing:border-box}
-html,body{margin:0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
 body{
-  background:var(--ground); color:var(--ink); font-family:var(--f-ui);
-  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  background:#EDEBE4; color:var(--ink); font-family:var(--f-ui); font-size:15px;
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+  padding:26px 16px 40px; min-height:100%;
 }
-.wrap{max-width:var(--page); margin:0 auto; padding:28px 20px 80px}
-h1,h2,h3{font-family:var(--f-serif); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.01em}
-h1{font-size:34px}
-h2{font-size:25px; margin:0 0 10px}
-h3{font-size:19px; margin:0 0 6px}
-p{margin:0 0 12px; color:var(--ink2)}
-a{color:var(--accent)}
-.micro{
-  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.1em;
-  text-transform:uppercase; color:var(--ink3);
+/* ── the page around the phone ─────────────────────────────── */
+.page-head{text-align:center;max-width:430px}
+.page-head h1{font-family:var(--f-serif);font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.page-head p{margin:0;color:var(--ink2);font-size:14px;line-height:1.5}
+.page-head a{color:var(--accent)}
+/* ── the phone ──────────────────────────────────────────────── */
+.device{
+  width:393px; height:852px; flex:none; position:relative;
+  background:#000; border-radius:56px; padding:11px;
+  box-shadow:0 2px 6px rgba(15,44,92,.18), 0 26px 60px -18px rgba(15,44,92,.45);
 }
-header{display:flex; align-items:center; gap:12px; margin-bottom:6px}
-header svg{width:34px;height:34px;flex:none}
-.lede{font-size:17px; max-width:56ch}
-.card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px}
-section{margin-top:34px}
-.tabs{display:flex; gap:8px; margin:22px 0 20px; flex-wrap:wrap}
-.tab{
-  font:inherit; font-weight:600; font-size:14px; cursor:pointer;
-  padding:9px 16px; border-radius:999px; border:1px solid var(--line);
-  background:var(--surface); color:var(--ink2);
+.screen{
+  position:relative; width:100%; height:100%; overflow:hidden;
+  border-radius:45px; background:var(--ground); display:flex; flex-direction:column;
 }
-.tab[aria-selected="true"]{background:var(--blue); border-color:var(--blue); color:#fff}
-button.go{
-  font:inherit; font-weight:600; font-size:15px; cursor:pointer; color:#fff;
-  background:var(--blue); border:0; border-radius:999px; padding:12px 22px;
+@media (max-width:460px){
+  body{padding:0;gap:0;background:var(--ground)}
+  .page-head{display:none}
+  .device{width:100%;height:100dvh;border-radius:0;padding:0;box-shadow:none}
+  .screen{border-radius:0}
 }
-button.go:disabled{opacity:.45; cursor:default}
-button.ghost{
-  font:inherit; font-weight:600; font-size:14px; cursor:pointer; color:var(--accent);
-  background:transparent; border:1px solid var(--line); border-radius:999px; padding:10px 18px;
+/* status bar */
+.statusbar{
+  position:absolute;inset:0 0 auto 0;height:54px;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 30px;font-size:15px;font-weight:600;pointer-events:none;
 }
-.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-.stage{position:relative; border-radius:14px; overflow:hidden; background:#000; line-height:0}
-.stage video,.stage canvas,.stage img{display:block; width:100%; height:auto}
-.stage canvas.over{position:absolute; inset:0; width:100%; height:100%}
-.bar{height:6px; border-radius:999px; background:var(--line); overflow:hidden; margin:14px 0 6px}
-.bar i{display:block; height:100%; background:var(--accent); width:0; transition:width .15s linear}
-.finding{
-  border:1px solid var(--line); background:#fff; border-radius:16px;
-  padding:16px 18px; margin-bottom:10px; cursor:pointer; text-align:left; width:100%;
-  font:inherit; color:inherit; display:block;
+.island{position:absolute;left:50%;transform:translateX(-50%);top:11px;
+  width:124px;height:33px;border-radius:999px;background:#000}
+.statusbar .glyphs{display:flex;gap:5px;align-items:center;opacity:.9}
+.statusbar svg{width:17px;height:17px}
+/* scrolling app content */
+.app{flex:1;overflow-y:auto;overflow-x:hidden;padding:54px 0 108px;scrollbar-width:none}
+.app::-webkit-scrollbar{display:none}
+.app.flush{padding-top:0}
+.pane{display:none}
+.pane.on{display:block}
+.pad{padding:0 20px}
+/* tab bar */
+.tabbar{
+  position:absolute;left:14px;right:14px;bottom:14px;height:62px;z-index:30;
+  background:var(--blue);border-radius:31px;display:flex;align-items:center;
+  justify-content:space-around;box-shadow:0 8px 24px -8px rgba(15,44,92,.5);
 }
-.finding:hover{border-color:var(--blue-light)}
-.finding .top{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+.tabbar button{background:none;border:0;padding:0;cursor:pointer;color:#fff;opacity:.85;display:grid;place-items:center}
+.tabbar svg{width:23px;height:23px}
+.plus{width:46px;height:46px;border-radius:50%;background:var(--blue-light);display:grid;place-items:center}
+.plus svg{width:22px;height:22px;color:#fff}
+/* typography inside the app */
+.app h2{font-family:var(--f-serif);font-size:25px;font-weight:600;margin:0;letter-spacing:-.01em}
+.app h3{font-family:var(--f-serif);font-size:20px;font-weight:600;margin:0}
+.micro{font-family:var(--f-mono);font-size:10.5px;font-weight:500;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3)}
+.body{font-size:14px;line-height:1.5;color:var(--ink2);margin:0}
+.dim{color:var(--ink3)}
+.rowb{display:flex;align-items:baseline;justify-content:space-between}
+.link{font-size:14.5px;font-weight:600;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+/* masthead */
+.masthead{display:flex;align-items:center;gap:10px;padding:16px 20px 22px}
+.masthead svg{width:42px;height:42px;color:var(--accent);flex:none}
+.wordmark{font-family:var(--f-serif);font-style:italic;font-weight:700;font-size:31px;color:var(--accent);letter-spacing:-.01em}
+/* focus banner */
+.focus{background:var(--blue-wash);border-radius:18px;padding:17px 18px;margin:0 20px 26px}
+.focus .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.focus h3{margin:0 0 6px}
+/* gym tiles */
+.tiles{display:flex;gap:14px;padding:14px 20px 0;overflow-x:auto;scrollbar-width:none}
+.tiles::-webkit-scrollbar{display:none}
+.tile{width:130px;flex:none}
+.tile .box{width:130px;height:130px;border-radius:20px;display:grid;place-items:center}
+.tile .box.explore{background:var(--blue-light);color:#fff}
+.tile .box.gym{background:var(--blue);color:#fff;font-family:var(--f-serif);font-size:38px;font-weight:600}
+.tile .box.add{border:2px dashed #D6D0C4;color:var(--accent)}
+.tile .name{margin-top:9px;font-size:15px;font-weight:600}
+/* library */
+.lib{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;padding:14px 20px 0}
+.card{cursor:pointer;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit}
+.card .thumb{position:relative;aspect-ratio:1.08;border-radius:15px;overflow:hidden;background:var(--surface)}
+.card .thumb img,.card .thumb canvas{width:100%;height:100%;object-fit:cover;display:block}
+.card .chip{position:absolute;left:7px;top:7px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px}
+.card .tick{position:absolute;right:7px;top:7px;width:23px;height:23px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
+.card .tick svg{width:12px;height:12px}
+.card h3{font-size:18px;margin:9px 0 3px}
+.card .sev{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink2)}
+.card .meta{font-size:12.5px;color:var(--ink3);margin-top:2px}
 .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.finding .msg{color:var(--ink2); margin:0 0 8px}
-.finding .instead{display:flex; gap:8px; color:var(--ink); font-weight:600}
-.finding .instead span:first-child{color:var(--accent)}
-.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
-.metric{background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px}
-.metric .v{font-family:var(--f-mono); font-size:21px; font-weight:500; font-variant-numeric:tabular-nums}
-.metric .n{font-size:13px; color:var(--ink3)}
-.note{font-size:13.5px; color:var(--ink3)}
-.swatches{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0}
-.sw{width:42px;height:42px;border-radius:11px;border:2px solid transparent;cursor:pointer;padding:0}
-.sw[aria-pressed="true"]{border-color:var(--blue); box-shadow:0 0 0 3px #fff inset}
-input[type=range]{accent-color:var(--accent)}
-.hide{display:none !important}
-footer{margin-top:46px; padding-top:20px; border-top:1px solid var(--line); font-size:13.5px; color:var(--ink3)}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --ground:#101722; --surface:#18202D; --line:#26303F;
-    --ink:#EDF1F7; --ink2:#A9B6C9; --ink3:#73829A;
-    --accent:#8FB6E0; --blue:#2E639F; --blue-light:#5B95D6;
-  }
-  :root:not([data-theme="light"]) .finding,
-  :root:not([data-theme="light"]) .metric{background:#131B26}
+/* generic buttons */
+.go{font:inherit;font-weight:600;font-size:16px;color:#fff;background:var(--blue);border:0;border-radius:999px;padding:15px;width:100%;cursor:pointer}
+.go:disabled{opacity:.35}
+.pill{font:inherit;font-weight:600;font-size:14px;color:var(--accent);background:var(--surface);border:0;border-radius:999px;padding:9px 15px;cursor:pointer}
+.field{width:100%;background:var(--surface);border:0;border-radius:13px;padding:14px;font:inherit;font-size:15px;color:var(--ink);margin-top:7px}
+.field::placeholder{color:var(--ink3)}
+/* add sheet */
+.sheet{position:absolute;inset:0;z-index:35;display:none}
+.sheet.on{display:block}
+.sheet .scrim{position:absolute;inset:0;background:var(--ground)}
+.sheet .panel{
+  position:absolute;left:14px;right:14px;top:60px;bottom:88px;background:var(--blue);
+  border-radius:30px;padding:22px 18px;overflow-y:auto;scrollbar-width:none;
 }
+.sheet .panel::-webkit-scrollbar{display:none}
+.sheet .head{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:20px}
+.sheet .head span{font-family:var(--f-serif);font-size:21px;font-weight:600;color:#fff}
+.sheet .x{position:absolute;right:0;width:34px;height:34px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.5);background:none;color:#fff;cursor:pointer;display:grid;place-items:center}
+.sheet .x svg{width:13px;height:13px}
+.opt{display:flex;gap:15px;align-items:flex-start;width:100%;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:18px;margin-bottom:14px;cursor:pointer;font:inherit}
+.opt .ic{width:46px;height:46px;border-radius:50%;background:var(--blue-light);display:grid;place-items:center;flex:none;color:#fff}
+.opt .ic svg{width:21px;height:21px}
+.opt h3{color:#fff;margin-bottom:4px}
+.opt p{margin:0;font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.45}
+.asample{background:none;border:0;padding:0;font:inherit;color:#fff;font-weight:600;text-decoration:underline;cursor:pointer}
+/* stage (video / photo at the top of a screen) */
+.stage{position:relative;background:#000;line-height:0}
+.stage video,.stage img,.stage canvas{width:100%;display:block}
+.stage canvas.over{position:absolute;inset:0;height:100%}
+.back{position:absolute;left:16px;top:62px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.4);border:1.5px dashed rgba(255,255,255,.6);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:5}
+.back svg{width:15px;height:15px}
+.tracking{position:absolute;right:14px;top:64px;background:var(--ground);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;z-index:5}
+/* transport */
+.transport{display:flex;align-items:center;gap:14px;padding:14px 20px 4px;color:var(--ink)}
+.transport .t{font-family:var(--f-mono);font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.transport button{background:none;border:0;cursor:pointer;color:var(--ink);padding:0;display:grid;place-items:center}
+.transport svg{width:19px;height:19px}
+.playbtn{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff !important}
+.playbtn svg{width:14px;height:14px}
+.scrub{width:100%;accent-color:var(--accent);margin:0 20px;width:calc(100% - 40px)}
+/* findings */
+.finding{display:block;width:100%;text-align:left;background:var(--surface);border:0;border-radius:18px;padding:0 0 16px;margin-bottom:12px;cursor:pointer;font:inherit;color:inherit;overflow:hidden}
+.finding .still{width:100%;display:block;background:#000}
+.finding .inner{padding:14px 17px 0}
+.finding .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.finding .at{font-family:var(--f-mono);font-size:12.5px;color:var(--accent);font-weight:500}
+.finding .chip{display:flex;align-items:center;gap:6px;background:var(--ground);border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;color:var(--ink2)}
+.finding .msg{font-size:14px;line-height:1.5;color:var(--ink2);margin:6px 0 10px}
+.finding .instead{display:flex;gap:9px;font-size:14px;line-height:1.5;font-weight:600;color:var(--ink)}
+.finding .instead .arrow{color:var(--accent)}
+/* stat row */
+.stats{display:flex;background:var(--surface);border-radius:16px;padding:14px 4px;margin-top:16px}
+.stats div{flex:1;text-align:center}
+.stats .v{font-family:var(--f-serif);font-size:21px;font-weight:600}
+.stats .k{font-size:12.5px;color:var(--ink3);margin-top:1px}
+/* progress */
+.bar{height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin:20px 0 10px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s linear}
+/* scan */
+.swatches{display:flex;flex-wrap:wrap;gap:13px;margin:12px 0 4px}
+.sw{width:56px;cursor:pointer;background:none;border:0;padding:0}
+.sw .box{width:56px;height:40px;border-radius:12px;border:2.5px solid transparent}
+.sw[aria-pressed="true"] .box{border-color:var(--accent);box-shadow:0 0 0 2.5px var(--ground) inset}
+.sw .n{font-family:var(--f-mono);font-size:12px;color:var(--ink3);margin-top:5px}
+.sw[aria-pressed="true"] .n{color:var(--ink);font-weight:600}
+.hint{display:flex;gap:9px;font-size:14px;line-height:1.5;color:var(--ink);margin:12px 0}
+.hint .mark{color:var(--accent);flex:none}
+hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
+.spin{width:26px;height:26px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hide{display:none !important}
 </style>
 </head>
 <body>
-<div class="wrap">
 
-<header>
-  <svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M38 6c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6 2.7-6 6-6zM24 22l12-3 10 7 8 3-2 6-10-4-4 3 8 9 2 15-7 1-2-13-11-9-6 12-11 7-4-6 9-6 5-11-5 2-5 9-6-3 6-12 13-7z"/></svg>
+<div class="page-head">
   <h1>Trace</h1>
-</header>
-<p class="lede">Film a boulder and Trace tells you one thing to fix, with the moment marked on your own video. This is the iOS app's analysis, ported to run in your browser. Nothing you load here leaves your device.</p>
-
-<div class="tabs" role="tablist">
-  <button class="tab" role="tab" aria-selected="true" data-screen="climb">Analyse a climb</button>
-  <button class="tab" role="tab" aria-selected="false" data-screen="wall">Scan a wall</button>
-  <button class="tab" role="tab" aria-selected="false" data-screen="about">How it works</button>
+  <p>The bouldering training partner, running in your browser. Tap <strong>+</strong> and try the sample climb, or give it one of your own. Everything stays on your device. <a href="https://github.com/k-12345-1/trace">Source</a></p>
 </div>
 
-<!-- ─────────────────────────── CLIMB ─────────────────────────── -->
-<section id="screen-climb">
-  <div class="card" id="climb-intro">
-    <h2>Give it a climb</h2>
-    <p>Phone on the floor, square to the wall, whole boulder in frame. A still camera matters: everything Trace measures is where your body went inside the picture, so if the camera moves too, the numbers are about whoever held it.</p>
-    <div class="row">
-      <button class="go" id="pick-climb">Choose a video</button>
-      <button class="ghost" id="sample-climb">Use the sample</button>
-      <input type="file" id="climb-file" accept="video/*" class="hide">
-    </div>
-    <p class="note" style="margin-top:12px">The pose model downloads once, about 5 MB, then runs on your device.</p>
-  </div>
+<div class="device">
+<div class="screen">
 
-  <div id="climb-work" class="hide">
-    <div class="stage" id="climb-stage">
-      <video id="vid" playsinline muted preload="auto"></video>
-      <canvas class="over" id="overlay"></canvas>
-    </div>
-    <div class="bar"><i id="prog"></i></div>
-    <div class="row" style="justify-content:space-between">
-      <span class="micro" id="status">Loading</span>
-      <span class="micro" id="track"></span>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <button class="ghost" id="play">Play</button>
-      <input type="range" id="scrub" min="0" max="1000" value="0" style="flex:1">
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <div class="island"></div>
+    <div class="glyphs">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 18.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0-4.6c1.7 0 3.2.7 4.3 1.8l-1.5 1.5a4 4 0 00-5.6 0l-1.5-1.5a6 6 0 014.3-1.8zm0-4.6c3 0 5.7 1.2 7.6 3.2l-1.5 1.5a8.6 8.6 0 00-12.2 0L4.4 12.5A10.6 10.6 0 0112 9.3z"/></svg>
+      <svg viewBox="0 0 26 14" fill="none"><rect x=".6" y=".6" width="21" height="12.8" rx="4" stroke="currentColor" stroke-width="1.2"/><rect x="2.4" y="2.4" width="17.4" height="9.2" rx="2.6" fill="currentColor"/><path d="M23.4 5v4a2.6 2.6 0 000-4z" fill="currentColor"/></svg>
     </div>
   </div>
 
-  <div id="climb-out" class="hide">
-    <section>
-      <h2 id="verdict">Work on this</h2>
-      <div id="findings"></div>
-    </section>
-    <section>
-      <h2>What was measured</h2>
-      <div class="grid" id="metrics"></div>
-      <p class="note" style="margin-top:12px">Click a finding to jump the video to the moment it is about.</p>
-    </section>
-  </div>
-</section>
+  <div class="app" id="app">
 
-<!-- ─────────────────────────── WALL ─────────────────────────── -->
-<section id="screen-wall" class="hide">
-  <div class="card" id="wall-intro">
-    <h2>Photograph a wall</h2>
-    <p>Then tap one hold. Every blob on the wall within a colour distance of it is picked out, so a route is read by its colour rather than from a database. It works on the first photo in any gym, and it cannot tell your route from unrelated holds of the same colour, which is why you drop the wrong ones.</p>
-    <div class="row">
-      <button class="go" id="pick-wall">Choose a photo</button>
-      <button class="ghost" id="sample-wall">Use the sample</button>
-      <input type="file" id="wall-file" accept="image/*" class="hide">
+    <!-- ══════════ HOME ══════════ -->
+    <div class="pane on" id="pane-home">
+      <div class="masthead">
+        <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M38 6c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6 2.7-6 6-6zM24 22l12-3 10 7 8 3-2 6-10-4-4 3 8 9 2 15-7 1-2-13-11-9-6 12-11 7-4-6 9-6 5-11-5 2-5 9-6-3 6-12 13-7z"/></svg>
+        <span class="wordmark">Trace</span>
+      </div>
+
+      <div class="focus hide" id="focus">
+        <div class="top">
+          <span class="micro" style="color:var(--blue-light)">Working on &middot; day 1</span>
+          <span class="micro" id="focus-value" style="color:var(--blue)"></span>
+        </div>
+        <h3 id="focus-title"></h3>
+        <p class="body" id="focus-line"></p>
+      </div>
+
+      <div class="pad rowb"><h2>Your gyms</h2></div>
+      <div class="tiles">
+        <div class="tile">
+          <div class="box explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 3L3 5.5v15L9 18l6 2.5 6-2.5v-15L15 5.5 9 3zm0 0v15m6-12.5v15"/></svg></div>
+          <div class="name">Explore</div>
+        </div>
+        <div class="tile">
+          <div class="box gym">CR</div>
+          <div class="name">Central Rock&hellip;</div>
+        </div>
+        <div class="tile">
+          <div class="box add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div>
+          <div class="name">Add gym</div>
+        </div>
+      </div>
+
+      <div class="pad rowb" style="margin-top:28px"><h2>Your library</h2><span class="link dim" id="lib-count"></span></div>
+      <p class="body pad hide" id="lib-empty" style="margin-top:10px">Nothing yet. Import a clip you already have, and Trace will analyze your movement pattern.</p>
+      <div class="lib" id="lib"></div>
+    </div>
+
+    <!-- ══════════ NAMING ══════════ -->
+    <div class="pane" id="pane-name">
+      <div class="pad" style="padding-top:18px">
+        <button class="pill" data-go="home">&times;&nbsp; Cancel</button>
+        <h2 style="margin:26px 0 8px">What were you on?</h2>
+        <p class="body">Climbs sharing a label are compared against each other, attempt by attempt.</p>
+        <div style="margin-top:22px">
+          <span class="micro">Route</span>
+          <input class="field" id="in-label" placeholder="Blue slab by the fan" value="Yellow prow">
+        </div>
+        <div style="margin-top:16px">
+          <span class="micro">Grade</span>
+          <input class="field" id="in-grade" placeholder="V4" value="V4">
+        </div>
+        <button class="go" style="margin-top:26px" id="start-analyze">Analyze it</button>
+        <p class="body dim" style="margin-top:14px;font-size:13px">The pose model downloads once, about 25 MB, then runs on your device. Nothing is uploaded.</p>
+      </div>
+    </div>
+
+    <!-- ══════════ ANALYZING ══════════ -->
+    <div class="pane" id="pane-working">
+      <div class="pad" style="padding-top:150px;text-align:center">
+        <div class="spin"></div>
+        <h2 style="margin:26px 0 8px">Reading your climb</h2>
+        <p class="body" id="work-note">Tracking you, frame by frame.</p>
+        <div class="bar"><i id="prog"></i></div>
+        <span class="micro" id="work-pct">0%</span>
+      </div>
+    </div>
+
+    <!-- ══════════ RESULTS ══════════ -->
+    <div class="pane" id="pane-results">
+      <div class="stage" id="res-stage">
+        <video id="vid" playsinline muted preload="auto"></video>
+        <canvas class="over" id="overlay"></canvas>
+        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="tracking"><span class="dot" style="background:var(--accent)"></span><span id="res-track"></span></div>
+      </div>
+      <div class="transport">
+        <span class="t" id="res-time">0:00 / 0:00</span>
+        <button id="back1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 6L4 12l7 6V6zm9 0l-7 6 7 6V6z"/></svg></button>
+        <button class="playbtn" id="play"><svg viewBox="0 0 24 24" fill="currentColor" id="play-icon"><path d="M6 4l14 8-14 8z"/></svg></button>
+        <button id="fwd1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg></button>
+      </div>
+      <input type="range" class="scrub" id="scrub" min="0" max="1000" value="0">
+      <div class="pad" style="margin-top:14px">
+        <div class="rowb"><h2 id="res-title"></h2><span class="micro" id="res-grade" style="color:var(--accent)"></span></div>
+        <div class="sev card" style="margin-top:7px;display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink2)">
+          <span class="dot" id="res-dot"></span><span id="res-verdict"></span>
+        </div>
+        <div class="stats" id="res-stats"></div>
+        <h2 style="margin:28px 0 14px" id="res-head">Work on this</h2>
+        <div id="findings"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ SCAN ══════════ -->
+    <div class="pane" id="pane-scan">
+      <div class="stage">
+        <canvas id="wall"></canvas>
+        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="pad" style="margin-top:18px">
+        <h2>Scan a route</h2>
+        <span class="micro" style="color:var(--accent)">Pick the route&rsquo;s color</span>
+        <div id="scan-busy" style="margin:22px 0"><div class="spin"></div>
+          <p class="body" style="text-align:center;margin-top:14px">Reading the colors on this wall.</p></div>
+        <div id="scan-done" class="hide">
+          <p class="micro" style="margin:18px 0 0">Routes on this wall</p>
+          <div class="swatches" id="swatches"></div>
+          <div class="rowb" style="margin-top:14px">
+            <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600">
+              <span class="dot" id="pick-dot" style="width:11px;height:11px;border-radius:3px"></span>
+              <span id="pick-count"></span>
+            </span>
+            <button class="link" id="scan-reset">Start over</button>
+          </div>
+          <div class="hint"><span class="mark">&#9633;</span><span>Tap a hold Trace missed to add its color. Drag the tolerance if the route is picking up too much or too little.</span></div>
+          <input type="range" id="tol" min="12" max="45" value="30" style="width:100%;accent-color:var(--accent)">
+          <p class="body dim" style="font-size:13px">Color tolerance <span id="tol-val">30</span>. Trace found these holds by color, not by reading the setter&rsquo;s intent.</p>
+          <hr class="rule">
+          <span class="micro">Save it</span>
+          <h2 style="margin:6px 0 14px">Which gym is this?</h2>
+          <div class="field" style="color:var(--ink)">Central Rock Watertown</div>
+          <div style="margin-top:14px"><span class="micro">Route</span>
+            <input class="field" id="route-name" placeholder="Pink jugs"></div>
+          <div style="margin-top:14px"><span class="micro">Grade</span>
+            <input class="field" id="route-grade" placeholder="V0"></div>
+          <button class="go" style="margin-top:22px" id="save-route">Save to gym</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ROUTE ══════════ -->
+    <div class="pane" id="pane-route">
+      <div class="stage">
+        <canvas id="route-canvas"></canvas>
+        <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
+      </div>
+      <div class="pad" style="margin-top:16px">
+        <div class="rowb">
+          <h2 id="route-title"></h2>
+          <span class="dot" id="route-sw" style="width:26px;height:26px;border-radius:8px"></span>
+        </div>
+        <p class="body" style="margin-top:4px"><span id="route-sub"></span></p>
+        <div class="stats" id="route-stats"></div>
+        <p class="body dim" style="margin-top:18px;font-size:13px">Read from the shape of the holds in your photo, and nothing else. Trace cannot see hold types, how good a hold is, or how steep the wall is, so this is the line rather than the beta.</p>
+      </div>
+    </div>
+
+  </div><!-- /app -->
+
+  <!-- add sheet -->
+  <div class="sheet" id="sheet">
+    <div class="scrim" data-close></div>
+    <div class="panel">
+      <div class="head"><span>Trace a Climb</span>
+        <button class="x" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <button class="opt" id="opt-record">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>
+        <span><h3>Record a climb</h3><p>Phone on the floor, square to the wall, whole boulder in frame.</p></span>
+      </button>
+      <button class="opt" id="opt-import">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 15l5-4 4 3 3-2 6 4"/></svg></span>
+        <span><h3>Import a clip</h3><p>Use something you already filmed.</p></span>
+      </button>
+      <button class="opt" id="opt-scan">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V6a2 2 0 012-2h3M20 9V6a2 2 0 00-2-2h-3M4 15v3a2 2 0 002 2h3M20 15v3a2 2 0 01-2 2h-3"/></svg></span>
+        <span><h3>Scan a route</h3><p>Photograph a wall. Trace reads the route colors on it and saves the one you pick to your gym.</p></span>
+      </button>
+      <p style="margin:18px 2px 0;font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.62)">
+        No camera here, which is always true of a browser. Use something you already filmed, or try
+        <button class="asample" id="try-climb">the sample climb</button> or
+        <button class="asample" id="try-wall">the sample wall</button>.
+      </p>
     </div>
   </div>
 
-  <div id="wall-work" class="hide">
-    <div class="stage"><canvas id="wall-canvas"></canvas></div>
-    <p class="micro" style="margin-top:12px" id="wall-status">Tap a hold</p>
-    <div class="swatches" id="wall-swatches"></div>
-    <div class="row">
-      <label class="note" for="tol">Colour tolerance</label>
-      <input type="range" id="tol" min="12" max="45" value="30" style="flex:1;max-width:260px">
-      <span class="micro" id="tol-val">30</span>
-      <button class="ghost" id="wall-reset">Start over</button>
-    </div>
+  <div class="tabbar">
+    <button data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11l8-7 8 7v8a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19v-8z"/></svg></button>
+    <button id="tab-plus"><span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4"/></svg></button>
   </div>
-</section>
 
-<!-- ─────────────────────────── ABOUT ─────────────────────────── -->
-<section id="screen-about" class="hide">
-  <h2>How it works</h2>
-  <p>Trace is a native iOS app written in Swift. A browser cannot run that, so this page is a port of the two things the app does, using the same arithmetic on the same thresholds.</p>
-  <h3>Watching you climb</h3>
-  <p>A body-pose model gives the joints in each frame. Everything after that is arithmetic: no model is trained, and nothing is uploaded. The centre of mass is a weighted sum of eleven body segments. Elbow angle is measured only while you are still, where "still" is relative to your own torso length so that a climber filmed from further away is not called still twice as often. Pauses, foot resets and the wander between moves come off the same series.</p>
-  <p>Where the app and this page differ: iOS uses Apple's Vision body-pose model, and this page uses MoveNet, which is the closest thing a browser can run. The joints are the same, the confidence numbers are not, so a clip may track a little better or worse here.</p>
-  <h3>Reading a wall</h3>
-  <p>Colours are compared in CIE Lab, where distance roughly matches what the eye calls a different colour, rather than in RGB where it does not. The holds of a route are the connected blobs within that distance, outlined by the convex hull of their pixels.</p>
-  <h3>What is not here</h3>
-  <p>The figure that climbs the route for you, the start and finish sticker reading, grades, gyms, and your library of past attempts are all in the iOS app and not on this page. Those lean on the parts of the app that hold state and read text, and this is meant to be the part you can try in one click.</p>
-  <p><a href="https://github.com/k-12345-1/trace">The source, and the rest of the app</a></p>
-</section>
+</div><!-- /screen -->
+</div><!-- /device -->
 
-<footer>
-  Trace. Everything on this page runs on your device; no video or photo is uploaded.
-</footer>
-</div>
+<input type="file" id="file-video" accept="video/*" class="hide">
+<input type="file" id="file-photo" accept="image/*" class="hide">
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.22.0/dist/tf-converter.min.js"></script>
@@ -204,240 +400,188 @@ footer{margin-top:46px; padding-top:20px; border-top:1px solid var(--line); font
 <script>
 "use strict";
 
-/* ══════════════ Trace's arithmetic, ported from the Swift ══════════════
-   Names and constants match Climbing App/Climbing App/Analysis/*.swift so
-   the two can be compared line for line. */
+/* ════════ Trace's arithmetic, ported from the Swift ════════
+   Constants and names match Climbing App/Climbing App/Analysis/*.swift
+   so the two can be read side by side. */
 
-const USABLE = 0.25;                 // Joint.isUsable
-const STILL_TORSO_PER_SECOND = 0.175; // MetricsEngine.stillTorsoPerSecond
-const PAUSE_SECONDS = 0.8;
+const USABLE = 0.25, STILL_TORSO_PER_SECOND = 0.175, PAUSE_SECONDS = 0.8;
 const PLAUSIBLE_ELBOW = 35;
-const FOOT_PLANT_RADIUS = 0.12, FOOT_PLANT_WINDOW = 0.15;
-const FOOT_SETTLE_SECONDS = 0.15, FOOT_ADJUST_DISTANCE = 0.9, FOOT_ADJUST_SECONDS = 2.0;
+const FOOT_PLANT_RADIUS = 0.12, FOOT_PLANT_WINDOW = 0.15, FOOT_SETTLE_SECONDS = 0.15;
+const FOOT_ADJUST_DISTANCE = 0.9, FOOT_ADJUST_SECONDS = 2.0;
 const SWING_OVERHANG = 0.35, SWING_SECONDS = 0.5;
 const ASCENT_TOP = 0.10, TOP_PERCENTILE = 0.02;
 const REST_FRACTION = 0.55, MINIMUM_GAP = 0.30, MINIMUM_MOVE = 0.35, MINIMUM_MOVES = 3;
-const BENT_ARMS_BELOW = 135;         // FindingEngine.bentArmsBelow
-const WANDERING_ABOVE = 0.28;        // FindingEngine.wanderingAbove
-const TRUSTWORTHY = 0.55;            // Climb.isTrustworthy
+const BENT_ARMS_BELOW = 135, WANDERING_ABOVE = 0.28, TRUSTWORTHY = 0.55;
 
+const $ = s => document.querySelector(s);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const median = xs => xs.length ? xs.slice().sort((a, b) => a - b)[xs.length >> 1] : null;
 const pt = (f, id) => { const j = f.joints[id]; return j && j.confidence >= USABLE ? j : null; };
+const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
-function angleAt(vertex, a, b) {
-  const v1x = a.x - vertex.x, v1y = a.y - vertex.y;
-  const v2x = b.x - vertex.x, v2y = b.y - vertex.y;
-  const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+function angleAt(v, a, b) {
+  const x1 = a.x - v.x, y1 = a.y - v.y, x2 = b.x - v.x, y2 = b.y - v.y;
+  const m1 = Math.hypot(x1, y1), m2 = Math.hypot(x2, y2);
   if (m1 <= 0 || m2 <= 0) return 180;
-  const c = Math.max(-1, Math.min(1, (v1x * v2x + v1y * v2y) / (m1 * m2)));
-  return Math.acos(c) * 180 / Math.PI;
+  return Math.acos(Math.max(-1, Math.min(1, (x1 * x2 + y1 * y2) / (m1 * m2)))) * 180 / Math.PI;
 }
 
-/* CenterOfMass.swift: eleven segments, mass fractions summing to one. */
 const SEGMENTS = [
-  ['leftShoulder', 'rightShoulder', 0.081],
-  ['leftShoulder', 'rightHip', 0.2485], ['rightShoulder', 'leftHip', 0.2485],
-  ['leftShoulder', 'leftElbow', 0.028], ['rightShoulder', 'rightElbow', 0.028],
-  ['leftElbow', 'leftWrist', 0.022], ['rightElbow', 'rightWrist', 0.022],
-  ['leftHip', 'leftKnee', 0.100], ['rightHip', 'rightKnee', 0.100],
-  ['leftKnee', 'leftAnkle', 0.061], ['rightKnee', 'rightAnkle', 0.061],
-];
-function centerOfMass(joints) {
+  ['leftShoulder','rightShoulder',0.081], ['leftShoulder','rightHip',0.2485], ['rightShoulder','leftHip',0.2485],
+  ['leftShoulder','leftElbow',0.028], ['rightShoulder','rightElbow',0.028],
+  ['leftElbow','leftWrist',0.022], ['rightElbow','rightWrist',0.022],
+  ['leftHip','leftKnee',0.100], ['rightHip','rightKnee',0.100],
+  ['leftKnee','leftAnkle',0.061], ['rightKnee','rightAnkle',0.061]];
+function centerOfMass(j) {
   let x = 0, y = 0, w = 0;
   for (const [an, bn, fr] of SEGMENTS) {
-    const a = joints[an], b = joints[bn];
+    const a = j[an], b = j[bn];
     if (!a || !b || a.confidence < USABLE || b.confidence < USABLE) continue;
     x += (a.x + b.x) / 2 * fr; y += (a.y + b.y) / 2 * fr; w += fr;
   }
-  return w >= 0.6 ? { x: x / w, y: y / w } : null;   // most of the body, or drop the frame
+  return w >= 0.6 ? { x: x / w, y: y / w } : null;
 }
-
 function torsoLength(f) {
-  const ls = pt(f, 'leftShoulder'), rs = pt(f, 'rightShoulder');
-  const lh = pt(f, 'leftHip'), rh = pt(f, 'rightHip');
+  const ls = pt(f,'leftShoulder'), rs = pt(f,'rightShoulder'), lh = pt(f,'leftHip'), rh = pt(f,'rightHip');
   if (!ls || !rs || !lh || !rh) return null;
-  return dist({ x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2 },
-              { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 });
+  return dist({x:(ls.x+rs.x)/2, y:(ls.y+rs.y)/2}, {x:(lh.x+rh.x)/2, y:(lh.y+rh.y)/2});
 }
-const medianTorso = frames => median(frames.map(torsoLength).filter(v => v != null));
-
+const medianTorso = fs => median(fs.map(torsoLength).filter(v => v != null));
 function speedSeries(path, times) {
   if (path.length < 2) return [];
   const out = [0];
   for (let i = 1; i < path.length; i++)
-    out.push(dist(path[i], path[i - 1]) / Math.max(times[i] - times[i - 1], 0.0005));
+    out.push(dist(path[i], path[i-1]) / Math.max(times[i] - times[i-1], 0.0005));
   return out;
 }
-const stillSpeed = torso => (torso > 0.02 ? torso * STILL_TORSO_PER_SECOND : 0.035);
+const stillSpeed = t => (t > 0.02 ? t * STILL_TORSO_PER_SECOND : 0.035);
 
-/* The ascent: the descent is not climbing, and counting it produces stops
-   you did not take. Trimmed at the top rather than at both ends. */
 function ascent(frames) {
-  const usable = frames.filter(f => f.com);
-  const torso = medianTorso(usable);
+  const usable = frames.filter(f => f.com), torso = medianTorso(usable);
   if (usable.length < 4 || !torso || torso <= 0.01) return frames;
-  const heights = usable.map(f => f.com.y).sort((a, b) => a - b);
-  const peak = heights[Math.min(heights.length - 1, Math.floor(heights.length * TOP_PERCENTILE))];
+  const hs = usable.map(f => f.com.y).sort((a,b) => a-b);
+  const peak = hs[Math.min(hs.length-1, Math.floor(hs.length * TOP_PERCENTILE))];
   const kept = [];
-  for (const f of frames) {
-    kept.push(f);
-    if (f.com && (f.com.y - peak) / torso <= ASCENT_TOP) break;
-  }
+  for (const f of frames) { kept.push(f); if (f.com && (f.com.y - peak)/torso <= ASCENT_TOP) break; }
   return kept.length >= 4 ? kept : frames;
 }
-
 function pauses(path, times, torso) {
-  const speeds = speedSeries(path, times), still = stillSpeed(torso), out = [];
-  let runStart = null;
-  speeds.forEach((s, i) => {
+  const sp = speedSeries(path, times), still = stillSpeed(torso), out = [];
+  let run = null;
+  sp.forEach((s, i) => {
     const t = times[i] ?? 0;
-    if (s < still) { if (runStart === null) runStart = t; }
-    else if (runStart !== null) {
-      if (t - runStart >= PAUSE_SECONDS) out.push({ start: runStart, end: t });
-      runStart = null;
-    }
+    if (s < still) { if (run === null) run = t; }
+    else if (run !== null) { if (t - run >= PAUSE_SECONDS) out.push({start:run, end:t}); run = null; }
   });
-  const last = times[times.length - 1];
-  if (runStart !== null && last - runStart >= PAUSE_SECONDS) out.push({ start: runStart, end: last });
+  const last = times[times.length-1];
+  if (run !== null && last - run >= PAUSE_SECONDS) out.push({start:run, end:last});
   return out;
 }
-
-/* Elbow angle, averaged over the frames where the body is near-still. The
-   arm that is holding on is the straighter of the two. */
+const ARMS = [['leftShoulder','leftElbow','leftWrist'], ['rightShoulder','rightElbow','rightWrist']];
 function staticElbowAngle(all) {
-  const frames = all.filter(f => f.com);
-  const speeds = speedSeries(frames.map(f => f.com), frames.map(f => f.time));
-  const still = stillSpeed(medianTorso(frames) ?? 0);
-  const angles = [];
-  frames.forEach((f, i) => {
-    if (i >= speeds.length || speeds[i] >= still) return;
+  const fs = all.filter(f => f.com);
+  const sp = speedSeries(fs.map(f=>f.com), fs.map(f=>f.time));
+  const still = stillSpeed(medianTorso(fs) ?? 0), angles = [];
+  fs.forEach((f, i) => {
+    if (i >= sp.length || sp[i] >= still) return;
     const arms = [];
-    for (const [s, e, w] of [['leftShoulder', 'leftElbow', 'leftWrist'],
-                             ['rightShoulder', 'rightElbow', 'rightWrist']]) {
-      const S = pt(f, s), E = pt(f, e), W = pt(f, w);
+    for (const [s,e,w] of ARMS) {
+      const S = pt(f,s), E = pt(f,e), W = pt(f,w);
       if (!S || !E || !W) continue;
-      const a = angleAt(E, S, W);
-      if (a >= PLAUSIBLE_ELBOW) arms.push(a);
+      const a = angleAt(E,S,W); if (a >= PLAUSIBLE_ELBOW) arms.push(a);
     }
     if (arms.length) angles.push(Math.max(...arms));
   });
-  return angles.length ? angles.reduce((a, b) => a + b) / angles.length : 180;
+  return angles.length ? angles.reduce((a,b)=>a+b)/angles.length : 180;
 }
-
-/* A foot that lands, shifts, and lands again near where it was. */
 function footAdjustments(frames) {
   const torso = medianTorso(frames);
   if (!torso || torso <= 0.01) return 0;
   let count = 0;
-  for (const ankle of ['leftAnkle', 'rightAnkle']) {
+  for (const ankle of ['leftAnkle','rightAnkle']) {
     const series = [];
-    for (const f of frames) { const p = pt(f, ankle); if (p) series.push({ t: f.time, p }); }
+    for (const f of frames) { const p = pt(f, ankle); if (p) series.push({t:f.time, p}); }
     if (series.length <= 4) continue;
-
-    const planted = series.map((s, i) => {
+    const planted = series.map(s => {
       let worst = 0;
-      for (const k of series)
-        if (Math.abs(k.t - s.t) <= FOOT_PLANT_WINDOW) worst = Math.max(worst, dist(k.p, s.p));
+      for (const k of series) if (Math.abs(k.t - s.t) <= FOOT_PLANT_WINDOW) worst = Math.max(worst, dist(k.p, s.p));
       return worst / torso <= FOOT_PLANT_RADIUS;
     });
-
     const places = [];
-    const push = (from, to) => {
-      if (to < from || series[to].t - series[from].t < FOOT_SETTLE_SECONDS) return;
-      places.push({ start: series[from].t, end: series[to].t, at: series[(from + to) >> 1].p });
+    const push = (a, b) => {
+      if (b < a || series[b].t - series[a].t < FOOT_SETTLE_SECONDS) return;
+      places.push({start:series[a].t, end:series[b].t, at:series[(a+b)>>1].p});
     };
-    let runStart = null;
+    let run = null;
     planted.forEach((p, i) => {
-      if (p) { if (runStart === null) runStart = i; }
-      else if (runStart !== null) { push(runStart, i - 1); runStart = null; }
+      if (p) { if (run === null) run = i; } else if (run !== null) { push(run, i-1); run = null; }
     });
-    if (runStart !== null) push(runStart, series.length - 1);
-
+    if (run !== null) push(run, series.length-1);
     for (let k = 1; k < places.length; k++) {
-      const a = places[k - 1], b = places[k];
-      if (dist(a.at, b.at) / torso < FOOT_ADJUST_DISTANCE && b.start - a.end < FOOT_ADJUST_SECONDS) count++;
+      const a = places[k-1], b = places[k];
+      if (dist(a.at,b.at)/torso < FOOT_ADJUST_DISTANCE && b.start - a.end < FOOT_ADJUST_SECONDS) count++;
     }
   }
   return count;
 }
-
-/* Hanging outside your contacts: the centre of mass beyond the span of the
-   hands and feet, so nothing cancels the sideways pull. */
 function swingTotal(frames) {
   let total = 0, start = null, last = null;
   for (const f of frames) {
     const torso = torsoLength(f);
     if (!f.com || !torso || torso <= 0.01) continue;
-    const xs = ['leftWrist', 'rightWrist', 'leftAnkle', 'rightAnkle']
-      .map(id => pt(f, id)).filter(Boolean).map(p => p.x);
+    const xs = ['leftWrist','rightWrist','leftAnkle','rightAnkle'].map(id=>pt(f,id)).filter(Boolean).map(p=>p.x);
     if (xs.length < 2) continue;
     const lo = Math.min(...xs), hi = Math.max(...xs);
-    const over = f.com.x < lo ? (lo - f.com.x) / torso
-               : f.com.x > hi ? (f.com.x - hi) / torso : 0;
+    const over = f.com.x < lo ? (lo - f.com.x)/torso : f.com.x > hi ? (f.com.x - hi)/torso : 0;
     if (over > SWING_OVERHANG) { if (start === null) start = f.time; last = f.time; }
-    else if (start !== null) {
-      if (last - start >= SWING_SECONDS) total += last - start;
-      start = null; last = null;
-    }
+    else if (start !== null) { if (last - start >= SWING_SECONDS) total += last - start; start = last = null; }
   }
   if (start !== null && last - start >= SWING_SECONDS) total += last - start;
   return total;
 }
-
-/* The long way between moves. Against the shortest path from each position
-   to the next, not against a straight line up the wall: a boulder does not
-   offer one of those. */
 function moveWaste(frames) {
-  const usable = frames.filter(f => f.com);
-  const torso = medianTorso(usable);
+  const usable = frames.filter(f=>f.com), torso = medianTorso(usable);
   if (usable.length < 8 || !torso || torso <= 0.01) return null;
-  const path = usable.map(f => f.com), times = usable.map(f => f.time);
-  const speeds = speedSeries(path, times);
-  if (speeds.length !== path.length || path.length < 3) return null;
-
-  const sorted = speeds.slice().sort((a, b) => a - b);
-  const high = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))];
-  const moving = speeds.filter(s => s > high * 0.05).sort((a, b) => a - b);
-  const med = moving.length ? moving[moving.length >> 1] : sorted[sorted.length >> 1];
+  const path = usable.map(f=>f.com), times = usable.map(f=>f.time);
+  const sp = speedSeries(path, times);
+  if (sp.length !== path.length || path.length < 3) return null;
+  const sorted = sp.slice().sort((a,b)=>a-b);
+  const high = sorted[Math.min(sorted.length-1, Math.floor(sorted.length*0.9))];
+  const moving = sp.filter(s=>s > high*0.05).sort((a,b)=>a-b);
+  const med = moving.length ? moving[moving.length>>1] : sorted[sorted.length>>1];
   if (!(med > 1e-6)) return null;
-  const ceiling = med * REST_FRACTION;
-
-  const bounds = [0];
-  for (let i = 1; i < speeds.length - 1; i++) {
-    if (speeds[i] > ceiling || speeds[i] > speeds[i - 1] || speeds[i] > speeds[i + 1]) continue;
-    if (times[i] - times[bounds[bounds.length - 1]] < MINIMUM_GAP) continue;
+  const ceiling = med * REST_FRACTION, bounds = [0];
+  for (let i = 1; i < sp.length-1; i++) {
+    if (sp[i] > ceiling || sp[i] > sp[i-1] || sp[i] > sp[i+1]) continue;
+    if (times[i] - times[bounds[bounds.length-1]] < MINIMUM_GAP) continue;
     bounds.push(i);
   }
-  const end = path.length - 1;
-  if (times[end] - times[bounds[bounds.length - 1]] < MINIMUM_GAP && bounds.length > 1) bounds.pop();
+  const end = path.length-1;
+  if (times[end] - times[bounds[bounds.length-1]] < MINIMUM_GAP && bounds.length > 1) bounds.pop();
   bounds.push(end);
-  if (bounds.length < MINIMUM_MOVES + 1) return null;
-
+  if (bounds.length < MINIMUM_MOVES+1) return null;
   let travelled = 0, direct = 0, moves = 0;
-  for (let k = 0; k < bounds.length - 1; k++) {
-    const a = bounds[k], b = bounds[k + 1];
+  for (let k = 0; k < bounds.length-1; k++) {
+    const a = bounds[k], b = bounds[k+1];
     if (b <= a) continue;
     let t = 0;
-    for (let i = a; i < b; i++) t += dist(path[i], path[i + 1]);
-    if (t / torso < MINIMUM_MOVE) continue;
+    for (let i = a; i < b; i++) t += dist(path[i], path[i+1]);
+    if (t/torso < MINIMUM_MOVE) continue;
     travelled += t; direct += dist(path[a], path[b]); moves++;
   }
   if (moves < MINIMUM_MOVES || travelled <= 1e-6) return null;
   return Math.max(0, travelled - direct) / travelled;
 }
-
 function computeMetrics(frames) {
-  const tracked = frames.filter(f => f.com);
+  const tracked = frames.filter(f=>f.com);
   const torso = medianTorso(tracked) ?? 0.2;
-  const times = tracked.map(f => f.time);
-  const rests = pauses(tracked.map(f => f.com), times, torso);
-  const duration = frames.length ? frames[frames.length - 1].time - frames[0].time : 0;
+  const times = tracked.map(f=>f.time);
+  const rests = pauses(tracked.map(f=>f.com), times, torso);
   return {
-    trackingConfidence: frames.length ? tracked.length / frames.length : 0,
-    duration,
+    trackingConfidence: frames.length ? tracked.length/frames.length : 0,
+    duration: frames.length ? frames[frames.length-1].time - frames[0].time : 0,
     staticElbowAngle: staticElbowAngle(tracked),
-    pauseTotal: rests.reduce((s, r) => s + (r.end - r.start), 0),
+    pauseTotal: rests.reduce((s,r)=>s+(r.end-r.start), 0),
     pauseCount: rests.length,
     footAdjustments: footAdjustments(tracked),
     swingTotal: swingTotal(tracked),
@@ -445,10 +589,8 @@ function computeMetrics(frames) {
   };
 }
 
-/* FindingEngine. Worst first; every message says what was measured so the
-   climber can look at the moment and disagree. */
-const SEVERITY = ['Negligible', 'Minor', 'Moderate', 'Costly', 'Dominant'];
-const EMBER = ['var(--e0)', 'var(--e1)', 'var(--e2)', 'var(--e3)', 'var(--e4)'];
+const SEVERITY = ['Negligible','Minor','Moderate','Costly','Dominant'];
+const EMBER = ['var(--e0)','var(--e1)','var(--e2)','var(--e3)','var(--e4)'];
 
 function findings(m, frames) {
   if (m.trackingConfidence < TRUSTWORTHY) return [];
@@ -468,385 +610,547 @@ function findings(m, frames) {
   if (m.moveWaste != null && m.moveWaste > WANDERING_ABOVE) {
     const w = m.moveWaste;
     add(w > 0.50 ? 3 : w > 0.38 ? 2 : 1, 'The long way between moves',
-      `Between moves your hips drifted: about ${Math.round(w * 100)} percent of the distance they covered was sideways or back, not toward the next hold.`,
+      `Between moves your hips drifted: about ${Math.round(w*100)} percent of the distance they covered was sideways or back, not toward the next hold.`,
       'Go straight to the next hold instead of setting off and correcting.');
   }
-  if (m.pauseTotal > m.duration * 0.35 && m.pauseCount >= 2) {
-    add(m.pauseTotal > m.duration * 0.6 ? 3 : 2, 'Reading the route while hanging on it',
+  if (m.pauseTotal > m.duration*0.35 && m.pauseCount >= 2) {
+    add(m.pauseTotal > m.duration*0.6 ? 3 : 2, 'Reading the route while hanging on it',
       `You spent ${Math.round(m.pauseTotal)} of ${Math.round(m.duration)} seconds not moving, across ${m.pauseCount} stops.`,
       'Read the next two moves from a rest, not while hanging on.');
   }
   if (m.swingTotal > 1.0) {
     const s = Math.round(m.swingTotal);
     add(m.swingTotal > 4 ? 3 : m.swingTotal > 2 ? 2 : 1, 'Hanging outside your contacts',
-      `For ${s} second${s === 1 ? '' : 's'} your weight hung outside your hands and feet rather than between them.`,
+      `For ${s} second${s===1?'':'s'} your weight hung outside your hands and feet rather than between them.`,
       'Find the second force. Put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving.');
   }
-  /* Foot precision, per move rather than per climb: a longer climb should
-     not be faulted for being longer. */
-  const perMinute = m.duration > 0 ? m.footAdjustments / (m.duration / 60) : 0;
+  const perMinute = m.duration > 0 ? m.footAdjustments / (m.duration/60) : 0;
   if (m.footAdjustments >= 3 && perMinute > 8) {
     add(perMinute > 24 ? 3 : perMinute > 14 ? 2 : 1, 'Imprecise feet',
       `You repositioned a foot after placing it ${m.footAdjustments} times in ${Math.round(m.duration)} seconds.`,
       'Look at the foothold until your shoe is on it, then leave it there.');
   }
-  return out.sort((a, b) => b.rank - a.rank);
+  return out.sort((a,b) => b.rank - a.rank);
 }
-
-/* The moment worth looking at: the best second or so of still, bent arms. */
 function worstStaticElbowWindow(frames) {
-  const usable = frames.filter(f => f.com);
+  const usable = frames.filter(f=>f.com);
   if (usable.length < 3) return null;
-  const speeds = speedSeries(usable.map(f => f.com), usable.map(f => f.time));
+  const sp = speedSeries(usable.map(f=>f.com), usable.map(f=>f.time));
   const still = stillSpeed(medianTorso(usable) ?? 0);
-  let best = null, bestScore = -1;
+  let best = null, score = -1;
   usable.forEach((f, i) => {
-    if (i >= speeds.length || speeds[i] >= still) return;
+    if (i >= sp.length || sp[i] >= still) return;
     const arms = [];
-    for (const [s, e, w] of [['leftShoulder', 'leftElbow', 'leftWrist'],
-                             ['rightShoulder', 'rightElbow', 'rightWrist']]) {
-      const S = pt(f, s), E = pt(f, e), W = pt(f, w);
-      if (S && E && W) arms.push(angleAt(E, S, W));
-    }
+    for (const [s,e,w] of ARMS) { const S=pt(f,s), E=pt(f,e), W=pt(f,w); if (S&&E&&W) arms.push(angleAt(E,S,W)); }
     if (!arms.length) return;
-    const score = 180 - arms.reduce((a, b) => a + b) / arms.length;
-    if (score > bestScore) { bestScore = score; best = f.time; }
+    const v = 180 - arms.reduce((a,b)=>a+b)/arms.length;
+    if (v > score) { score = v; best = f.time; }
   });
   return best == null ? null : { start: best, end: best + 1.1 };
 }
 
-/* ══════════════════════════ Pose tracking ══════════════════════════ */
-
-const JOINT_OF = {
-  nose: 'nose',
-  left_shoulder: 'leftShoulder', right_shoulder: 'rightShoulder',
-  left_elbow: 'leftElbow', right_elbow: 'rightElbow',
-  left_wrist: 'leftWrist', right_wrist: 'rightWrist',
-  left_hip: 'leftHip', right_hip: 'rightHip',
-  left_knee: 'leftKnee', right_knee: 'rightKnee',
-  left_ankle: 'leftAnkle', right_ankle: 'rightAnkle',
-};
+/* ════════════════ Pose tracking ════════════════ */
+const JOINT_OF = { nose:'nose',
+  left_shoulder:'leftShoulder', right_shoulder:'rightShoulder',
+  left_elbow:'leftElbow', right_elbow:'rightElbow',
+  left_wrist:'leftWrist', right_wrist:'rightWrist',
+  left_hip:'leftHip', right_hip:'rightHip',
+  left_knee:'leftKnee', right_knee:'rightKnee',
+  left_ankle:'leftAnkle', right_ankle:'rightAnkle' };
 const BONES = [
-  ['leftShoulder', 'rightShoulder'], ['leftShoulder', 'leftElbow'], ['leftElbow', 'leftWrist'],
-  ['rightShoulder', 'rightElbow'], ['rightElbow', 'rightWrist'],
-  ['leftShoulder', 'leftHip'], ['rightShoulder', 'rightHip'], ['leftHip', 'rightHip'],
-  ['leftHip', 'leftKnee'], ['leftKnee', 'leftAnkle'],
-  ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
-];
+  ['leftShoulder','rightShoulder'],['leftShoulder','leftElbow'],['leftElbow','leftWrist'],
+  ['rightShoulder','rightElbow'],['rightElbow','rightWrist'],
+  ['leftShoulder','leftHip'],['rightShoulder','rightHip'],['leftHip','rightHip'],
+  ['leftHip','leftKnee'],['leftKnee','leftAnkle'],['rightHip','rightKnee'],['rightKnee','rightAnkle']];
 const SAMPLES_PER_SECOND = 10;
 
 let detector = null;
 async function getDetector() {
   if (detector) return detector;
-  await tf.setBackend('webgl');
-  await tf.ready();
+  await tf.setBackend('webgl'); await tf.ready();
   detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,
     { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER });
   return detector;
 }
-
-const seekTo = (video, t) => new Promise(res => {
-  const done = () => { video.removeEventListener('seeked', done); res(); };
-  video.addEventListener('seeked', done);
-  video.currentTime = Math.min(t, Math.max(0, video.duration - 0.01));
+const seekTo = (v, t) => new Promise(res => {
+  const done = () => { v.removeEventListener('seeked', done); res(); };
+  v.addEventListener('seeked', done);
+  v.currentTime = Math.min(t, Math.max(0, v.duration - 0.01));
 });
-
 async function trackVideo(video, onProgress) {
-  const det = await getDetector();
-  const frames = [];
-  const step = 1 / SAMPLES_PER_SECOND;
+  const det = await getDetector(), frames = [], step = 1/SAMPLES_PER_SECOND;
   const total = Math.max(video.duration, 0.1);
   for (let t = 0; t <= total; t += step) {
     await seekTo(video, t);
-    const poses = await det.estimatePoses(video, { maxPoses: 1, flipHorizontal: false });
+    const poses = await det.estimatePoses(video, { maxPoses:1, flipHorizontal:false });
     const joints = {};
     if (poses[0]) for (const k of poses[0].keypoints) {
       const id = JOINT_OF[k.name];
-      if (id) joints[id] = { x: k.x / video.videoWidth, y: k.y / video.videoHeight, confidence: k.score };
+      if (id) joints[id] = { x:k.x/video.videoWidth, y:k.y/video.videoHeight, confidence:k.score };
     }
-    frames.push({ time: t, joints, com: centerOfMass(joints) });
-    onProgress(Math.min(1, t / total));
+    frames.push({ time:t, joints, com:centerOfMass(joints) });
+    onProgress(Math.min(1, t/total));
   }
   return frames;
 }
 
-/* ═══════════════════════════ Climb screen ═══════════════════════════ */
+/* ════════════════ Navigation ════════════════ */
+const PANES = ['home','name','working','results','scan','route'];
+function go(name) {
+  PANES.forEach(p => $('#pane-'+p).classList.toggle('on', p === name));
+  $('#app').classList.toggle('flush', name === 'results' || name === 'scan' || name === 'route');
+  $('#app').scrollTop = 0;
+  if (name !== 'results') { vid.pause(); setPlayIcon(false); }
+  closeSheet();
+}
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+const closeSheet = () => $('#sheet').classList.remove('on');
+$('#tab-plus').onclick = () => $('#sheet').classList.add('on');
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet);
+(function tick(){
+  const d = new Date();
+  $('#clock').textContent = `${d.getHours()%12||12}:${String(d.getMinutes()).padStart(2,'0')}`;
+  setTimeout(tick, 20000);
+})();
 
-const $ = s => document.querySelector(s);
+/* ════════════════ Library ════════════════ */
+const library = [];
+function renderLibrary() {
+  $('#lib-count').textContent = library.length ? `${library.length} climb${library.length===1?'':'s'}` : '';
+  $('#lib-empty').classList.toggle('hide', library.length > 0);
+  $('#lib').innerHTML = '';
+  library.forEach((c, i) => {
+    const top = c.findings[0];
+    const el = document.createElement('button');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="thumb"><img src="${c.poster}" alt=""></div>
+      <h3>${c.label}</h3>
+      <div class="sev"><span class="dot" style="background:${top?EMBER[top.rank]:'var(--e0)'}"></span>
+        ${top ? top.severity : 'No findings'}</div>
+      <div class="meta">1 attempt &middot; ${c.grade || '&mdash;'}</div>`;
+    el.onclick = () => openClimb(i);
+    $('#lib').appendChild(el);
+  });
+  const top = library[0]?.findings[0];
+  $('#focus').classList.toggle('hide', !top);
+  if (top) {
+    $('#focus-title').textContent = top.kind;
+    $('#focus-value').textContent = library[0].focusValue;
+    $('#focus-line').textContent =
+      `Last time we were working on ${top.kind.toLowerCase()}. Let's see where it is today.`;
+  }
+}
+
+/* ════════════════ Results ════════════════ */
 const vid = $('#vid'), overlay = $('#overlay');
-let climbFrames = [], climbMetrics = null;
+let current = null;
 
+function setPlayIcon(playing) {
+  $('#play-icon').innerHTML = playing ? '<path d="M7 4h4v16H7zM13 4h4v16h-4z"/>' : '<path d="M6 4l14 8-14 8z"/>';
+}
 function drawOverlay() {
   const w = vid.videoWidth, h = vid.videoHeight;
-  if (!w || !h) return;
+  if (!w || !h || !current) return;
   if (overlay.width !== w) { overlay.width = w; overlay.height = h; }
   const c = overlay.getContext('2d');
-  c.clearRect(0, 0, w, h);
-  if (!climbFrames.length) return;
+  c.clearRect(0,0,w,h);
   const t = vid.currentTime;
-  let f = climbFrames[0];
-  for (const g of climbFrames) if (Math.abs(g.time - t) < Math.abs(f.time - t)) f = g;
-  if (Math.abs(f.time - t) > 0.25) return;
-
-  const P = id => { const j = pt(f, id); return j ? { x: j.x * w, y: j.y * h } : null; };
-  const scale = Math.max(w, h) / 900;
-  for (const pass of [0, 1]) {
-    c.strokeStyle = pass === 0 ? 'rgba(255,255,255,.95)' : '#2E63CF';
-    c.lineWidth = (pass === 0 ? 9 : 4.5) * scale;
-    c.lineCap = 'round';
+  let f = current.frames[0];
+  for (const g of current.frames) if (Math.abs(g.time-t) < Math.abs(f.time-t)) f = g;
+  if (!f || Math.abs(f.time-t) > 0.25) return;
+  const P = id => { const j = pt(f,id); return j ? {x:j.x*w, y:j.y*h} : null; };
+  const s = Math.max(w,h)/900;
+  for (const pass of [0,1]) {
+    c.strokeStyle = pass===0 ? 'rgba(255,255,255,.95)' : '#2E63CF';
+    c.lineWidth = (pass===0 ? 9 : 4.5)*s; c.lineCap='round';
     c.beginPath();
-    for (const [a, b] of BONES) {
-      const A = P(a), B = P(b);
-      if (A && B) { c.moveTo(A.x, A.y); c.lineTo(B.x, B.y); }
-    }
+    for (const [a,b] of BONES) { const A=P(a), B=P(b); if (A&&B) { c.moveTo(A.x,A.y); c.lineTo(B.x,B.y); } }
     c.stroke();
   }
   for (const id of Object.values(JOINT_OF)) {
     const p = P(id); if (!p) continue;
-    c.beginPath(); c.arc(p.x, p.y, 5 * scale, 0, 7);
-    c.fillStyle = '#2E63CF'; c.fill();
-    c.lineWidth = 2 * scale; c.strokeStyle = '#fff'; c.stroke();
+    c.beginPath(); c.arc(p.x,p.y,5*s,0,7);
+    c.fillStyle='#2E63CF'; c.fill(); c.lineWidth=2*s; c.strokeStyle='#fff'; c.stroke();
   }
   if (f.com) {
-    const p = { x: f.com.x * w, y: f.com.y * h };
-    c.beginPath(); c.arc(p.x, p.y, 9 * scale, 0, 7);
-    c.strokeStyle = '#fff'; c.lineWidth = 3.5 * scale; c.stroke();
-    c.strokeStyle = '#2E63CF'; c.lineWidth = 2 * scale; c.stroke();
+    const p = {x:f.com.x*w, y:f.com.y*h};
+    c.beginPath(); c.arc(p.x,p.y,9*s,0,7);
+    c.strokeStyle='#fff'; c.lineWidth=3.5*s; c.stroke();
+    c.strokeStyle='#2E63CF'; c.lineWidth=2*s; c.stroke();
   }
 }
+(function loop(){ drawOverlay(); requestAnimationFrame(loop); })();
 
-async function runClimb(src) {
-  $('#climb-intro').classList.add('hide');
-  $('#climb-work').classList.remove('hide');
-  $('#climb-out').classList.add('hide');
-  $('#status').textContent = 'Loading the pose model';
-  $('#prog').style.width = '0%';
-  vid.src = src;
-  await new Promise(r => vid.addEventListener('loadeddata', r, { once: true }));
-  drawOverlay();
-
-  $('#status').textContent = 'Tracking you, frame by frame';
-  climbFrames = await trackVideo(vid, p => {
-    $('#prog').style.width = (p * 100).toFixed(0) + '%';
-    $('#status').textContent = `Tracking you, frame by frame — ${(p * 100).toFixed(0)}%`;
-  });
-
-  climbMetrics = computeMetrics(climbFrames);
-  const conf = Math.round(climbMetrics.trackingConfidence * 100);
-  $('#track').textContent = `Tracking ${conf}%`;
-  $('#status').textContent = 'Done';
-  await seekTo(vid, 0);
-  drawOverlay();
-  renderClimb();
-}
-
-function renderClimb() {
-  const m = climbMetrics;
-  const out = $('#climb-out');
-  out.classList.remove('hide');
+function openClimb(i) {
+  current = library[i];
+  vid.src = current.src;
+  go('results');
+  const m = current.metrics;
+  $('#res-title').textContent = current.label;
+  $('#res-grade').textContent = current.grade;
+  $('#res-track').textContent = `Tracking ${Math.round(m.trackingConfidence*100)}%`;
+  const top = current.findings[0];
+  $('#res-dot').style.background = top ? EMBER[top.rank] : 'var(--e0)';
+  $('#res-verdict').textContent = top ? `${top.severity} · ${top.kind}` : 'No findings';
+  $('#res-stats').innerHTML = [
+    [`${Math.round(m.staticElbowAngle)}°`, 'Bent arms'],
+    [m.moveWaste==null ? '—' : `${Math.round(m.moveWaste*100)}%`, 'Wandering'],
+    [`${m.footAdjustments}`, 'Foot resets'],
+    [`${Math.round(m.duration)}s`, 'Length'],
+  ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
 
   if (m.trackingConfidence < TRUSTWORTHY) {
-    $('#verdict').textContent = 'I could not see that one clearly';
+    $('#res-head').textContent = 'I could not see that one clearly';
     $('#findings').innerHTML =
-      `<p>Only ${Math.round(m.trackingConfidence * 100)} percent of frames had a usable skeleton, so any
-       coaching from this clip would be guesswork. Confidently wrong feedback is worse than none.</p>
-       <p class="note">Usually the phone was too far away, you were facing into the wall for most of the
-       climb, or someone crossed the frame.</p>`;
-  } else {
-    const fs = findings(m, ascent(climbFrames));
-    $('#verdict').textContent = fs.length ? 'Work on this' : 'That was clean';
-    $('#findings').innerHTML = fs.length ? '' :
-      `<p>No leak crossed the threshold worth mentioning. Climb it again and see whether it gets
-       smoother, or take it to something harder.</p>`;
-    fs.forEach(f => {
-      const el = document.createElement('button');
-      el.className = 'finding';
-      const mins = Math.floor(f.start / 60), secs = Math.floor(f.start % 60);
-      el.innerHTML = `
-        <div class="top">
-          <span class="dot" style="background:${EMBER[f.rank]}"></span>
-          <span class="micro">${f.severity}</span>
-          <span class="micro" style="margin-left:auto">${mins}:${String(secs).padStart(2, '0')}</span>
-        </div>
+      `<p class="body">Only ${Math.round(m.trackingConfidence*100)} percent of frames had a usable skeleton,
+       so any coaching from this clip would be guesswork. Confidently wrong feedback is worse than none.</p>
+       <p class="body dim" style="margin-top:10px">Usually the phone was too far away, you were facing into
+       the wall for most of the climb, or someone crossed the frame.</p>`;
+    return;
+  }
+  $('#res-head').textContent = current.findings.length ? 'Work on this' : 'That was clean';
+  $('#findings').innerHTML = current.findings.length ? '' :
+    `<p class="body">No leak crossed the threshold worth mentioning. Climb it again and see whether it gets
+     smoother, or take it to something harder.</p>`;
+  current.findings.forEach((f, k) => {
+    const el = document.createElement('button');
+    el.className = 'finding';
+    el.innerHTML = `
+      <canvas class="still"></canvas>
+      <div class="inner">
+        <div class="top"><span class="at">${clock(f.start)} &middot; ${(f.end-f.start).toFixed(1)}s</span>
+          <span class="chip"><span class="dot" style="background:${EMBER[f.rank]}"></span>${f.severity}</span></div>
         <h3>${f.kind}</h3>
         <p class="msg">${f.message}</p>
-        <div class="instead"><span>&#8627;</span><span>${f.instead}</span></div>`;
-      el.onclick = async () => { vid.pause(); $('#play').textContent = 'Play'; await seekTo(vid, f.start); drawOverlay(); };
-      $('#findings').appendChild(el);
-    });
+        <div class="instead"><span class="arrow">&#8627;</span><span>${f.instead}</span></div>
+      </div>`;
+    el.onclick = async () => { vid.pause(); setPlayIcon(false); await seekTo(vid, f.start); drawOverlay(); $('#app').scrollTop = 0; };
+    $('#findings').appendChild(el);
+    if (k === 0) drawStill(el.querySelector('.still'), f);
+    else el.querySelector('.still').remove();
+  });
+}
+/* The frozen moment the top finding is about, with its joints marked. */
+async function drawStill(canvas, f) {
+  const shot = document.createElement('video');
+  shot.src = current.src; shot.muted = true;
+  await new Promise(r => shot.addEventListener('loadeddata', r, { once:true }));
+  await seekTo(shot, f.start);
+  const w = 720, h = Math.round(w * shot.videoHeight / shot.videoWidth);
+  canvas.width = w; canvas.height = h;
+  const c = canvas.getContext('2d');
+  c.drawImage(shot, 0, 0, w, h);
+  let fr = current.frames[0];
+  for (const g of current.frames) if (Math.abs(g.time-f.start) < Math.abs(fr.time-f.start)) fr = g;
+  const s = w/500;
+  for (const [a,b,v] of [['leftShoulder','leftWrist','leftElbow'],['rightShoulder','rightWrist','rightElbow']]) {
+    const A = pt(fr,a), B = pt(fr,b), V = pt(fr,v);
+    if (!A || !B || !V) continue;
+    const P = p => ({x:p.x*w, y:p.y*h});
+    const pa = P(A), pb = P(B), pv = P(V);
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = 8*s;
+    c.beginPath(); c.moveTo(pa.x,pa.y); c.lineTo(pv.x,pv.y); c.lineTo(pb.x,pb.y); c.stroke();
+    c.strokeStyle = '#2E63CF'; c.lineWidth = 4*s;
+    c.beginPath(); c.moveTo(pa.x,pa.y); c.lineTo(pv.x,pv.y); c.lineTo(pb.x,pb.y); c.stroke();
+    const deg = Math.round(angleAt(V,A,B));
+    const label = `${deg}°`;
+    c.font = `600 ${15*s}px ui-sans-serif, system-ui`;
+    const tw = c.measureText(label).width;
+    const bx = pv.x + 10*s, by = pv.y - 12*s;
+    c.fillStyle = '#0F2C5C';
+    c.beginPath(); c.roundRect(bx, by - 13*s, tw + 16*s, 24*s, 12*s); c.fill();
+    c.fillStyle = '#fff'; c.fillText(label, bx + 8*s, by + 4*s);
   }
-
-  const cells = [
-    ['Bent arms', `${Math.round(m.staticElbowAngle)}°`, 'while still'],
-    ['Between moves', m.moveWaste == null ? '—' : `${Math.round(m.moveWaste * 100)}%`, 'not toward the next hold'],
-    ['Not moving', `${Math.round(m.pauseTotal)}s`, `of ${Math.round(m.duration)}s, ${m.pauseCount} stops`],
-    ['Foot resets', `${m.footAdjustments}`, 'placements corrected'],
-    ['Hanging outside', `${m.swingTotal.toFixed(1)}s`, 'weight outside your contacts'],
-    ['Tracking', `${Math.round(m.trackingConfidence * 100)}%`, 'frames with a skeleton'],
-  ];
-  $('#metrics').innerHTML = cells.map(([n, v, note]) =>
-    `<div class="metric"><div class="v">${v}</div><div class="n"><strong>${n}</strong><br>${note}</div></div>`).join('');
 }
-
-$('#pick-climb').onclick = () => $('#climb-file').click();
-$('#climb-file').onchange = e => { if (e.target.files[0]) runClimb(URL.createObjectURL(e.target.files[0])); };
-$('#sample-climb').onclick = () => runClimb('sample/climb.mp4');
 $('#play').onclick = () => {
-  if (vid.paused) { vid.play(); $('#play').textContent = 'Pause'; }
-  else { vid.pause(); $('#play').textContent = 'Play'; }
+  if (vid.paused) { vid.play(); setPlayIcon(true); } else { vid.pause(); setPlayIcon(false); }
 };
-$('#scrub').oninput = e => { if (vid.duration) vid.currentTime = vid.duration * e.target.value / 1000; };
+$('#back1').onclick = () => { vid.currentTime = Math.max(0, vid.currentTime - 1); };
+$('#fwd1').onclick = () => { vid.currentTime = Math.min(vid.duration, vid.currentTime + 1); };
+$('#scrub').oninput = e => { if (vid.duration) vid.currentTime = vid.duration * e.target.value/1000; };
 vid.addEventListener('timeupdate', () => {
-  if (vid.duration) $('#scrub').value = String(Math.round(vid.currentTime / vid.duration * 1000));
+  if (!vid.duration) return;
+  $('#scrub').value = String(Math.round(vid.currentTime/vid.duration*1000));
+  $('#res-time').textContent = `${clock(vid.currentTime)} / ${clock(vid.duration)}`;
 });
-(function loop() { drawOverlay(); requestAnimationFrame(loop); })();
+vid.addEventListener('ended', () => setPlayIcon(false));
 
-/* ════════════════════════ Wall screen: colour ════════════════════════
-   Colours are compared in CIE Lab, where distance is roughly what the eye
-   calls a different colour, rather than in RGB where it is not. */
+/* ════════════════ Import and analyze ════════════════ */
+let pendingSrc = null;
+$('#opt-import').onclick = () => $('#file-video').click();
+$('#opt-record').onclick = () => $('#file-video').click();
+$('#file-video').onchange = e => {
+  if (!e.target.files[0]) return;
+  pendingSrc = URL.createObjectURL(e.target.files[0]);
+  $('#in-label').value = ''; $('#in-grade').value = '';
+  go('name');
+};
+$('#start-analyze').onclick = () => analyze(pendingSrc || 'sample/climb.mp4');
 
-function rgbToLab(r, g, b) {
-  const f = v => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; };
-  const R = f(r), G = f(g), B = f(b);
-  const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-  const Y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
-  const Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-  const g2 = v => v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116;
-  const fx = g2(X), fy = g2(Y), fz = g2(Z);
-  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+async function analyze(src) {
+  go('working');
+  $('#work-note').textContent = 'Loading the pose model.';
+  $('#prog').style.width = '0%'; $('#work-pct').textContent = '0%';
+  const v = document.createElement('video');
+  v.src = src; v.muted = true; v.playsInline = true;
+  await new Promise(r => v.addEventListener('loadeddata', r, { once:true }));
+
+  $('#work-note').textContent = 'Tracking you, frame by frame.';
+  const frames = await trackVideo(v, p => {
+    $('#prog').style.width = (p*100).toFixed(0) + '%';
+    $('#work-pct').textContent = (p*100).toFixed(0) + '%';
+  });
+  const metrics = computeMetrics(frames);
+  const fs = findings(metrics, ascent(frames));
+
+  await seekTo(v, Math.min(2, v.duration/3));
+  const pc = document.createElement('canvas');
+  pc.width = 420; pc.height = Math.round(420 * v.videoHeight / v.videoWidth);
+  pc.getContext('2d').drawImage(v, 0, 0, pc.width, pc.height);
+
+  library.unshift({
+    src, frames, metrics, findings: fs,
+    label: $('#in-label').value.trim() || 'Untitled climb',
+    grade: $('#in-grade').value.trim(),
+    poster: pc.toDataURL('image/jpeg', 0.7),
+    focusValue: `${Math.round(metrics.staticElbowAngle)}°`,
+  });
+  renderLibrary();
+  openClimb(0);
 }
 
-const wallCanvas = $('#wall-canvas');
-let wallImage = null, wallData = null, wallLab = null, lastPick = null;
+/* ════════════════ Wall scanning ════════════════
+   Colors are compared in CIE Lab, where distance roughly matches what the
+   eye calls a different color, rather than in RGB where it does not. */
+function rgbToLab(r, g, b) {
+  const f = v => { v /= 255; return v > 0.04045 ? Math.pow((v+0.055)/1.055, 2.4) : v/12.92; };
+  const R = f(r), G = f(g), B = f(b);
+  const X = (R*0.4124 + G*0.3576 + B*0.1805)/0.95047;
+  const Y = (R*0.2126 + G*0.7152 + B*0.0722);
+  const Z = (R*0.0193 + G*0.1192 + B*0.9505)/1.08883;
+  const k = v => v > 0.008856 ? Math.cbrt(v) : 7.787*v + 16/116;
+  const fx = k(X), fy = k(Y), fz = k(Z);
+  return [116*fy - 16, 500*(fx-fy), 200*(fy-fz)];
+}
+const wallCanvas = $('#wall'), routeCanvas = $('#route-canvas');
+let wallImage = null, wallData = null, wallLab = null, routes = [], chosen = -1, lastTap = null;
 
 function loadWall(src) {
   const img = new Image();
   img.onload = () => {
-    const W = Math.min(900, img.naturalWidth);
+    const W = Math.min(820, img.naturalWidth);
     const H = Math.round(img.naturalHeight * W / img.naturalWidth);
     wallCanvas.width = W; wallCanvas.height = H;
-    const c = wallCanvas.getContext('2d', { willReadFrequently: true });
+    const c = wallCanvas.getContext('2d', { willReadFrequently:true });
     c.drawImage(img, 0, 0, W, H);
     wallImage = c.getImageData(0, 0, W, H);
     wallData = wallImage.data;
-    wallLab = new Float32Array(W * H * 3);
+    wallLab = new Float32Array(W*H*3);
     for (let i = 0, p = 0; i < wallData.length; i += 4, p += 3) {
-      const [L, a, b] = rgbToLab(wallData[i], wallData[i + 1], wallData[i + 2]);
-      wallLab[p] = L; wallLab[p + 1] = a; wallLab[p + 2] = b;
+      const [L,a,b] = rgbToLab(wallData[i], wallData[i+1], wallData[i+2]);
+      wallLab[p]=L; wallLab[p+1]=a; wallLab[p+2]=b;
     }
-    $('#wall-intro').classList.add('hide');
-    $('#wall-work').classList.remove('hide');
-    $('#wall-status').textContent = 'Tap a hold';
-    $('#wall-swatches').innerHTML = '';
-    lastPick = null;
+    go('scan');
+    $('#scan-busy').classList.remove('hide');
+    $('#scan-done').classList.add('hide');
+    setTimeout(() => { routes = palette(); chosen = routes.length ? 0 : -1; renderScan(); }, 30);
   };
   img.src = src;
 }
 
-/* Every blob within a colour distance of the tapped hold, as connected
-   components, each outlined by the convex hull of its pixels. */
-function pickRoute(px, py) {
+/* The routes on this wall. Colored pixels are bucketed in Lab, the busiest
+   buckets become candidate colors, and a candidate is a route when it makes
+   several separate holds rather than one big region of wall. */
+function palette() {
   const W = wallCanvas.width, H = wallCanvas.height;
-  const tol = +$('#tol').value;
-  lastPick = [px, py];
-
-  /* The colour of the hold, not of one pixel. A single pixel is often a
-     specular highlight on the plastic, which matches nothing else on the
-     wall: tapped on a pink jug it found one hold instead of thirteen. */
-  let L = 0, A = 0, B = 0, n = 0;
-  for (let y = py - 4; y <= py + 4; y++) for (let x = px - 4; x <= px + 4; x++) {
-    if (x < 0 || y < 0 || x >= W || y >= H) continue;
-    const q = (y * W + x) * 3;
-    L += wallLab[q]; A += wallLab[q + 1]; B += wallLab[q + 2]; n++;
+  const buckets = new Map();
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+    const q = (y*W + x)*3, L = wallLab[q], a = wallLab[q+1], b = wallLab[q+2];
+    if (Math.hypot(a, b) < 18) continue;          // gray: the wall itself
+    if (L < 12 || L > 93) continue;               // shadow and blown highlight
+    const key = `${Math.round(a/16)},${Math.round(b/16)},${Math.round(L/26)}`;
+    let e = buckets.get(key);
+    if (!e) buckets.set(key, e = { L:0, a:0, b:0, n:0 });
+    e.L += L; e.a += a; e.b += b; e.n++;
   }
-  const target = [L / n, A / n, B / n];
+  const cands = [...buckets.values()].filter(e => e.n > 60)
+    .map(e => ({ lab:[e.L/e.n, e.a/e.n, e.b/e.n], n:e.n }))
+    .sort((x, y) => y.n - x.n).slice(0, 16);
 
-  const match = new Uint8Array(W * H);
-  for (let p = 0, q = 0; p < W * H; p++, q += 3) {
-    const dL = wallLab[q] - target[0], da = wallLab[q + 1] - target[1], db = wallLab[q + 2] - target[2];
-    if (Math.sqrt(dL * dL + da * da + db * db) <= tol) match[p] = 1;
+  const out = [];
+  for (const c of cands) {
+    if (out.some(o => Math.hypot(o.lab[0]-c.lab[0], o.lab[1]-c.lab[1], o.lab[2]-c.lab[2]) < 26)) continue;
+    const blobs = findBlobs(c.lab, 30);
+    if (blobs.length < 3) continue;
+    const ys = blobs.map(b => b.cy);
+    const spread = (Math.max(...ys) - Math.min(...ys)) / H;
+    if (spread < 0.18) continue;                  // a patch of wall, not a route
+    out.push({ lab:c.lab, blobs, hex:labHex(c.lab), score: blobs.length * (0.35 + spread) });
   }
-
-  const minArea = Math.max(40, Math.round(W * H * 0.00012));
-  const seen = new Uint8Array(W * H), blobs = [], stack = [];
-  for (let s = 0; s < W * H; s++) {
+  return out.sort((a, b) => b.score - a.score).slice(0, 8);
+}
+function labHex(lab) {
+  // Nearest actual pixel to this Lab, so the chip is a color off the wall.
+  const W = wallCanvas.width, H = wallCanvas.height;
+  let best = 1e9, bi = 0;
+  for (let p = 0, q = 0; p < W*H; p += 7, q = p*3) {
+    const d = Math.hypot(wallLab[q]-lab[0], wallLab[q+1]-lab[1], wallLab[q+2]-lab[2]);
+    if (d < best) { best = d; bi = p; }
+  }
+  const i = bi*4;
+  return `rgb(${wallData[i]},${wallData[i+1]},${wallData[i+2]})`;
+}
+function findBlobs(target, tol) {
+  const W = wallCanvas.width, H = wallCanvas.height;
+  const match = new Uint8Array(W*H);
+  for (let p = 0, q = 0; p < W*H; p++, q += 3) {
+    const dL = wallLab[q]-target[0], da = wallLab[q+1]-target[1], db = wallLab[q+2]-target[2];
+    if (dL*dL + da*da + db*db <= tol*tol) match[p] = 1;
+  }
+  const minArea = Math.max(40, Math.round(W*H*0.00012));
+  const seen = new Uint8Array(W*H), out = [], st = [];
+  for (let s = 0; s < W*H; s++) {
     if (!match[s] || seen[s]) continue;
-    stack.length = 0; stack.push(s); seen[s] = 1;
+    st.length = 0; st.push(s); seen[s] = 1;
     const pts = [];
-    while (stack.length) {
-      const p = stack.pop(), x = p % W, y = (p / W) | 0;
-      pts.push([x, y]);
-      if (x > 0 && match[p - 1] && !seen[p - 1]) { seen[p - 1] = 1; stack.push(p - 1); }
-      if (x < W - 1 && match[p + 1] && !seen[p + 1]) { seen[p + 1] = 1; stack.push(p + 1); }
-      if (y > 0 && match[p - W] && !seen[p - W]) { seen[p - W] = 1; stack.push(p - W); }
-      if (y < H - 1 && match[p + W] && !seen[p + W]) { seen[p + W] = 1; stack.push(p + W); }
+    while (st.length) {
+      const p = st.pop(), x = p % W, y = (p/W)|0;
+      pts.push([x,y]);
+      if (x > 0     && match[p-1] && !seen[p-1]) { seen[p-1]=1; st.push(p-1); }
+      if (x < W-1   && match[p+1] && !seen[p+1]) { seen[p+1]=1; st.push(p+1); }
+      if (y > 0     && match[p-W] && !seen[p-W]) { seen[p-W]=1; st.push(p-W); }
+      if (y < H-1   && match[p+W] && !seen[p+W]) { seen[p+W]=1; st.push(p+W); }
     }
-    if (pts.length >= minArea) blobs.push(pts);
+    if (pts.length < minArea) continue;
+    let sx = 0, sy = 0;
+    for (const [x,y] of pts) { sx += x; sy += y; }
+    out.push({ hull: convexHull(pts), cx: sx/pts.length, cy: sy/pts.length, area: pts.length });
   }
-
+  return out;
+}
+function convexHull(points) {
+  const p = points.slice().sort((a,b) => a[0]-b[0] || a[1]-b[1]);
+  if (p.length < 3) return p;
+  const cross = (o,a,b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const build = src => {
+    const h = [];
+    for (const q of src) { while (h.length >= 2 && cross(h[h.length-2], h[h.length-1], q) <= 0) h.pop(); h.push(q); }
+    h.pop(); return h;
+  };
+  return build(p).concat(build(p.slice().reverse()));
+}
+function renderScan() {
+  $('#scan-busy').classList.add('hide');
+  $('#scan-done').classList.remove('hide');
+  $('#swatches').innerHTML = '';
+  routes.forEach((r, i) => {
+    const b = document.createElement('button');
+    b.className = 'sw'; b.setAttribute('aria-pressed', String(i === chosen));
+    b.innerHTML = `<div class="box" style="background:${r.hex}"></div><div class="n">${r.blobs.length}</div>`;
+    b.onclick = () => { chosen = i; renderScan(); };
+    $('#swatches').appendChild(b);
+  });
+  if (chosen < 0) { $('#pick-count').textContent = 'No routes found. Tap a hold to pick one.'; return; }
+  const r = routes[chosen];
+  $('#pick-dot').style.background = r.hex;
+  $('#pick-count').textContent = `${r.blobs.length} hold${r.blobs.length===1?'':'s'} on this route`;
+  $('#route-name').placeholder = 'Pink jugs';
+  drawWall();
+}
+function drawWall() {
   const c = wallCanvas.getContext('2d');
   c.putImageData(wallImage, 0, 0);
-  const rgb = `rgb(${wallData[(py * W + px) * 4]},${wallData[(py * W + px) * 4 + 1]},${wallData[(py * W + px) * 4 + 2]})`;
-  for (const pts of blobs) {
-    const hull = convexHull(pts);
-    if (hull.length < 3) continue;
-    for (const pass of [0, 1]) {
+  if (chosen < 0) return;
+  for (const b of routes[chosen].blobs) {
+    if (b.hull.length < 3) continue;
+    for (const pass of [0,1]) {
       c.beginPath();
-      hull.forEach(([x, y], k) => k ? c.lineTo(x, y) : c.moveTo(x, y));
+      b.hull.forEach(([x,y], k) => k ? c.lineTo(x,y) : c.moveTo(x,y));
       c.closePath();
       c.lineWidth = pass === 0 ? 5 : 2.2;
-      c.strokeStyle = pass === 0 ? 'rgba(255,255,255,.92)' : '#0128A1';
+      c.strokeStyle = pass === 0 ? 'rgba(255,255,255,.92)' : '#0F2C5C';
       c.stroke();
     }
   }
-  $('#wall-status').textContent =
-    `${blobs.length} hold${blobs.length === 1 ? '' : 's'} on this route. Drag the tolerance, or tap another hold.`;
-  $('#wall-swatches').innerHTML =
-    `<button class="sw" aria-pressed="true" style="background:${rgb}" title="${rgb}"></button>`;
 }
-
-function convexHull(points) {
-  const p = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  if (p.length < 3) return p;
-  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const build = src => {
-    const h = [];
-    for (const q of src) {
-      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], q) <= 0) h.pop();
-      h.push(q);
-    }
-    h.pop();
-    return h;
-  };
-  return build(p).concat(build(p.reverse()));
-}
-
 wallCanvas.addEventListener('click', e => {
   if (!wallLab) return;
   const r = wallCanvas.getBoundingClientRect();
-  const x = Math.round((e.clientX - r.left) / r.width * wallCanvas.width);
-  const y = Math.round((e.clientY - r.top) / r.height * wallCanvas.height);
-  if (x >= 0 && y >= 0 && x < wallCanvas.width && y < wallCanvas.height) pickRoute(x, y);
+  const x = Math.round((e.clientX - r.left)/r.width * wallCanvas.width);
+  const y = Math.round((e.clientY - r.top)/r.height * wallCanvas.height);
+  if (x < 0 || y < 0 || x >= wallCanvas.width || y >= wallCanvas.height) return;
+  lastTap = [x, y];
+  tapRoute();
 });
-$('#pick-wall').onclick = () => $('#wall-file').click();
-$('#wall-file').onchange = e => { if (e.target.files[0]) loadWall(URL.createObjectURL(e.target.files[0])); };
-$('#sample-wall').onclick = () => loadWall('sample/wall.jpg');
-$('#wall-reset').onclick = () => {
-  $('#wall-work').classList.add('hide'); $('#wall-intro').classList.remove('hide');
-};
+/* The color of the hold, not of one pixel: a single pixel is often a
+   specular highlight on the plastic, which matches nothing else. */
+function tapRoute() {
+  const [px, py] = lastTap, W = wallCanvas.width, H = wallCanvas.height;
+  let L = 0, A = 0, B = 0, n = 0;
+  for (let y = py-4; y <= py+4; y++) for (let x = px-4; x <= px+4; x++) {
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    const q = (y*W + x)*3; L += wallLab[q]; A += wallLab[q+1]; B += wallLab[q+2]; n++;
+  }
+  const lab = [L/n, A/n, B/n];
+  const blobs = findBlobs(lab, +$('#tol').value);
+  const i = (py*W + px)*4;
+  routes = [{ lab, blobs, hex:`rgb(${wallData[i]},${wallData[i+1]},${wallData[i+2]})`, score:0 }, ...routes];
+  chosen = 0;
+  renderScan();
+}
 $('#tol').oninput = e => {
   $('#tol-val').textContent = e.target.value;
-  if (lastPick && wallImage) pickRoute(lastPick[0], lastPick[1]);
+  if (chosen === 0 && lastTap) { routes.shift(); tapRoute(); }
+};
+$('#opt-scan').onclick = () => $('#file-photo').click();
+$('#file-photo').onchange = e => { if (e.target.files[0]) loadWall(URL.createObjectURL(e.target.files[0])); };
+$('#scan-reset').onclick = () => { chosen = -1; lastTap = null; drawWall(); renderScan(); };
+
+/* ════════════════ Saving a route ════════════════ */
+$('#save-route').onclick = () => {
+  if (chosen < 0) return;
+  const r = routes[chosen];
+  const W = wallCanvas.width, H = wallCanvas.height;
+  routeCanvas.width = W; routeCanvas.height = H;
+  const c = routeCanvas.getContext('2d');
+  c.putImageData(wallImage, 0, 0);
+  // Holds in the order they are met: bottom to top, always.
+  const order = r.blobs.slice().sort((a, b) => b.cy - a.cy);
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 3;
+  c.beginPath();
+  order.forEach((b, i) => i ? c.lineTo(b.cx, b.cy) : c.moveTo(b.cx, b.cy));
+  c.stroke();
+  order.forEach((b, i) => {
+    c.beginPath(); c.arc(b.cx, b.cy, 13, 0, 7);
+    c.fillStyle = '#fff'; c.fill();
+    c.lineWidth = 2.5; c.strokeStyle = r.hex; c.stroke();
+    c.fillStyle = '#0F2C5C'; c.font = '600 15px ui-sans-serif, system-ui';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(String(i+1), b.cx, b.cy + 1);
+  });
+  const name = $('#route-name').value.trim() || 'Untitled route';
+  const grade = $('#route-grade').value.trim();
+  $('#route-title').textContent = name;
+  $('#route-sw').style.background = r.hex;
+  $('#route-sub').textContent = [grade, 'Central Rock Watertown'].filter(Boolean).join(' · ');
+  $('#route-stats').innerHTML = [
+    [`${r.blobs.length}`, 'Holds'], [grade || '—', 'Grade'], ['Not yet', 'Sent'],
+  ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  go('route');
 };
 
-/* ═══════════════════════════ Screens ═══════════════════════════ */
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.onclick = () => {
-    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
-    for (const name of ['climb', 'wall', 'about'])
-      $('#screen-' + name).classList.toggle('hide', name !== tab.dataset.screen);
-  };
-});
+/* First run: the sample wall is one tap away, and the library starts empty
+   exactly as it does on a fresh install. */
+renderLibrary();
+$('#opt-scan').addEventListener('contextmenu', e => e.preventDefault());
+$('#try-wall').onclick = () => loadWall('sample/wall.jpg');
+$('#try-climb').onclick = () => {
+  pendingSrc = 'sample/climb.mp4';
+  $('#in-label').value = 'Yellow prow'; $('#in-grade').value = 'V4';
+  go('name');
+};
 </script>
 </body>
 </html>
