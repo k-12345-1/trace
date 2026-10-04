@@ -154,11 +154,12 @@ body{
 .back svg{width:15px;height:15px}
 .tracking{position:absolute;right:14px;top:64px;background:var(--ground);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;z-index:5}
 /* transport */
-.transport{display:flex;align-items:center;gap:14px;padding:14px 20px 4px;color:var(--ink)}
+.transport{display:flex;align-items:center;gap:11px;padding:14px 21px 4px;color:var(--ink)}
 .transport .t{font-family:var(--f-mono);font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
 .transport button{background:none;border:0;cursor:pointer;color:var(--ink);padding:0;display:grid;place-items:center}
 .transport svg{width:19px;height:19px}
-.playbtn{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff !important}
+.playbtn{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff !important;flex:none}
+.ratepill{background:var(--surface) !important;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--ink2) !important;margin-left:auto}
 .playbtn svg{width:14px;height:14px}
 .scrub{width:100%;accent-color:var(--accent);margin:0 20px;width:calc(100% - 40px)}
 /* findings */
@@ -171,6 +172,13 @@ body{
 .finding .msg{font-size:14px;line-height:1.5;color:var(--ink2);margin:6px 0 10px}
 .finding .instead{display:flex;gap:9px;font-size:14px;line-height:1.5;font-weight:600;color:var(--ink)}
 .finding .instead .arrow{color:var(--accent)}
+.helpful{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:13.5px;color:var(--ink3)}
+.thumb{margin-left:0;background:var(--ground);border:0;border-radius:9px;width:34px;height:30px;display:grid;place-items:center;cursor:pointer;color:var(--ink2)}
+.thumb:first-of-type{margin-left:auto}
+.thumb svg{width:17px;height:17px}
+.thumb.on{background:var(--blue);color:#fff}
+.drillrow{display:flex;align-items:center;gap:6px;background:none;border:0;padding:12px 0 0;font:inherit;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer}
+.drill{font-size:13.5px;line-height:1.5;color:var(--ink2);margin:8px 0 0}
 /* stat row */
 .stats{display:flex;background:var(--surface);border-radius:16px;padding:14px 4px;margin-top:16px}
 .stats div{flex:1;text-align:center}
@@ -220,6 +228,15 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
 .nocam h2{font-size:26px}
 .go.light{background:#fff;color:var(--blue)}
 .pill.light{background:rgba(255,255,255,.14);color:#fff;align-self:flex-start}
+.linecard{background:var(--surface);border-radius:18px;padding:18px;margin-top:22px}
+.glyphs-row{display:flex;gap:8px}
+.gbtn{width:36px;height:36px;border-radius:50%;background:var(--ground);border:0;cursor:pointer;color:var(--ink3);display:grid;place-items:center}
+.gbtn svg{width:18px;height:18px}
+.gbtn.on{background:var(--blue-wash);color:var(--accent)}
+.climbit{display:flex;align-items:center;gap:9px;background:var(--blue);color:#fff;border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;margin-top:14px}
+.climbit svg{width:19px;height:19px}
+.climbit:disabled{opacity:.4;cursor:default}
+.danger{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:none;border:0;padding:16px;font:inherit;font-weight:600;font-size:15px;color:#A2402F;cursor:pointer}
 .hide{display:none !important}
 </style>
 </head>
@@ -317,19 +334,27 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
       </div>
       <div class="transport">
         <span class="t" id="res-time">0:00 / 0:00</span>
-        <button id="back1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 6L4 12l7 6V6zm9 0l-7 6 7 6V6z"/></svg></button>
+        <button id="back1" title="Back a second"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5V2L7 6l5 4V7a6 6 0 11-6 6"/></svg></button>
+        <button id="stepb" title="Back a frame"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 6L4 12l7 6V6zm9 0l-7 6 7 6V6z"/></svg></button>
         <button class="playbtn" id="play"><svg viewBox="0 0 24 24" fill="currentColor" id="play-icon"><path d="M6 4l14 8-14 8z"/></svg></button>
-        <button id="fwd1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg></button>
+        <button id="stepf" title="On a frame"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg></button>
+        <button id="fwd1" title="On a second"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5V2l5 4-5 4V7a6 6 0 106 6"/></svg></button>
+        <button class="ratepill" id="rate">1x</button>
+        <button id="mute" title="Sound"><svg viewBox="0 0 24 24" fill="currentColor" id="mute-icon"><path d="M4 9h3l5-4v14l-5-4H4zM16 8.5a4.5 4.5 0 010 7"/></svg></button>
       </div>
       <input type="range" class="scrub" id="scrub" min="0" max="1000" value="0">
       <div class="pad" style="margin-top:14px">
-        <div class="rowb"><h2 id="res-title"></h2><span class="micro" id="res-grade" style="color:var(--accent)"></span></div>
+        <div class="rowb">
+          <h2 id="res-title" style="cursor:pointer" title="Rename"></h2>
+          <span class="micro" id="res-grade" style="color:var(--accent)"></span>
+        </div>
         <div class="sev card" style="margin-top:7px;display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink2)">
           <span class="dot" id="res-dot"></span><span id="res-verdict"></span>
         </div>
         <div class="stats" id="res-stats"></div>
         <h2 style="margin:28px 0 14px" id="res-head">Work on this</h2>
         <div id="findings"></div>
+        <button class="go" style="margin-top:12px" id="res-sent">Mark sent</button>
       </div>
     </div>
 
@@ -383,7 +408,24 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
         </div>
         <p class="body" style="margin-top:4px"><span id="route-sub"></span></p>
         <div class="stats" id="route-stats"></div>
-        <p class="body dim" style="margin-top:18px;font-size:13px">Read from the shape of the holds in your photo, and nothing else. Trace cannot see hold types, how good a hold is, or how steep the wall is, so this is the line rather than the beta.</p>
+        <div class="linecard">
+          <div class="rowb">
+            <h2 style="font-size:22px">The line</h2>
+            <div class="glyphs-row">
+              <button class="gbtn on" id="t-outlines" title="Outlines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="4 3"><rect x="4" y="4" width="16" height="16" rx="3"/></svg></button>
+              <button class="gbtn on" id="t-numbers" title="Numbers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9h12M6 15h12M10 4L8 20M16 4l-2 16"/></svg></button>
+              <button class="gbtn on" id="t-shown" title="Show the line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
+            </div>
+          </div>
+          <button class="climbit" id="climb-it" disabled>
+            <svg viewBox="0 0 64 64" fill="currentColor"><path d="M38 6c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6 2.7-6 6-6zM24 22l12-3 10 7 8 3-2 6-10-4-4 3 8 9 2 15-7 1-2-13-11-9-6 12-11 7-4-6 9-6 5-11-5 2-5 9-6-3 6-12 13-7z"/></svg>
+            Climb it
+          </button>
+          <p class="body" id="route-line" style="margin-top:14px"></p>
+          <p class="body dim" style="font-size:13px">Read from the shape of the holds in your photo, and nothing else. Trace cannot see hold types, how good a hold is, or how steep the wall is, so this is the line rather than the beta.</p>
+        </div>
+        <button class="go" style="margin-top:18px" id="route-sent">Mark sent</button>
+        <button class="danger" id="route-delete">Delete this route</button>
       </div>
     </div>
 
@@ -414,6 +456,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
         <p class="body" style="margin-top:6px" id="gym-counts">No routes yet</p>
         <h2 style="font-size:22px;margin-top:32px">Routes scanned here</h2>
         <p class="body dim" id="gym-empty" style="margin-top:10px">Nothing scanned here yet. Photograph a wall. Trace reads the route colors on it and saves the one you pick to Central Rock Watertown.</p>
+        <button class="go" id="gym-scan" style="margin-top:14px">Scan a route here</button>
         <div class="lib" id="gym-routes" style="padding-left:0;padding-right:0"></div>
         <h2 style="font-size:22px;margin-top:32px">Climbs attempted</h2>
         <p class="body dim" id="gym-noclimbs" style="margin-top:10px">Nothing here yet.</p>
@@ -489,15 +532,24 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:22px 0}
         <button class="back" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button>
       </div>
       <div class="pad" style="margin-top:16px">
-        <div class="rowb"><h2 id="climb-title"></h2><span class="micro" id="climb-grade" style="color:var(--accent)"></span></div>
-        <p class="body" style="margin-top:4px">Central Rock Watertown</p>
+        <div class="rowb">
+          <h2 id="climb-title" style="cursor:pointer" title="Rename"></h2>
+          <span class="micro" id="climb-grade" style="color:var(--accent)"></span>
+        </div>
+        <div class="rowb" style="margin-top:6px">
+          <p class="body" style="margin:0">Central Rock Watertown</p>
+          <button class="link" data-go="gym">Change</button>
+        </div>
         <div class="sev" style="margin-top:8px;display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink2)">
           <span class="dot" id="climb-dot"></span><span id="climb-verdict"></span></div>
         <div class="stats" id="climb-stats"></div>
         <h2 style="font-size:22px;margin:28px 0 12px">Attempts</h2>
         <div id="climb-attempts"></div>
+        <h2 style="font-size:22px;margin:28px 0 12px">Movement analysis</h2>
+        <div class="stats" id="climb-movement" style="margin-top:0"></div>
         <h2 style="font-size:22px;margin:28px 0 12px">What the movement showed</h2>
         <div id="climb-showed"></div>
+        <button class="danger" style="margin-top:14px" id="climb-delete">Delete this route</button>
       </div>
     </div>
 
@@ -766,38 +818,43 @@ function findings(m, frames) {
   const out = [];
   const begin = frames.length ? frames[0].time : 0;
   const whole = { start: begin, end: begin + m.duration };
-  const add = (rank, kind, message, instead, w) =>
-    out.push({ rank, severity: SEVERITY[rank], kind, message, instead, ...(w ?? whole) });
+  const add = (rank, kind, message, instead, drill, w) =>
+    out.push({ rank, severity: SEVERITY[rank], kind, message, instead, drill, ...(w ?? whole) });
 
   if (m.staticElbowAngle < BENT_ARMS_BELOW) {
     const a = m.staticElbowAngle;
     add(a < 90 ? 4 : a < 105 ? 3 : a < 120 ? 2 : 1, 'Bent arms while static',
       `Your arms sat at about ${Math.round(a)} degrees while you were still.`,
       'Hang between moves with your arms nearly straight and your shoulders engaged, not sagging. Bend them only to pull.',
+      'Straight-arm traverse. Climb an easy traverse with your elbows never bending past 150 degrees.',
       worstStaticElbowWindow(frames));
   }
   if (m.moveWaste != null && m.moveWaste > WANDERING_ABOVE) {
     const w = m.moveWaste;
     add(w > 0.50 ? 3 : w > 0.38 ? 2 : 1, 'The long way between moves',
       `Between moves your hips drifted: about ${Math.round(w*100)} percent of the distance they covered was sideways or back, not toward the next hold.`,
-      'Go straight to the next hold instead of setting off and correcting.');
+      'Go straight to the next hold instead of setting off and correcting.',
+      'Climb it again and get from each position to the next in one movement, rather than setting off and correcting.');
   }
   if (m.pauseTotal > m.duration*0.35 && m.pauseCount >= 2) {
     add(m.pauseTotal > m.duration*0.6 ? 3 : 2, 'Reading the route while hanging on it',
       `You spent ${Math.round(m.pauseTotal)} of ${Math.round(m.duration)} seconds not moving, across ${m.pauseCount} stops.`,
-      'Read the next two moves from a rest, not while hanging on.');
+      'Read the next two moves from a rest, not while hanging on.',
+      'Read the whole sequence from the ground, miming the hand moves, then climb it without stopping.');
   }
   if (m.swingTotal > 1.0) {
     const s = Math.round(m.swingTotal);
     add(m.swingTotal > 4 ? 3 : m.swingTotal > 2 ? 2 : 1, 'Hanging outside your contacts',
       `For ${s} second${s===1?'':'s'} your weight hung outside your hands and feet rather than between them.`,
-      'Find the second force. Put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving.');
+      'Find the second force. Put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving.',
+      'Find the second force. Before the reach, put a foot out on the side you are about to swing toward, or press into a hold with the hand that is not moving. A flag is not for balance, it is the other half of a pair.');
   }
   const perMinute = m.duration > 0 ? m.footAdjustments / (m.duration/60) : 0;
   if (m.footAdjustments >= 3 && perMinute > 8) {
     add(perMinute > 24 ? 3 : perMinute > 14 ? 2 : 1, 'Imprecise feet',
       `You repositioned a foot after placing it ${m.footAdjustments} times in ${Math.round(m.duration)} seconds.`,
-      'Look at the foothold until your shoe is on it, then leave it there.');
+      'Look at the foothold until your shoe is on it, then leave it there.',
+      'Silent feet. Slow down as you approach the foothold, hover your toe over it for a second, then place it once: no noise, no scuff, no adjusting.');
   }
   return out.sort((a,b) => b.rank - a.rank);
 }
@@ -1004,6 +1061,7 @@ function drawOverlay() {
 (function loop(){ drawOverlay(); requestAnimationFrame(loop); })();
 
 function openClimb(i) {
+  currentCard = i;
   current = library[i];
   vid.src = current.src;
   go('results');
@@ -1030,6 +1088,7 @@ function openClimb(i) {
        the wall for most of the climb, or someone crossed the frame.</p>`;
     return;
   }
+  $('#res-sent').textContent = current.sent ? 'Mark unsent' : 'Mark sent';
   $('#res-head').textContent = current.findings.length ? 'Work on this' : 'That was clean';
   $('#findings').innerHTML = current.findings.length ? '' :
     `<p class="body">No leak crossed the threshold worth mentioning. Climb it again and see whether it gets
@@ -1045,8 +1104,28 @@ function openClimb(i) {
         <h3>${f.kind}</h3>
         <p class="msg">${f.message}</p>
         <div class="instead"><span class="arrow">&#8627;</span><span>${f.instead}</span></div>
+        <div class="helpful">
+          <span>Helpful?</span>
+          <button class="thumb up" title="Yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 11v9H4v-9h3zm3 0l4-7a2 2 0 013 2l-1 5h4a2 2 0 012 2.3l-1.2 6A2 2 0 0118.8 20H10z"/></svg></button>
+          <button class="thumb down" title="No"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 13V4H4v9h3zm3 0l4 7a2 2 0 003-2l-1-5h4a2 2 0 002-2.3l-1.2-6A2 2 0 0018.8 4H10z"/></svg></button>
+        </div>
+        <button class="drillrow">What to do about it <span class="chev">&#8964;</span></button>
+        <p class="drill hide">${f.drill}</p>
       </div>`;
-    el.onclick = async () => { vid.pause(); setPlayIcon(false); await seekTo(vid, f.start); drawOverlay(); $('#app').scrollTop = 0; };
+    el.onclick = async e => {
+      if (e.target.closest('.thumb') || e.target.closest('.drillrow')) return;
+      vid.pause(); setPlayIcon(false); await seekTo(vid, f.start); drawOverlay(); $('#app').scrollTop = 0;
+    };
+    el.querySelectorAll('.thumb').forEach(t => t.onclick = () => {
+      const was = t.classList.contains('on');
+      el.querySelectorAll('.thumb').forEach(o => o.classList.remove('on'));
+      t.classList.toggle('on', !was);
+    });
+    const drillRow = el.querySelector('.drillrow'), drill = el.querySelector('.drill');
+    drillRow.onclick = () => {
+      const open = drill.classList.toggle('hide');
+      drillRow.querySelector('.chev').textContent = open ? '\u2304' : '\u2303';
+    };
     $('#findings').appendChild(el);
     if (k === 0) drawStill(el.querySelector('.still'), f);
     else el.querySelector('.still').remove();
@@ -1090,6 +1169,34 @@ $('#play').onclick = () => {
 };
 $('#back1').onclick = () => { vid.currentTime = Math.max(0, vid.currentTime - 1); };
 $('#fwd1').onclick = () => { vid.currentTime = Math.min(vid.duration, vid.currentTime + 1); };
+/* A deadpoint is over in tens of milliseconds, so full speed is the wrong
+   speed for most of what this screen points at. */
+const RATES = [1, 0.5, 0.25];
+$('#rate').onclick = function () {
+  const next = RATES[(RATES.indexOf(vid.playbackRate) + 1) % RATES.length];
+  vid.playbackRate = next;
+  this.textContent = next + 'x';
+};
+$('#stepb').onclick = () => { vid.pause(); setPlayIcon(false); vid.currentTime = Math.max(0, vid.currentTime - 1/30); };
+$('#stepf').onclick = () => { vid.pause(); setPlayIcon(false); vid.currentTime = Math.min(vid.duration, vid.currentTime + 1/30); };
+$('#mute').onclick = function () {
+  vid.muted = !vid.muted;
+  this.style.opacity = vid.muted ? '.4' : '1';
+};
+$('#mute').style.opacity = '.4';
+$('#res-title').onclick = () => {
+  const name = prompt('Rename climb', library[currentCard]?.label ?? '');
+  if (name && library[currentCard]) {
+    library[currentCard].label = name.trim();
+    $('#res-title').textContent = name.trim();
+    renderLibrary();
+  }
+};
+$('#res-sent').onclick = function () {
+  const c = library[currentCard]; if (!c) return;
+  c.sent = !c.sent;
+  this.textContent = c.sent ? 'Mark unsent' : 'Mark sent';
+};
 $('#scrub').oninput = e => { if (vid.duration) vid.currentTime = vid.duration * e.target.value/1000; };
 vid.addEventListener('timeupdate', () => {
   if (!vid.duration) return;
@@ -1358,28 +1465,76 @@ $('#file-photo').onchange = e => { if (e.target.files[0]) loadWall(URL.createObj
 $('#scan-reset').onclick = () => { chosen = -1; lastTap = null; drawWall(); renderScan(); };
 
 /* ════════════════ Saving a route ════════════════ */
-$('#save-route').onclick = () => {
-  if (chosen < 0) return;
-  const r = routes[chosen];
-  const W = wallCanvas.width, H = wallCanvas.height;
-  routeCanvas.width = W; routeCanvas.height = H;
+let savedRoute = null;
+const lineOpts = { outlines: true, numbers: true, shown: true };
+
+/* Holds in the order they are met: bottom to top, always. */
+function drawRoute() {
+  if (!savedRoute) return;
+  const { base, blobs, hex } = savedRoute;
+  routeCanvas.width = base.width; routeCanvas.height = base.height;
   const c = routeCanvas.getContext('2d');
-  c.putImageData(wallImage, 0, 0);
-  // Holds in the order they are met: bottom to top, always.
-  const order = r.blobs.slice().sort((a, b) => b.cy - a.cy);
+  c.putImageData(base, 0, 0);
+  if (!lineOpts.shown) return;
+  const order = blobs.slice().sort((a, b) => b.cy - a.cy);
+  if (lineOpts.outlines) for (const b of blobs) {
+    if (b.hull.length < 3) continue;
+    for (const pass of [0, 1]) {
+      c.beginPath();
+      b.hull.forEach(([x, y], k) => k ? c.lineTo(x, y) : c.moveTo(x, y));
+      c.closePath();
+      c.lineWidth = pass === 0 ? 5 : 2.2;
+      c.strokeStyle = pass === 0 ? 'rgba(255,255,255,.92)' : hex;
+      c.stroke();
+    }
+  }
   c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 3;
   c.beginPath();
   order.forEach((b, i) => i ? c.lineTo(b.cx, b.cy) : c.moveTo(b.cx, b.cy));
   c.stroke();
+  if (!lineOpts.numbers) return;
   order.forEach((b, i) => {
     c.beginPath(); c.arc(b.cx, b.cy, 13, 0, 7);
     c.fillStyle = '#fff'; c.fill();
-    c.lineWidth = 2.5; c.strokeStyle = r.hex; c.stroke();
+    c.lineWidth = 2.5; c.strokeStyle = hex; c.stroke();
     c.fillStyle = '#0F2C5C'; c.font = '600 15px ui-sans-serif, system-ui';
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(String(i+1), b.cx, b.cy + 1);
+    c.fillText(String(i + 1), b.cx, b.cy + 1);
   });
-  const name = $('#route-name').value.trim() || 'Untitled route';
+}
+[['#t-outlines','outlines'], ['#t-numbers','numbers'], ['#t-shown','shown']].forEach(([sel, key]) => {
+  $(sel).onclick = function () { lineOpts[key] = !lineOpts[key]; this.classList.toggle('on', lineOpts[key]); drawRoute(); };
+});
+$('#route-sent').onclick = function () {
+  if (!savedRoute) return;
+  savedRoute.sent = !savedRoute.sent;
+  this.textContent = savedRoute.sent ? 'Mark unsent' : 'Mark sent';
+  $('#route-stats').children[2].querySelector('.v').textContent = savedRoute.sent ? 'Sent' : 'Not yet';
+};
+$('#route-delete').onclick = () => {
+  const i = gymRoutes.findIndex(r => r.name === savedRoute?.name);
+  if (i >= 0) gymRoutes.splice(i, 1);
+  savedRoute = null;
+  back();
+};
+$('#gym-scan').onclick = () => noCamera('photo');
+$('#climb-delete').onclick = () => {
+  if (currentCard >= 0) library.splice(currentCard, 1);
+  renderLibrary(); back();
+};
+$('#climb-title').onclick = () => {
+  const c = library[currentCard]; if (!c) return;
+  const name = prompt('Rename climb', c.label);
+  if (name) { c.label = name.trim(); $('#climb-title').textContent = c.label; renderLibrary(); }
+};
+
+$('#save-route').onclick = () => {
+  if (chosen < 0) return;
+  const r = routes[chosen];
+  savedRoute = { base: wallImage, blobs: r.blobs, hex: r.hex, sent: false,
+                 name: $('#route-name').value.trim() || 'Untitled route' };
+  drawRoute();
+  const name = savedRoute.name;
   const grade = $('#route-grade').value.trim();
   $('#route-title').textContent = name;
   $('#route-sw').style.background = r.hex;
@@ -1387,6 +1542,9 @@ $('#save-route').onclick = () => {
   $('#route-stats').innerHTML = [
     [`${r.blobs.length}`, 'Holds'], [grade || '—', 'Grade'], ['Not yet', 'Sent'],
   ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  $('#route-sent').textContent = 'Mark sent';
+  $('#route-line').textContent =
+    `${r.blobs.length} holds, met bottom to top.`;
   gymRoutes.unshift({ name, grade, hex: r.hex, holds: r.blobs.length,
                       poster: routeCanvas.toDataURL('image/jpeg', 0.7) });
   go('route');
@@ -1484,6 +1642,11 @@ function openCard(i) {
     <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></span>`;
   row.onclick = () => openClimb(i);
   $('#climb-attempts').appendChild(row);
+  $('#climb-movement').innerHTML = [
+    [`${Math.round(m.staticElbowAngle)}°`, 'Bent arms'],
+    [m.moveWaste == null ? '—' : `${Math.round(m.moveWaste*100)}%`, 'Wandering'],
+    [`${m.footAdjustments}`, 'Foot resets'],
+  ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
   $('#climb-showed').innerHTML = c.findings.length
     ? c.findings.map(f => `<p class="body" style="margin-bottom:8px"><strong style="color:var(--ink)">${f.kind}.</strong> ${f.message}</p>`).join('')
     : `<p class="body">Nothing on this route crossed the threshold worth mentioning.</p>`;
