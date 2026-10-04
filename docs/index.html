@@ -1513,11 +1513,24 @@ $('#route-sent').onclick = function () {
   $('#route-stats').children[2].querySelector('.v').textContent = savedRoute.sent ? 'Sent' : 'Not yet';
 };
 $('#route-delete').onclick = () => {
-  const i = gymRoutes.findIndex(r => r.name === savedRoute?.name);
+  const i = gymRoutes.indexOf(savedRoute);
   if (i >= 0) gymRoutes.splice(i, 1);
   savedRoute = null;
   back();
 };
+function openRoute(r) {
+  savedRoute = r;
+  drawRoute();
+  $('#route-title').textContent = r.name;
+  $('#route-sw').style.background = r.hex;
+  $('#route-sub').textContent = [r.grade, 'Central Rock Watertown'].filter(Boolean).join(' · ');
+  $('#route-stats').innerHTML = [
+    [`${r.holds}`, 'Holds'], [r.grade || '—', 'Grade'], [r.sent ? 'Sent' : 'Not yet', 'Sent'],
+  ].map(([v, k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  $('#route-sent').textContent = r.sent ? 'Mark unsent' : 'Mark sent';
+  $('#route-line').textContent = `${r.holds} holds, met bottom to top.`;
+  go('route');
+}
 $('#gym-scan').onclick = () => noCamera('photo');
 $('#climb-delete').onclick = () => {
   if (currentCard >= 0) library.splice(currentCard, 1);
@@ -1532,23 +1545,14 @@ $('#climb-title').onclick = () => {
 $('#save-route').onclick = () => {
   if (chosen < 0) return;
   const r = routes[chosen];
-  savedRoute = { base: wallImage, blobs: r.blobs, hex: r.hex, sent: false,
-                 name: $('#route-name').value.trim() || 'Untitled route' };
-  drawRoute();
-  const name = savedRoute.name;
+  const name = $('#route-name').value.trim() || 'Untitled route';
   const grade = $('#route-grade').value.trim();
-  $('#route-title').textContent = name;
-  $('#route-sw').style.background = r.hex;
-  $('#route-sub').textContent = [grade, 'Central Rock Watertown'].filter(Boolean).join(' · ');
-  $('#route-stats').innerHTML = [
-    [`${r.blobs.length}`, 'Holds'], [grade || '—', 'Grade'], ['Not yet', 'Sent'],
-  ].map(([v,k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
-  $('#route-sent').textContent = 'Mark sent';
-  $('#route-line').textContent =
-    `${r.blobs.length} holds, met bottom to top.`;
-  gymRoutes.unshift({ name, grade, hex: r.hex, holds: r.blobs.length,
-                      poster: routeCanvas.toDataURL('image/jpeg', 0.7) });
-  go('route');
+  const entry = { name, grade, hex: r.hex, holds: r.blobs.length,
+                  base: wallImage, blobs: r.blobs, sent: false, poster: '' };
+  savedRoute = entry; drawRoute();
+  entry.poster = routeCanvas.toDataURL('image/jpeg', 0.7);
+  gymRoutes.unshift(entry);
+  openRoute(entry);
   navStack.length = 0; navStack.push('home', 'gym');
 };
 
@@ -1566,11 +1570,17 @@ function renderGym() {
     ? `${gymRoutes.length} route${gymRoutes.length === 1 ? '' : 's'} · ${sent} sent`
     : 'No routes yet';
   $('#gym-empty').classList.toggle('hide', gymRoutes.length > 0);
-  $('#gym-routes').innerHTML = gymRoutes.map(r => `
-    <div class="card"><div class="thumb"><img src="${r.poster}" alt=""></div>
+  $('#gym-routes').innerHTML = '';
+  gymRoutes.forEach(r => {
+    const el = document.createElement('button');
+    el.className = 'card';
+    el.innerHTML = `<div class="thumb"><img src="${r.poster}" alt=""></div>
       <h3>${r.name}</h3>
       <div class="sev"><span class="dot" style="background:${r.hex};border-radius:3px"></span>${r.grade || '—'}</div>
-      <div class="meta">${r.holds} holds</div></div>`).join('');
+      <div class="meta">${r.holds} holds${r.sent ? ' · sent' : ''}</div>`;
+    el.onclick = () => openRoute(r);
+    $('#gym-routes').appendChild(el);
+  });
   $('#gym-noclimbs').classList.toggle('hide', library.length > 0);
   $('#gym-climbs').innerHTML = library.map(c => {
     const top = c.findings[0];
