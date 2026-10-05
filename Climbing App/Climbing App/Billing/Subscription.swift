@@ -30,7 +30,13 @@ final class Subscription: ObservableObject {
         case monthly = "co.traceclimb.pro.monthly"
 
         var id: String { rawValue }
-        var title: String { self == .yearly ? "Yearly" : "Monthly" }
+
+        /// The subscription's own name, as App Store Connect carries it.
+        ///
+        /// Guideline 3.1.2(c) asks for the title of the auto-renewing
+        /// subscription on the screen that sells it. "Yearly" is the billing
+        /// period, not the title, so the row now names the product.
+        var title: String { self == .yearly ? "Trace Pro, yearly" : "Trace Pro, monthly" }
     }
 
     static var productIDs: [String] { Plan.allCases.map(\.rawValue) }
