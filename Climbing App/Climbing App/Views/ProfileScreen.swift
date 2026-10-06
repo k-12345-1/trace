@@ -284,8 +284,12 @@ struct SubscriptionScreen: View {
 
                     VStack(spacing: 12) {
                         if !billing.isPro {
+                            // The same three the paywall and the Terms name.
+                            // This card used to promise one scan and unlimited
+                            // climbs, which is neither what the code does nor
+                            // what the other two screens say.
                             card("What the free plan includes",
-                                 "One route scan, and every climb you record or import analyzed in full. Nothing you have already done is ever taken away.")
+                                 "Your first three goes, and a go is anything that gives you feedback: a climb recorded, a clip imported, or a wall scanned. Nothing you have already done is ever taken away.")
                             Button { showPaywall = true } label: {
                                 Text("See Trace Pro")
                                     .font(Theme.ui(16, .semibold))

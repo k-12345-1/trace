@@ -53,3 +53,21 @@ struct SubscriptionMetadataTests {
         #expect(!Subscription.isComped(""))
     }
 }
+
+/// What the app promises the free plan is, in the three places it says so.
+///
+/// App Review checks that a subscription's description matches what the app
+/// actually does. The Subscription screen used to promise one scan and every
+/// climb analyzed, which was neither the code nor the Terms.
+@Suite("The free plan")
+struct FreePlanTests {
+    @Test("Three goes, and a go is anything that gives feedback")
+    @MainActor
+    func threeGoes() {
+        #expect(Store.freeAnalyses == 3)
+        let store = Store.shared
+        // A scan and a climb cost the same thing: one of the three.
+        #expect(store.freeAnalysesLeft <= Store.freeAnalyses)
+        #expect(store.needsPro == (store.freeAnalysesLeft == 0))
+    }
+}
